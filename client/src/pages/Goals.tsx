@@ -1,17 +1,31 @@
 import { useState, useEffect } from 'react';
-import { Card, Button, Badge } from '../components/ui';
+import { Card, Button, Badge, Modal, Input, Select } from '../components/ui';
 import Footer from '../components/Footer';
 import { 
   getUserProfile, 
   getUserStats,
+  saveUserProfile,
   UserProfile,
-  UserStats
+  UserStats,
+  IntermediateGoal
 } from '../services/firestore';
 
 export default function Goals() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<IntermediateGoal | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [goalForm, setGoalForm] = useState({
+    title: '',
+    targetAmount: '',
+    currentAmount: '',
+    targetDate: '',
+    status: 'Not Started',
+    description: ''
+  });
+
   // Load profile and stats on component mount
   useEffect(() => {
     const loadData = async () => {
@@ -33,7 +47,99 @@ export default function Goals() {
     loadData();
   }, []);
 
+  const openAddModal = () => {
+    setEditingGoal(null);
+    setGoalForm({
+      title: '',
+      targetAmount: '',
+      currentAmount: '',
+      targetDate: '',
+      status: 'Not Started',
+      description: ''
+    });
+    setShowModal(true);
+  };
 
+  const openEditModal = (goal: IntermediateGoal) => {
+    setEditingGoal(goal);
+    setGoalForm({
+      title: goal.title,
+      targetAmount: goal.targetAmount.toString(),
+      currentAmount: goal.currentAmount.toString(),
+      targetDate: goal.targetDate || '',
+      status: goal.status,
+      description: goal.description || ''
+    });
+    setShowModal(true);
+  };
+
+  const handleSaveGoal = async () => {
+    if (!profile || !goalForm.title || !goalForm.targetAmount) return;
+
+    try {
+      setSaving(true);
+      
+      const newGoal: IntermediateGoal = {
+        id: editingGoal?.id || Date.now().toString(),
+        title: goalForm.title,
+        targetAmount: parseFloat(goalForm.targetAmount) || 0,
+        currentAmount: parseFloat(goalForm.currentAmount) || 0,
+        targetDate: goalForm.targetDate || '',
+        status: goalForm.status as 'Not Started' | 'In Progress' | 'Completed',
+        description: goalForm.description || undefined
+      };
+
+      let updatedGoals = [...(profile.intermediateGoals || [])];
+      
+      if (editingGoal) {
+        // Update existing goal
+        const index = updatedGoals.findIndex(g => g.id === editingGoal.id);
+        if (index !== -1) {
+          updatedGoals[index] = newGoal;
+        }
+      } else {
+        // Add new goal
+        updatedGoals.push(newGoal);
+      }
+
+      const updatedProfile = {
+        ...profile,
+        intermediateGoals: updatedGoals
+      };
+
+      await saveUserProfile(updatedProfile);
+      setProfile(updatedProfile);
+      setShowModal(false);
+      
+    } catch (error) {
+      console.error('Error saving goal:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteGoal = async (goalId: string) => {
+    if (!profile) return;
+
+    try {
+      setSaving(true);
+      
+      const updatedGoals = (profile.intermediateGoals || []).filter(g => g.id !== goalId);
+      const updatedProfile = {
+        ...profile,
+        intermediateGoals: updatedGoals
+      };
+
+      await saveUserProfile(updatedProfile);
+      setProfile(updatedProfile);
+      setShowModal(false);
+      
+    } catch (error) {
+      console.error('Error deleting goal:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const calculateProgress = () => {
     if (!profile?.financialGoal?.targetAmount || !stats?.netWorth) return 0;
@@ -210,7 +316,7 @@ export default function Goals() {
               <div>
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-xl font-semibold text-surface-900">Intermediate Goals</h3>
-                  <Button onClick={() => window.location.href = '/profile'} size="sm">
+                  <Button onClick={openAddModal} size="sm">
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
@@ -224,9 +330,20 @@ export default function Goals() {
                     <Card key={goal.id || index} className="p-4">
                       <div className="flex justify-between items-start mb-3">
                         <h4 className="font-semibold text-surface-900">{goal.title}</h4>
-                        <Badge variant={goal.status === 'Completed' ? 'success' : goal.status === 'In Progress' ? 'primary' : 'neutral' as any} size="sm">
-                          {goal.status}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={goal.status === 'Completed' ? 'success' : goal.status === 'In Progress' ? 'primary' : 'neutral' as any} size="sm">
+                            {goal.status}
+                          </Badge>
+                          <button
+                            onClick={() => openEditModal(goal)}
+                            className="text-surface-400 hover:text-surface-600 transition-colors"
+                            title="Edit goal"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                       
                       <div className="mb-3">
@@ -262,13 +379,19 @@ export default function Goals() {
                           </div>
                         )}
                       </div>
+
+                      {goal.description && (
+                        <div className="mt-2 pt-2 border-t">
+                          <p className="text-xs text-surface-600">{goal.description}</p>
+                        </div>
+                      )}
                     </Card>
                   ))}
 
                   {/* Add New Goal Card */}
                   <div 
                     className="p-4 border-2 border-dashed border-surface-300 hover:border-primary-300 transition-colors cursor-pointer bg-white rounded-lg shadow-sm"
-                    onClick={() => window.location.href = '/profile'}
+                    onClick={openAddModal}
                   >
                     <div className="flex flex-col items-center justify-center h-full min-h-[120px] text-center">
                       <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center mb-3">
@@ -384,6 +507,96 @@ export default function Goals() {
       </div>
       
       <Footer />
+
+      {showModal && (
+        <Modal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          title={editingGoal ? 'Edit Goal' : 'Add New Goal'}
+        >
+          <div className="space-y-4">
+            <Input
+              label="Goal Title"
+              value={goalForm.title}
+              onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })}
+              placeholder="e.g., Emergency Fund, Vacation, New Car"
+            />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Target Amount ($)"
+                type="number"
+                value={goalForm.targetAmount}
+                onChange={(e) => setGoalForm({ ...goalForm, targetAmount: e.target.value })}
+                placeholder="10000"
+              />
+              <Input
+                label="Current Amount ($)"
+                type="number"
+                value={goalForm.currentAmount}
+                onChange={(e) => setGoalForm({ ...goalForm, currentAmount: e.target.value })}
+                placeholder="0"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Target Date"
+                type="date"
+                value={goalForm.targetDate}
+                onChange={(e) => setGoalForm({ ...goalForm, targetDate: e.target.value })}
+              />
+              <Select
+                label="Status"
+                value={goalForm.status}
+                onChange={(e) => setGoalForm({ ...goalForm, status: e.target.value as 'Not Started' | 'In Progress' | 'Completed' })}
+                options={[
+                  { value: 'Not Started', label: 'Not Started' },
+                  { value: 'In Progress', label: 'In Progress' },
+                  { value: 'Completed', label: 'Completed' }
+                ]}
+              />
+            </div>
+            
+            <Input
+              label="Description (Optional)"
+              value={goalForm.description}
+              onChange={(e) => setGoalForm({ ...goalForm, description: e.target.value })}
+              placeholder="Brief description of this goal..."
+            />
+          </div>
+          
+          <div className="flex justify-between items-center mt-6 pt-4 border-t">
+            <div>
+              {editingGoal && (
+                <Button 
+                  onClick={() => handleDeleteGoal(editingGoal.id || '')} 
+                  disabled={saving} 
+                  variant="outline"
+                  className="text-red-600 border-red-300 hover:bg-red-50"
+                >
+                  {saving ? 'Deleting...' : 'Delete Goal'}
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => setShowModal(false)} 
+                variant="outline"
+                disabled={saving}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSaveGoal} 
+                disabled={saving || !goalForm.title || !goalForm.targetAmount}
+              >
+                {saving ? 'Saving...' : editingGoal ? 'Update Goal' : 'Add Goal'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 } 
