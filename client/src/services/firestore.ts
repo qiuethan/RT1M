@@ -1,5 +1,5 @@
 import { httpsCallable } from 'firebase/functions';
-import { functions, auth } from '../config/firebase';
+import { functions } from '../config/firebase';
 
 // Basic Information Interface
 export interface BasicInfo {
@@ -21,8 +21,18 @@ export interface FinancialInfo {
 // Financial Goal Interface
 export interface FinancialGoal {
   targetAmount: number;
-  targetAge: number;
   targetYear: number;
+}
+
+// Intermediate Goal Interface
+export interface IntermediateGoal {
+  id?: string;
+  title: string;
+  targetAmount: number;
+  targetDate: string;
+  status: 'Not Started' | 'In Progress' | 'Completed';
+  currentAmount: number;
+  description?: string;
 }
 
 // Education History Interface
@@ -54,6 +64,7 @@ export interface UserProfile {
   basicInfo: BasicInfo;
   financialInfo: FinancialInfo;
   financialGoal: FinancialGoal;
+  intermediateGoals: IntermediateGoal[];
   educationHistory: EducationEntry[];
   experience: ExperienceEntry[];
   skillsAndInterests: SkillsAndInterests;
@@ -112,15 +123,7 @@ const handleFunctionCall = async (callableFn: any, data?: any): Promise<any> => 
   }
 };
 
-// Helper function to parse user profile dates from ISO strings
-const parseUserProfile = (data: any): UserProfile | null => {
-  if (!data) return null;
-  return {
-    ...data,
-    createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
-    updatedAt: data.updatedAt ? new Date(data.updatedAt) : new Date(),
-  };
-};
+
 
 // Helper function to parse goals from ISO strings
 const parseGoal = (data: any): Goal => {
@@ -144,23 +147,22 @@ export const cleanupUserData = async () => {
 // Statistics
 export const getUserStats = async (): Promise<UserStats> => {
   const response: any = await handleFunctionCall(getUserStatsFn);
-  const stats = response.data;
   
   return {
-    financialInfo: stats.financialInfo,
-    netWorth: stats.netWorth,
+    financialInfo: response.financialInfo,
+    netWorth: response.netWorth,
   };
 };
 
 // Profile Operations
 export const getUserProfile = async (): Promise<UserProfile | null> => {
   const response: any = await handleFunctionCall(getUserProfileFn);
-  if (!response.data) return null;
+  if (!response) return null;
   
   return {
-    ...response.data,
-    createdAt: response.data.createdAt ? new Date(response.data.createdAt) : new Date(),
-    updatedAt: response.data.updatedAt ? new Date(response.data.updatedAt) : new Date(),
+    ...response,
+    createdAt: response.createdAt ? new Date(response.createdAt) : new Date(),
+    updatedAt: response.updatedAt ? new Date(response.updatedAt) : new Date(),
   };
 };
 
@@ -175,7 +177,7 @@ export const updateUserProfileSection = async (section: string, data: any) => {
 // Goal Operations
 export const getUserGoals = async (): Promise<Goal[]> => {
   const response: any = await handleFunctionCall(getUserGoalsFn);
-  return response.data.map(parseGoal);
+  return response.data ? response.data.map(parseGoal) : [];
 };
 
 export const addGoal = async (goalData: {

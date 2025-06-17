@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Card, Button } from '../components/ui';
+import { Card, Button, Badge } from '../components/ui';
 import Footer from '../components/Footer';
 import { 
   getUserStats, 
-  updateProgressTarget,
-  UserStats 
+  getUserProfile,
+  UserStats,
+  UserProfile 
 } from '../services/firestore';
 
 export const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
   const [stats, setStats] = useState<UserStats | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Load dashboard data
@@ -20,8 +22,12 @@ export const Dashboard: React.FC = () => {
       
       try {
         setLoading(true);
-        const statsData = await getUserStats();
+        const [statsData, profileData] = await Promise.all([
+          getUserStats(),
+          getUserProfile()
+        ]);
         setStats(statsData);
+        setProfile(profileData);
       } catch (error) {
         console.error('Error loading dashboard data:', error);
       } finally {
@@ -32,16 +38,7 @@ export const Dashboard: React.FC = () => {
     loadDashboardData();
   }, [currentUser]);
 
-  const handleUpdateTarget = async (newTarget: number) => {
-    try {
-      await updateProgressTarget(newTarget);
-      // Refresh stats
-      const statsData = await getUserStats();
-      setStats(statsData);
-    } catch (error) {
-      console.error('Error updating target:', error);
-    }
-  };
+
 
   if (loading) {
     return (
@@ -54,8 +51,8 @@ export const Dashboard: React.FC = () => {
     );
   }
 
-  const currentAmount = stats?.userProgress?.currentAmount || 0;
-  const targetAmount = stats?.userProgress?.targetAmount ?? 1000000;
+  const currentAmount = stats?.netWorth || 0;
+  const targetAmount = profile?.financialGoal?.targetAmount ?? 1000000;
   const progressPercentage = targetAmount > 0 ? (currentAmount / targetAmount) * 100 : 0;
 
   return (
@@ -111,21 +108,123 @@ export const Dashboard: React.FC = () => {
           </div>
         </Card>
 
+        {/* Intermediate Goals */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-semibold text-surface-900">Your Intermediate Goals</h2>
+            <Button onClick={() => window.location.href = '/goals'} variant="outline">
+              View All Goals
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Existing Goals */}
+            {profile?.intermediateGoals && profile.intermediateGoals.slice(0, 2).map((goal, index) => (
+              <Card key={goal.id || index} className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-lg font-semibold text-surface-900">{goal.title}</h3>
+                  <Badge variant={goal.status === 'Completed' ? 'success' : goal.status === 'In Progress' ? 'primary' : 'neutral' as any}>
+                    {goal.status}
+                  </Badge>
+                </div>
+                
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium text-surface-700">Progress</span>
+                    <span className="text-sm font-medium text-surface-700">
+                      {goal.targetAmount > 0 ? ((goal.currentAmount / goal.targetAmount) * 100).toFixed(1) : 0}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-surface-200 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-secondary-500 to-accent-500 h-2 rounded-full transition-all duration-300"
+                      style={{ 
+                        width: `${goal.targetAmount > 0 ? Math.min((goal.currentAmount / goal.targetAmount) * 100, 100) : 0}%` 
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div className="text-sm text-surface-600">
+                  ${goal.currentAmount.toLocaleString()} of ${goal.targetAmount.toLocaleString()}
+                </div>
+              </Card>
+            ))}
+
+            {/* Add New Goal Card */}
+            <div 
+              className="p-6 border-2 border-dashed border-surface-300 hover:border-primary-300 transition-colors cursor-pointer bg-white rounded-lg shadow-sm"
+              onClick={() => window.location.href = '/profile'}
+            >
+              <div className="flex flex-col items-center justify-center h-full min-h-[180px] text-center">
+                <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-surface-900 mb-2">
+                  Add New Goal
+                </h3>
+                <p className="text-sm text-surface-600">
+                  Set a new intermediate goal to track your progress
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           {/* Financial Overview */}
           <Card className="lg:col-span-2 p-6">
             <h3 className="text-xl font-semibold text-surface-900 mb-4">Financial Overview</h3>
-            <div className="text-center py-8">
-              <div className="text-6xl mb-4">💰</div>
-              <h4 className="text-lg font-semibold text-surface-900 mb-2">Net Worth Tracking</h4>
-              <p className="text-surface-600 mb-4">
-                Update your net worth in your profile to track progress toward your goal
-              </p>
-              <Button onClick={() => window.location.href = '/profile'} variant="outline">
-                Update Profile
-              </Button>
-            </div>
+            {profile?.financialInfo && (stats?.netWorth !== undefined) ? (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-lg font-bold text-green-700">
+                      ${profile.financialInfo.annualIncome.toLocaleString()}
+                    </div>
+                    <div className="text-sm text-green-600">Annual Income</div>
+                  </div>
+                  <div className="text-center p-4 bg-red-50 rounded-lg">
+                    <div className="text-lg font-bold text-red-700">
+                      ${profile.financialInfo.annualExpenses.toLocaleString()}
+                    </div>
+                    <div className="text-sm text-red-600">Annual Expenses</div>
+                  </div>
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-lg font-bold text-blue-700">
+                      ${profile.financialInfo.totalAssets.toLocaleString()}
+                    </div>
+                    <div className="text-sm text-blue-600">Total Assets</div>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <div className="text-lg font-bold text-purple-700">
+                      ${stats.netWorth.toLocaleString()}
+                    </div>
+                    <div className="text-sm text-purple-600">Net Worth</div>
+                  </div>
+                </div>
+                
+                <div className="text-center">
+                  <Button onClick={() => window.location.href = '/profile'} variant="outline">
+                    Update Financial Information
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-6xl mb-4">💰</div>
+                <h4 className="text-lg font-semibold text-surface-900 mb-2">Complete Your Financial Profile</h4>
+                <p className="text-surface-600 mb-4">
+                  Add your financial information to start tracking your progress toward your goal
+                </p>
+                <Button onClick={() => window.location.href = '/profile'} variant="outline">
+                  Complete Profile
+                </Button>
+              </div>
+            )}
           </Card>
 
           {/* Quick Actions */}

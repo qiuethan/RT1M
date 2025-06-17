@@ -64,19 +64,25 @@ export const createUserProfile = onCall(async (request) => {
 
       // Financial Information
       financialInfo: {
-        annualIncome: 50000,
-        annualExpenses: 35000,
-        totalAssets: 25000,
-        totalDebts: 5000,
-        currentSavings: 10000,
+        annualIncome: 0,
+        annualExpenses: 0,
+        totalAssets: 0,
+        totalDebts: 0,
+        currentSavings: 0,
       },
 
       // Financial Goal
       financialGoal: {
         targetAmount: 1000000,
-        targetAge: 65,
         targetYear: currentYear + 20,
       },
+
+      // Intermediate Goals
+      intermediateGoals: [
+        // Example: { title: "Emergency Fund", targetAmount: 10000,
+        // targetDate: "2025-12-31", status: "In Progress",
+        // currentAmount: 2500 }
+      ],
 
       // Education History
       educationHistory: [
@@ -263,9 +269,11 @@ export const getUserProfile = onCall(async (request) => {
       // Financial Goal
       financialGoal: userData.financialGoal || {
         targetAmount: 1000000,
-        targetAge: 65,
         targetYear: new Date().getFullYear() + 10,
       },
+
+      // Intermediate Goals
+      intermediateGoals: userData.intermediateGoals || [],
 
       // Education History
       educationHistory: userData.educationHistory || [],
