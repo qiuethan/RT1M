@@ -1,55 +1,70 @@
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { httpsCallable } from 'firebase/functions';
+import { functions, auth } from '../config/firebase';
 
-// Initialize Firebase Functions
-const functions = getFunctions();
+// Basic Information Interface
+export interface BasicInfo {
+  name: string;
+  email: string;
+  birthday: string;
+  employmentStatus: string;
+}
+
+// Financial Information Interface
+export interface FinancialInfo {
+  annualIncome: number;
+  annualExpenses: number;
+  totalAssets: number;
+  totalDebts: number;
+  currentSavings: number;
+}
+
+// Financial Goal Interface
+export interface FinancialGoal {
+  targetAmount: number;
+  targetAge: number;
+  targetYear: number;
+}
+
+// Education History Interface
+export interface EducationEntry {
+  school: string;
+  field: string;
+  graduationYear: string;
+}
+
+// Experience Interface
+export interface ExperienceEntry {
+  company: string;
+  position: string;
+  startYear: string;
+  endYear: string;
+  description: string;
+}
+
+// Skills & Interests Interface
+export interface SkillsAndInterests {
+  skills: string[];
+  interests: string[];
+}
 
 // User Profile Interface
 export interface UserProfile {
   id?: string;
   userId: string;
-  // Basic Information
-  birthday?: string;
-  employmentStatus?: string;
-  // Financial Information
-  income?: number;
-  expenses?: number;
-  currentSavings?: number;
-  assets?: number;
-  debts?: number;
-  // Financial Goal
-  targetAmount?: number;
-  targetAge?: number;
-  targetYear?: number;
-  // Education History
-  education?: Array<{
-    id: number;
-    school: string;
-    major: string;
-    graduationYear: string;
-  }>;
-  // Skills and Interests
-  skills?: string[];
+  basicInfo: BasicInfo;
+  financialInfo: FinancialInfo;
+  financialGoal: FinancialGoal;
+  educationHistory: EducationEntry[];
+  experience: ExperienceEntry[];
+  skillsAndInterests: SkillsAndInterests;
   createdAt: Date;
   updatedAt: Date;
 }
 
-// User Progress Interface
-export interface UserProgress {
-  id?: string;
-  userId: string;
-  currentAmount: number;
-  targetAmount: number;
-  goalDate?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// User Stats Interface (simplified without transactions)
+// User Stats Interface
 export interface UserStats {
-  userProgress: UserProgress | null;
-  totalIncome: number;
-  totalExpenses: number;
-  netAmount: number;
+  financialInfo: FinancialInfo | null;
+  netWorth: number;
 }
 
 // Goal Interface
@@ -66,26 +81,44 @@ export interface Goal {
   updatedAt: Date;
 }
 
+// Cloud Function Callable Instances - Following bounceback pattern
+const createUserProfileFn = httpsCallable(functions, 'createUserProfile');
+const getUserStatsFn = httpsCallable(functions, 'getUserStats');
+const getUserProfileFn = httpsCallable(functions, 'getUserProfile');
+const saveUserProfileFn = httpsCallable(functions, 'saveUserProfile');
+const updateUserProfileSectionFn = httpsCallable(functions, 'updateUserProfileSection');
+const getUserGoalsFn = httpsCallable(functions, 'getUserGoals');
+const addGoalFn = httpsCallable(functions, 'addGoal');
+const updateGoalFn = httpsCallable(functions, 'updateGoal');
+const deleteGoalFn = httpsCallable(functions, 'deleteGoal');
+const cleanupUserDataFn = httpsCallable(functions, 'cleanupUserData');
+const testCallableFn = httpsCallable(functions, 'testCallable');
+
 // Helper function to handle Firebase Functions responses
-const handleFunctionCall = async (functionName: string, data?: any): Promise<any> => {
+const handleFunctionCall = async (callableFn: any, data?: any): Promise<any> => {
   try {
-    const fn = httpsCallable(functions, functionName);
-    const result = await fn(data);
+    console.log(`Calling cloud function with data:`, data || 'no data');
+    const result = await callableFn(data);
+    console.log(`Cloud function response:`, result.data);
     return result.data;
   } catch (error: any) {
-    console.error(`Error calling ${functionName}:`, error);
-    throw new Error(error.message || `Failed to call ${functionName}`);
+    console.error(`Error calling cloud function:`, {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      fullError: error
+    });
+    throw new Error(error.message || `Failed to call cloud function`);
   }
 };
 
-// Helper function to parse dates from ISO strings
-const parseUserProgress = (data: any): UserProgress | null => {
+// Helper function to parse user profile dates from ISO strings
+const parseUserProfile = (data: any): UserProfile | null => {
   if (!data) return null;
   return {
     ...data,
     createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
     updatedAt: data.updatedAt ? new Date(data.updatedAt) : new Date(),
-    goalDate: data.goalDate ? new Date(data.goalDate) : undefined,
   };
 };
 
@@ -100,44 +133,28 @@ const parseGoal = (data: any): Goal => {
 };
 
 // User Profile Management
-export const createUserProfile = async () => {
-  return await handleFunctionCall('createUserProfile');
+export const createUserProfile = async (): Promise<any> => {
+  return await handleFunctionCall(createUserProfileFn);
 };
 
 export const cleanupUserData = async () => {
-  return await handleFunctionCall('cleanupUserData');
+  return await handleFunctionCall(cleanupUserDataFn);
 };
 
-// User Progress Operations
-export const getUserProgress = async (): Promise<UserProgress | null> => {
-  const response: any = await handleFunctionCall('getUserProgress');
-  return parseUserProgress(response.data);
-};
-
-export const updateUserProgress = async (progressId: string, updates: Partial<UserProgress>) => {
-  return await handleFunctionCall('updateUserProgress', { progressId, updates });
-};
-
-export const updateProgressTarget = async (targetAmount: number) => {
-  return await handleFunctionCall('updateProgressTarget', { targetAmount });
-};
-
-// Statistics (simplified without transactions)
+// Statistics
 export const getUserStats = async (): Promise<UserStats> => {
-  const response: any = await handleFunctionCall('getUserStats');
+  const response: any = await handleFunctionCall(getUserStatsFn);
   const stats = response.data;
   
   return {
-    userProgress: parseUserProgress(stats.userProgress),
-    totalIncome: stats.totalIncome,
-    totalExpenses: stats.totalExpenses,
-    netAmount: stats.netAmount,
+    financialInfo: stats.financialInfo,
+    netWorth: stats.netWorth,
   };
 };
 
 // Profile Operations
 export const getUserProfile = async (): Promise<UserProfile | null> => {
-  const response: any = await handleFunctionCall('getUserProfile');
+  const response: any = await handleFunctionCall(getUserProfileFn);
   if (!response.data) return null;
   
   return {
@@ -148,16 +165,16 @@ export const getUserProfile = async (): Promise<UserProfile | null> => {
 };
 
 export const saveUserProfile = async (profileData: Partial<UserProfile>) => {
-  return await handleFunctionCall('saveUserProfile', profileData);
+  return await handleFunctionCall(saveUserProfileFn, profileData);
 };
 
 export const updateUserProfileSection = async (section: string, data: any) => {
-  return await handleFunctionCall('updateUserProfileSection', { profileSection: section, data });
+  return await handleFunctionCall(updateUserProfileSectionFn, { profileSection: section, data });
 };
 
 // Goal Operations
 export const getUserGoals = async (): Promise<Goal[]> => {
-  const response: any = await handleFunctionCall('getUserGoals');
+  const response: any = await handleFunctionCall(getUserGoalsFn);
   return response.data.map(parseGoal);
 };
 
@@ -167,7 +184,7 @@ export const addGoal = async (goalData: {
   deadline: string;
   category?: string;
 }) => {
-  return await handleFunctionCall('addGoal', goalData);
+  return await handleFunctionCall(addGoalFn, goalData);
 };
 
 export const updateGoal = async (goalId: string, updates: Partial<Goal>) => {
@@ -176,12 +193,16 @@ export const updateGoal = async (goalId: string, updates: Partial<Goal>) => {
   if (updates.deadline) {
     updateData.deadline = updates.deadline.toISOString();
   }
-  return await handleFunctionCall('updateGoal', { goalId, updates: updateData });
+  return await handleFunctionCall(updateGoalFn, { goalId, updates: updateData });
 };
 
 export const deleteGoal = async (goalId: string) => {
-  return await handleFunctionCall('deleteGoal', { goalId });
+  return await handleFunctionCall(deleteGoalFn, { goalId });
 };
 
-// Legacy function names for backward compatibility
-export const updateUserProgressDirect = updateUserProgress; 
+// Test function for debugging
+export const testCallable = async () => {
+  return await handleFunctionCall(testCallableFn);
+};
+
+ 

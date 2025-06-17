@@ -7,153 +7,120 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-const {onCall, onRequest} = require("firebase-functions/v2/https");
-const logger = require("firebase-functions/logger");
-const admin = require("firebase-admin");
+import {onCall, onRequest} from "firebase-functions/v2/https";
+import {logger} from "firebase-functions";
+import admin from "firebase-admin";
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
 
 // Create user profile when a new user signs up
-exports.createUserProfile = onCall(async (request) => {
+export const createUserProfile = onCall(async (request) => {
+  logger.info("createUserProfile function called");
+  logger.info("Request auth details:", {
+    hasAuth: !!request.auth,
+    authData: request.auth ? {
+      uid: request.auth.uid,
+      email: request.auth.email,
+      displayName: request.auth.displayName,
+      token: request.auth.token ? "present" : "missing",
+    } : null,
+  });
+
   // Verify user is authenticated
   if (!request.auth) {
+    logger.error("Authentication failed: No request.auth found");
     throw new Error("User must be authenticated");
   }
 
+  if (!request.auth.uid) {
+    logger.error("Authentication failed: No UID found in request.auth");
+    throw new Error("User authentication incomplete - missing UID");
+  }
+
   try {
-    const {email, displayName, uid} = request.auth;
+    const uid = request.auth.uid;
+    const email = (request.auth.token && request.auth.token.email) ||
+      request.auth.email || "";
+    const displayName = (request.auth.token && request.auth.token.name) ||
+      request.auth.displayName || "";
+
+    logger.info(`Creating profile for user with UID: ${uid}, email: ${email}`);
     const db = admin.firestore();
     const batch = db.batch();
 
-    // Create user profile document
+    // Create user profile document with structured data
+    const currentYear = new Date().getFullYear();
     const userProfile = {
       userId: uid,
-      email: email,
-      displayName: displayName || "",
-      birthday: "",
-      employmentStatus: "",
-      income: 0,
-      expenses: 0,
-      currentSavings: 0,
-      assets: 0,
-      debts: 0,
-      targetAmount: 1000000,
-      targetAge: 65,
-      targetYear: new Date().getFullYear() + 10,
-      education: [],
-      skills: [],
+
+      // Basic Information
+      basicInfo: {
+        name: displayName,
+        email: email,
+        birthday: "",
+        employmentStatus: "Employed",
+      },
+
+      // Financial Information
+      financialInfo: {
+        annualIncome: 50000,
+        annualExpenses: 35000,
+        totalAssets: 25000,
+        totalDebts: 5000,
+        currentSavings: 10000,
+      },
+
+      // Financial Goal
+      financialGoal: {
+        targetAmount: 1000000,
+        targetAge: 65,
+        targetYear: currentYear + 20,
+      },
+
+      // Education History
+      educationHistory: [
+        // Example: { school: "", field: "", graduationYear: "" }
+      ],
+
+      // Experience
+      experience: [
+        // Example: { company: "", position: "", startYear: "",
+        // endYear: "", description: "" }
+      ],
+
+      // Skills & Interests
+      skillsAndInterests: {
+        skills: [],
+        interests: [],
+      },
+
+      // Metadata
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    const userProfileRef = db.collection("userProfiles").doc(uid);
+    const userProfileRef = db.collection("users").doc(uid)
+        .collection("profile").doc("data");
     batch.set(userProfileRef, userProfile);
 
-    // Create initial user progress document
-    const userProgress = {
-      userId: uid,
-      currentAmount: 0,
-      targetAmount: 1000000,
-      goalDate: null,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
-
-    const userProgressRef = db.collection("userProgress").doc();
-    batch.set(userProgressRef, userProgress);
-
-    // Commit both documents atomically
+    // Commit the profile document
     await batch.commit();
 
-    logger.info(`Created complete user profile and progress for 
-      ${email} with UID: ${uid}`);
-    return {success: true,
-      message: "User profile and progress created successfully"};
+    logger.info(`Created user profile for UID: ${uid}`);
+    return {
+      success: true,
+      message: "User profile created successfully",
+    };
   } catch (error) {
     logger.error("Error creating user profile:", error);
     throw new Error("Failed to create user profile");
   }
 });
 
-// Get user progress
-exports.getUserProgress = onCall(async (request) => {
-  if (!request.auth) {
-    throw new Error("User must be authenticated");
-  }
-
-  try {
-    const db = admin.firestore();
-    const userId = request.auth.uid;
-
-    const progressQuery = await db.collection("userProgress")
-        .where("userId", "==", userId).get();
-
-    if (progressQuery.empty) {
-      return {success: true, data: null};
-    }
-
-    const doc = progressQuery.docs[0];
-    const data = doc.data();
-
-    return {
-      success: true,
-      data: {
-        id: doc.id,
-        ...data,
-        createdAt: data.createdAt && data.createdAt.toDate ?
-          data.createdAt.toDate().toISOString() : null,
-        updatedAt: data.updatedAt && data.updatedAt.toDate ?
-          data.updatedAt.toDate().toISOString() : null,
-        goalDate: data.goalDate && data.goalDate.toDate ?
-          data.goalDate.toDate().toISOString() : null,
-      },
-    };
-  } catch (error) {
-    logger.error("Error getting user progress:", error);
-    throw new Error("Failed to get user progress");
-  }
-});
-
-// Update user progress
-exports.updateUserProgress = onCall(async (request) => {
-  if (!request.auth) {
-    throw new Error("User must be authenticated");
-  }
-
-  try {
-    const {progressId, updates} = request.data;
-    const userId = request.auth.uid;
-    const db = admin.firestore();
-
-    if (!progressId || !updates) {
-      throw new Error("Missing required fields");
-    }
-
-    // Verify the progress document belongs to the user
-    const progressDoc = await db.collection("userProgress")
-        .doc(progressId).get();
-    if (!progressDoc.exists || progressDoc.data().userId !== userId) {
-      throw new Error("Progress document not found or access denied");
-    }
-
-    // Update the document
-    await progressDoc.ref.update({
-      ...updates,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    logger.info(`Updated progress for user ${userId}`);
-    return {success: true, message: "Progress updated successfully"};
-  } catch (error) {
-    logger.error("Error updating user progress:", error);
-    throw new Error(error.message || "Failed to update user progress");
-  }
-});
-
 
 // Get user statistics
-exports.getUserStats = onCall(async (request) => {
+export const getUserStats = onCall(async (request) => {
   // Verify user is authenticated
   if (!request.auth) {
     throw new Error("User must be authenticated");
@@ -163,33 +130,32 @@ exports.getUserStats = onCall(async (request) => {
     const db = admin.firestore();
     const userId = request.auth.uid;
 
-    // Get user progress
-    const progressQuery = await db.collection("userProgress")
-        .where("userId", "==", userId).get();
-    let userProgress = null;
-    if (!progressQuery.empty) {
-      const doc = progressQuery.docs[0];
-      const data = doc.data();
-      userProgress = {
-        id: doc.id,
-        ...data,
-        createdAt: data.createdAt && data.createdAt.toDate ?
-          data.createdAt.toDate().toISOString() : null,
-        updatedAt: data.updatedAt && data.updatedAt.toDate ?
-          data.updatedAt.toDate().toISOString() : null,
-        goalDate: data.goalDate && data.goalDate.toDate ?
-          data.goalDate.toDate().toISOString() : null,
+    // Get user profile
+    const profileDoc = await db.collection("users").doc(userId)
+        .collection("profile").doc("data").get();
+
+    if (!profileDoc.exists) {
+      return {
+        success: true,
+        data: {
+          financialInfo: null,
+          netWorth: 0,
+        },
       };
     }
+
+    const userData = profileDoc.data();
+    const financialInfo = userData.financialInfo || {};
+
+    // Calculate net worth
+    const netWorth = (financialInfo.totalAssets || 0) -
+      (financialInfo.totalDebts || 0);
 
     return {
       success: true,
       data: {
-        userProgress,
-        // Simplified stats without transactions
-        totalIncome: 0,
-        totalExpenses: 0,
-        netAmount: userProgress ? userProgress.currentAmount : 0,
+        financialInfo: financialInfo,
+        netWorth: netWorth,
       },
     };
   } catch (error) {
@@ -200,7 +166,7 @@ exports.getUserStats = onCall(async (request) => {
 
 
 // Clean up user data when account is deleted
-exports.cleanupUserData = onCall(async (request) => {
+export const cleanupUserData = onCall(async (request) => {
   if (!request.auth) {
     throw new Error("User must be authenticated");
   }
@@ -211,16 +177,13 @@ exports.cleanupUserData = onCall(async (request) => {
     const batch = db.batch();
 
     // Delete user profile
-    const userProfileRef = db.collection("userProfiles").doc(userId);
+    const userProfileRef = db.collection("users").doc(userId)
+        .collection("profile").doc("data");
     batch.delete(userProfileRef);
 
-    // Delete user progress
-    const progressQuery = await db.collection("userProgress")
-        .where("userId", "==", userId).get();
-    progressQuery.docs.forEach((doc) => {
-      batch.delete(doc.ref);
-    });
-
+    // Delete the main user document
+    const userRef = db.collection("users").doc(userId);
+    batch.delete(userRef);
 
     await batch.commit();
     logger.info(`User data deleted for ${userId}`);
@@ -232,7 +195,7 @@ exports.cleanupUserData = onCall(async (request) => {
 });
 
 // Health check endpoint
-exports.healthCheck = onRequest(async (req, res) => {
+export const healthCheck = onRequest(async (req, res) => {
   res.json({
     status: "healthy",
     timestamp: new Date().toISOString(),
@@ -240,45 +203,25 @@ exports.healthCheck = onRequest(async (req, res) => {
   });
 });
 
-// Update user progress target
-exports.updateProgressTarget = onCall(async (request) => {
-  if (!request.auth) {
-    throw new Error("User must be authenticated");
+// Test callable function for debugging
+export const testCallable = onCall(async (request) => {
+  logger.info("testCallable function called");
+  logger.info("Request auth:", !!request.auth);
+  if (request.auth) {
+    logger.info("Auth UID:", request.auth.uid);
   }
-
-  try {
-    const {targetAmount} = request.data;
-    const userId = request.auth.uid;
-    const db = admin.firestore();
-
-    if (!targetAmount || targetAmount <= 0) {
-      throw new Error("Invalid target amount");
-    }
-
-    // Find and update user's progress document
-    const progressQuery = await db.collection("userProgress")
-        .where("userId", "==", userId).get();
-
-    if (progressQuery.empty) {
-      throw new Error("User progress not found");
-    }
-
-    const progressDoc = progressQuery.docs[0];
-    await progressDoc.ref.update({
-      targetAmount: parseFloat(targetAmount),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    logger.info(`Updated target for user ${userId}: ${targetAmount}`);
-    return {success: true, message: "Target updated successfully"};
-  } catch (error) {
-    logger.error("Error updating target:", error);
-    throw new Error(error.message || "Failed to update target");
-  }
+  return {
+    success: true,
+    message: "Test callable function working",
+    hasAuth: !!request.auth,
+    uid: request.auth ? request.auth.uid : null,
+    timestamp: new Date().toISOString(),
+  };
 });
 
+
 // Get user profile
-exports.getUserProfile = onCall(async (request) => {
+export const getUserProfile = onCall(async (request) => {
   try {
     if (!request.auth) {
       throw new Error("Authentication required");
@@ -287,7 +230,8 @@ exports.getUserProfile = onCall(async (request) => {
     const uid = request.auth.uid;
     const db = admin.firestore();
 
-    const userDoc = await db.collection("userProfiles").doc(uid).get();
+    const userDoc = await db.collection("users").doc(uid)
+        .collection("profile").doc("data").get();
 
     if (!userDoc.exists) {
       return null;
@@ -297,19 +241,47 @@ exports.getUserProfile = onCall(async (request) => {
 
     return {
       id: userDoc.id,
-      ...userData,
-      birthday: userData.birthday || "",
-      employmentStatus: userData.employmentStatus || "",
-      income: userData.income || 0,
-      expenses: userData.expenses || 0,
-      currentSavings: userData.currentSavings || 0,
-      assets: userData.assets || 0,
-      debts: userData.debts || 0,
-      targetAmount: userData.targetAmount || 1000000,
-      targetAge: userData.targetAge || 65,
-      targetYear: userData.targetYear || new Date().getFullYear() + 10,
-      education: userData.education || [],
-      skills: userData.skills || [],
+      userId: userData.userId,
+
+      // Basic Information
+      basicInfo: userData.basicInfo || {
+        name: "",
+        email: "",
+        birthday: "",
+        employmentStatus: "",
+      },
+
+      // Financial Information
+      financialInfo: userData.financialInfo || {
+        annualIncome: 0,
+        annualExpenses: 0,
+        totalAssets: 0,
+        totalDebts: 0,
+        currentSavings: 0,
+      },
+
+      // Financial Goal
+      financialGoal: userData.financialGoal || {
+        targetAmount: 1000000,
+        targetAge: 65,
+        targetYear: new Date().getFullYear() + 10,
+      },
+
+      // Education History
+      educationHistory: userData.educationHistory || [],
+
+      // Experience
+      experience: userData.experience || [],
+
+      // Skills & Interests
+      skillsAndInterests: userData.skillsAndInterests || {
+        skills: [],
+        interests: [],
+      },
+
+      // Metadata
+      createdAt: userData.createdAt,
+      updatedAt: userData.updatedAt,
     };
   } catch (error) {
     logger.error("Error getting user profile:", error);
@@ -318,7 +290,7 @@ exports.getUserProfile = onCall(async (request) => {
 });
 
 // Save user profile
-exports.saveUserProfile = onCall(async (request) => {
+export const saveUserProfile = onCall(async (request) => {
   try {
     if (!request.auth) {
       throw new Error("Authentication required");
@@ -333,7 +305,9 @@ exports.saveUserProfile = onCall(async (request) => {
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    await db.collection("userProfiles").doc(uid).set(updateData, {merge: true});
+    const profileRef = db.collection("users").doc(uid)
+        .collection("profile").doc("data");
+    await profileRef.set(updateData, {merge: true});
 
     logger.info(`Updated user profile for UID: ${uid}`);
     return {success: true, message: "Profile saved successfully"};
@@ -344,7 +318,7 @@ exports.saveUserProfile = onCall(async (request) => {
 });
 
 // Update specific section of user profile
-exports.updateUserProfileSection = onCall(async (request) => {
+export const updateUserProfileSection = onCall(async (request) => {
   try {
     if (!request.auth) {
       throw new Error("Authentication required");
@@ -363,7 +337,9 @@ exports.updateUserProfileSection = onCall(async (request) => {
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    await db.collection("userProfiles").doc(uid).update(updateData);
+    const profileRef = db.collection("users").doc(uid)
+        .collection("profile").doc("data");
+    await profileRef.update(updateData);
 
     logger.info(`Updated ${profileSection} for UID: ${uid}`);
     return {success: true, message: `${profileSection} updated successfully`};
@@ -376,7 +352,7 @@ exports.updateUserProfileSection = onCall(async (request) => {
 });
 
 // Get user goals
-exports.getUserGoals = onCall(async (request) => {
+export const getUserGoals = onCall(async (request) => {
   if (!request.auth) {
     throw new Error("User must be authenticated");
   }
@@ -415,7 +391,7 @@ exports.getUserGoals = onCall(async (request) => {
 });
 
 // Add a new goal
-exports.addGoal = onCall(async (request) => {
+export const addGoal = onCall(async (request) => {
   if (!request.auth) {
     throw new Error("User must be authenticated");
   }
@@ -458,7 +434,7 @@ exports.addGoal = onCall(async (request) => {
 });
 
 // Update goal
-exports.updateGoal = onCall(async (request) => {
+export const updateGoal = onCall(async (request) => {
   if (!request.auth) {
     throw new Error("User must be authenticated");
   }
@@ -497,7 +473,7 @@ exports.updateGoal = onCall(async (request) => {
 });
 
 // Delete goal
-exports.deleteGoal = onCall(async (request) => {
+export const deleteGoal = onCall(async (request) => {
   if (!request.auth) {
     throw new Error("User must be authenticated");
   }

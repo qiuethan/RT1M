@@ -20,27 +20,11 @@ const Logo = ({
     <div className={`flex items-center space-x-2 ${className}`}>
       {/* Icon with gradient and growth arrow */}
       <div className={`relative ${sizes[size].container} ${sizes[size].icon} flex items-center justify-center`}>
-        <div className="absolute inset-0 bg-gradient-to-tr from-primary-500 via-secondary-500 to-accent-500 rounded-lg shadow-lg"></div>
-        <div className="absolute inset-0.5 bg-white rounded-lg flex items-center justify-center">
-          <svg
-            className={`${sizes[size].icon} text-primary-600`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-            />
-          </svg>
-        </div>
-        {/* Sparkle effect */}
-        <div className="absolute -top-1 -right-1">
-          <div className="w-2 h-2 bg-accent-400 rounded-full animate-pulse"></div>
-        </div>
+        <img 
+          src="/favicon.svg"
+          alt="RT1M logo"
+          className={`${sizes[size].icon} ${sizes[size].container}`}
+        />
       </div>
 
       {/* Text */}

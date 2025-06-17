@@ -55,7 +55,7 @@ export const Dashboard: React.FC = () => {
   }
 
   const currentAmount = stats?.userProgress?.currentAmount || 0;
-  const targetAmount = stats?.userProgress?.targetAmount || 1000000;
+  const targetAmount = stats?.userProgress?.targetAmount ?? 1000000;
   const progressPercentage = targetAmount > 0 ? (currentAmount / targetAmount) * 100 : 0;
 
   return (

@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { createUserProfile } from '../services/firestore';
+import { createUserProfile, testCallable } from '../services/firestore';
 import toast from 'react-hot-toast';
 import { Logo, Button, Input, Card } from '../components/ui';
 
@@ -41,8 +41,15 @@ export default function Signup() {
     agreeToTerms: ''
   });
   const [loading, setLoading] = useState(false);
-  const { signup, updateUserProfile } = useAuth();
+  const { signup, currentUser } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (currentUser) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [currentUser, navigate]);
 
   // Validation functions
   const validateEmail = (email: string): string => {
@@ -89,7 +96,7 @@ export default function Signup() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
     // Validate all fields
     const newErrors = {
       displayName: validateDisplayName(formData.displayName),
@@ -98,61 +105,80 @@ export default function Signup() {
       confirmPassword: validateConfirmPassword(formData.password, formData.confirmPassword),
       agreeToTerms: validateAgreeToTerms(formData.agreeToTerms)
     };
-
+  
     setErrors(newErrors);
-
+  
     // Check if there are any validation errors
     if (Object.values(newErrors).some(error => error !== '')) {
       return;
     }
-
+  
     try {
       setLoading(true);
-      
+  
       // Create user account
-      console.log('Creating Firebase Auth account...');
       const userCredential = await signup(formData.email, formData.password);
-      console.log('Firebase Auth account created successfully');
-      
+  
       // Update display name
       if (formData.displayName.trim()) {
-        console.log('Updating display name...');
-        await updateUserProfile({ displayName: formData.displayName.trim() });
-        console.log('Display name updated successfully');
+        await createUserProfile();
       }
-      
-      // Wait a moment for auth state to propagate
-      console.log('Waiting for auth state to propagate...');
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Create user profile in Firestore
-      console.log('Creating user profile in Firestore...');
-      const result = await createUserProfile();
-      console.log('User profile created successfully:', result);
-      
-      toast.success('Welcome to RT1M! Your account has been created successfully.');
+  
+      const user = userCredential.user;
+  
+      // Force refresh token
+      if (user) {
+        await user.getIdToken(true);
+      }
+  
+      // Wait briefly for auth propagation
+      await new Promise(resolve => setTimeout(resolve, 2000));
+  
+      // Test callable auth
+      try {
+        const result = await testCallable();
+        if (!(result.data as any)?.hasAuth) {
+          toast.error('Authentication not properly propagated. Try again shortly.');
+          return;
+        }
+      } catch (err) {
+        toast.error('Cloud function auth test failed.');
+        return;
+      }
+  
+      // Retry createUserProfile
+      let retries = 0;
+      const maxRetries = 5;
+      while (retries < maxRetries) {
+        try {
+          await createUserProfile();
+          break;
+        } catch (err: any) {
+          if (err.message.includes('authenticated') && retries < maxRetries - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1000 + 500 * retries));
+            retries++;
+          } else {
+            throw err;
+          }
+        }
+      }
+  
+      if (retries >= maxRetries) {
+        throw new Error('Failed to create user profile after several attempts.');
+      }
+  
+      toast.success('Welcome to RT1M! Your account has been created.');
       navigate('/dashboard');
     } catch (error: any) {
-      console.error('Signup error:', error);
-      
-      // Extract Firebase error code
       const errorCode = error.code || error.message;
-      const userFriendlyMessage = getFirebaseErrorMessage(errorCode);
-      
-      // Show specific error message based on error type
+      const message = getFirebaseErrorMessage(errorCode);
+  
       if (errorCode === 'auth/email-already-in-use' || errorCode === 'auth/invalid-email') {
-        setErrors(prev => ({ ...prev, email: userFriendlyMessage }));
+        setErrors(prev => ({ ...prev, email: message }));
       } else if (errorCode === 'auth/weak-password') {
-        setErrors(prev => ({ ...prev, password: userFriendlyMessage }));
+        setErrors(prev => ({ ...prev, password: message }));
       } else {
-        // Show more detailed error for debugging
-        const detailedMessage = error.message || userFriendlyMessage;
-        toast.error(`Registration failed: ${detailedMessage}`);
-        console.error('Detailed error:', {
-          message: error.message,
-          code: error.code,
-          stack: error.stack
-        });
+        toast.error(`Registration failed: ${message}`);
       }
     } finally {
       setLoading(false);

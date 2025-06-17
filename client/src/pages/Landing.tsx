@@ -247,12 +247,7 @@ export default function Landing() {
               <Button variant="secondary" size="xl" className="w-full sm:w-auto">
                 Get Started Free
               </Button>
-            </Link>
-            <Link to="/login">
-              <Button variant="outline" size="xl" className="w-full sm:w-auto border-white text-white hover:bg-white hover:text-primary-600">
-                Sign In
-              </Button>
-            </Link>
+            </Link>3
           </div>
         </div>
       </section>
