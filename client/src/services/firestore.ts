@@ -28,11 +28,14 @@ export interface FinancialGoal {
 export interface IntermediateGoal {
   id?: string;
   title: string;
-  targetAmount: number;
-  targetDate: string;
+  type: 'financial' | 'skill' | 'behavior' | 'lifestyle' | 'networking' | 'project';
+  targetAmount?: number;
+  targetDate?: string;
   status: 'Not Started' | 'In Progress' | 'Completed';
-  currentAmount: number;
+  currentAmount?: number;
+  progress?: number;
   description?: string;
+  category?: string;
 }
 
 // Education History Interface
@@ -55,6 +58,66 @@ export interface ExperienceEntry {
 export interface SkillsAndInterests {
   skills: string[];
   interests: string[];
+}
+
+// AI Plan Interface - designed for AI to save structured financial plans
+export interface Plan {
+  id?: string;
+  userId?: string;
+  title: string;
+  description: string;
+  timeframe: string; // e.g., "6 months", "2 years"
+  category: 'investment' | 'savings' | 'debt' | 'income' | 'budget' | 'mixed';
+  priority: 'high' | 'medium' | 'low';
+  steps: PlanStep[];
+  milestones: PlanMilestone[];
+  estimatedCost?: number;
+  expectedReturn?: number;
+  riskLevel: 'low' | 'medium' | 'high';
+  prerequisites?: string[];
+  resources?: PlanResource[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface PlanStep {
+  id: string;
+  title: string;
+  description: string;
+  order: number;
+  timeframe: string;
+  completed: boolean;
+  dueDate?: string;
+  cost?: number;
+  resources?: string[];
+}
+
+export interface PlanMilestone {
+  id: string;
+  title: string;
+  description: string;
+  targetAmount?: number;
+  targetDate: string;
+  completed: boolean;
+  completedDate?: string;
+}
+
+export interface PlanResource {
+  type: 'link' | 'document' | 'tool' | 'contact';
+  title: string;
+  url?: string;
+  description?: string;
+}
+
+// Dynamic Milestone Interface
+export interface DynamicMilestone {
+  id: string;
+  amount: number;
+  title: string;
+  description: string;
+  completed: boolean;
+  progress: number;
+  isGoal?: boolean;
 }
 
 // User Profile Interface
@@ -104,6 +167,10 @@ const updateGoalFn = httpsCallable(functions, 'updateGoal');
 const deleteGoalFn = httpsCallable(functions, 'deleteGoal');
 const cleanupUserDataFn = httpsCallable(functions, 'cleanupUserData');
 const testCallableFn = httpsCallable(functions, 'testCallable');
+const savePlanFn = httpsCallable(functions, 'savePlan');
+const getUserPlansFn = httpsCallable(functions, 'getUserPlans');
+const updatePlanFn = httpsCallable(functions, 'updatePlan');
+const deletePlanFn = httpsCallable(functions, 'deletePlan');
 
 // Helper function to handle Firebase Functions responses
 const handleFunctionCall = async (callableFn: any, data?: any): Promise<any> => {
@@ -123,8 +190,6 @@ const handleFunctionCall = async (callableFn: any, data?: any): Promise<any> => 
   }
 };
 
-
-
 // Helper function to parse goals from ISO strings
 const parseGoal = (data: any): Goal => {
   return {
@@ -136,8 +201,8 @@ const parseGoal = (data: any): Goal => {
 };
 
 // User Profile Management
-export const createUserProfile = async (): Promise<any> => {
-  return await handleFunctionCall(createUserProfileFn);
+export const createUserProfile = async (displayName?: string): Promise<any> => {
+  return await handleFunctionCall(createUserProfileFn, displayName ? { displayName } : undefined);
 };
 
 export const cleanupUserData = async () => {
@@ -205,6 +270,79 @@ export const deleteGoal = async (goalId: string) => {
 // Test function for debugging
 export const testCallable = async () => {
   return await handleFunctionCall(testCallableFn);
+};
+
+export const savePlan = async (planData: Partial<Plan>) => {
+  return await handleFunctionCall(savePlanFn, planData);
+};
+
+export const getUserPlans = async (): Promise<Plan[]> => {
+  const response: any = await handleFunctionCall(getUserPlansFn);
+  return response.data ? response.data.map((plan: any) => ({
+    ...plan,
+    createdAt: plan.createdAt ? new Date(plan.createdAt) : new Date(),
+    updatedAt: plan.updatedAt ? new Date(plan.updatedAt) : new Date(),
+  })) : [];
+};
+
+export const updatePlan = async (planId: string, updates: Partial<Plan>) => {
+  return await handleFunctionCall(updatePlanFn, { planId, updates });
+};
+
+export const deletePlan = async (planId: string) => {
+  return await handleFunctionCall(deletePlanFn, { planId });
+};
+
+// Generate dynamic milestones based on user's financial goal and intermediate goals
+export const generateDynamicMilestones = (
+  currentAmount: number,
+  targetAmount: number,
+  intermediateGoals: IntermediateGoal[]
+): DynamicMilestone[] => {
+  const milestones: DynamicMilestone[] = [];
+  
+  // Add standard percentage-based milestones
+  const percentages = [0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1.0]; // 1%, 5%, 10%, 25%, 50%, 75%, 100%
+  
+  percentages.forEach((percentage, index) => {
+    const amount = Math.round(targetAmount * percentage);
+    if (amount > currentAmount || percentage === 1.0) { // Only show future milestones and final goal
+      milestones.push({
+        id: `percentage_${percentage}`,
+        amount,
+        title: percentage === 1.0 ? 'Final Goal' : `${(percentage * 100).toFixed(0)}% Milestone`,
+        description: percentage === 1.0 
+          ? 'Congratulations! You\'ve reached your RT1M goal!' 
+          : `Reach ${(percentage * 100).toFixed(0)}% of your target amount`,
+        completed: currentAmount >= amount,
+        progress: currentAmount >= amount ? 100 : Math.min((currentAmount / amount) * 100, 99),
+        isGoal: percentage === 1.0
+      });
+    }
+  });
+  
+  // Add intermediate goals as milestones
+  intermediateGoals.forEach((goal) => {
+    if (goal.targetAmount && goal.targetAmount > currentAmount) {
+      milestones.push({
+        id: `goal_${goal.id}`,
+        amount: goal.targetAmount,
+        title: goal.title,
+        description: goal.description || `Complete your ${goal.title} goal`,
+        completed: goal.status === 'Completed',
+        progress: goal.targetAmount > 0 ? Math.min(((goal.currentAmount || 0) / goal.targetAmount) * 100, 100) : 0,
+        isGoal: false
+      });
+    }
+  });
+  
+  // Sort by amount and remove duplicates
+  return milestones
+    .sort((a, b) => a.amount - b.amount)
+    .filter((milestone, index, array) => 
+      index === 0 || milestone.amount !== array[index - 1].amount
+    )
+    .slice(0, 10); // Limit to 10 milestones to avoid clutter
 };
 
  

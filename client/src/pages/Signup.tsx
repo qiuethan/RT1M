@@ -119,10 +119,8 @@ export default function Signup() {
       // Create user account
       const userCredential = await signup(formData.email, formData.password);
   
-      // Update display name
-      if (formData.displayName.trim()) {
-        await createUserProfile();
-      }
+      // Create user profile with display name
+      await createUserProfile(formData.displayName.trim());
   
       const user = userCredential.user;
   
@@ -151,7 +149,7 @@ export default function Signup() {
       const maxRetries = 5;
       while (retries < maxRetries) {
         try {
-          await createUserProfile();
+          await createUserProfile(formData.displayName.trim());
           break;
         } catch (err: any) {
           if (err.message.includes('authenticated') && retries < maxRetries - 1) {

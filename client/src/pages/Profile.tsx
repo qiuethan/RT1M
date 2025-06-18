@@ -53,6 +53,10 @@ export default function Profile() {
     interests: []
   });
 
+  // Custom skill and interest input states
+  const [customSkillInput, setCustomSkillInput] = useState('');
+  const [customInterestInput, setCustomInterestInput] = useState('');
+
   const availableSkills = [
     'Programming', 'Data Analysis', 'Project Management', 'Digital Marketing',
     'Graphic Design', 'Sales', 'Customer Service', 'Writing', 'Photography',
@@ -136,11 +140,14 @@ export default function Profile() {
     const newGoal: IntermediateGoal = {
       id: Date.now().toString(),
       title: '',
+      type: 'financial',
       targetAmount: 0,
       targetDate: '',
       status: 'Not Started',
       currentAmount: 0,
-      description: ''
+      description: '',
+      progress: 0,
+      category: 'Personal Finance'
     };
     setIntermediateGoals([...intermediateGoals, newGoal]);
   };
@@ -211,6 +218,40 @@ export default function Profile() {
         ? prev.interests.filter(i => i !== interest)
         : [...prev.interests, interest]
     }));
+  };
+
+  const addCustomSkill = () => {
+    if (customSkillInput.trim() && !skillsAndInterests.skills.includes(customSkillInput.trim())) {
+      setSkillsAndInterests(prev => ({
+        ...prev,
+        skills: [...prev.skills, customSkillInput.trim()]
+      }));
+      setCustomSkillInput('');
+    }
+  };
+
+  const addCustomInterest = () => {
+    if (customInterestInput.trim() && !skillsAndInterests.interests.includes(customInterestInput.trim())) {
+      setSkillsAndInterests(prev => ({
+        ...prev,
+        interests: [...prev.interests, customInterestInput.trim()]
+      }));
+      setCustomInterestInput('');
+    }
+  };
+
+  const handleCustomSkillKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addCustomSkill();
+    }
+  };
+
+  const handleCustomInterestKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addCustomInterest();
+    }
   };
 
   // Save functions for each section
@@ -491,14 +532,14 @@ export default function Profile() {
                     <Input
                       label="Target Amount"
                       type="number"
-                      value={goal.targetAmount.toString()}
+                      value={(goal.targetAmount || 0).toString()}
                       onChange={(e) => updateIntermediateGoal(index, 'targetAmount', parseInt(e.target.value) || 0)}
                       placeholder="10000"
                     />
                     <Input
                       label="Current Amount"
                       type="number"
-                      value={goal.currentAmount.toString()}
+                      value={(goal.currentAmount || 0).toString()}
                       onChange={(e) => updateIntermediateGoal(index, 'currentAmount', parseInt(e.target.value) || 0)}
                       placeholder="2500"
                     />
@@ -543,14 +584,14 @@ export default function Profile() {
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-sm font-medium text-surface-700">Progress</span>
                       <span className="text-sm font-medium text-surface-700">
-                        {goal.targetAmount > 0 ? ((goal.currentAmount / goal.targetAmount) * 100).toFixed(1) : 0}%
+                        {(goal.targetAmount || 0) > 0 ? (((goal.currentAmount || 0) / (goal.targetAmount || 1)) * 100).toFixed(1) : 0}%
                       </span>
                     </div>
                     <div className="w-full bg-surface-200 rounded-full h-2">
                       <div 
                         className="bg-gradient-to-r from-primary-500 to-accent-500 h-2 rounded-full transition-all duration-300"
                         style={{ 
-                          width: `${goal.targetAmount > 0 ? Math.min((goal.currentAmount / goal.targetAmount) * 100, 100) : 0}%` 
+                          width: `${(goal.targetAmount || 0) > 0 ? Math.min(((goal.currentAmount || 0) / (goal.targetAmount || 1)) * 100, 100) : 0}%` 
                         }}
                       ></div>
                     </div>
@@ -558,7 +599,7 @@ export default function Profile() {
 
                   <div className="flex justify-between items-center">
                     <div className="text-sm text-surface-600">
-                      ${goal.currentAmount.toLocaleString()} of ${goal.targetAmount.toLocaleString()}
+                      ${(goal.currentAmount || 0).toLocaleString()} of ${(goal.targetAmount || 0).toLocaleString()}
                     </div>
                     <Button
                       onClick={() => removeIntermediateGoal(index)}
@@ -757,20 +798,41 @@ export default function Profile() {
                     </Badge>
                   ))}
                 </div>
-                                 <div className="flex flex-wrap gap-2">
-                   {availableSkills
-                     .filter(skill => !skillsAndInterests.skills.includes(skill))
-                     .map((skill) => (
-                     <Badge
-                       key={skill}
-                       variant="neutral"
-                       className="cursor-pointer hover:bg-primary-50"
-                       onClick={() => toggleSkill(skill)}
-                     >
-                       + {skill}
-                     </Badge>
-                   ))}
-                 </div>
+                
+                {/* Add custom skill */}
+                <div className="flex gap-2 mb-4">
+                  <input
+                    type="text"
+                    value={customSkillInput}
+                    onChange={(e) => setCustomSkillInput(e.target.value)}
+                    onKeyPress={handleCustomSkillKeyPress}
+                    placeholder="Add a custom skill..."
+                    className="flex-1 px-3 py-2 border border-surface-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                  />
+                  <Button
+                    onClick={addCustomSkill}
+                    variant="outline"
+                    size="sm"
+                    disabled={!customSkillInput.trim()}
+                  >
+                    Add
+                  </Button>
+                </div>
+                
+                <div className="flex flex-wrap gap-2">
+                  {availableSkills
+                    .filter(skill => !skillsAndInterests.skills.includes(skill))
+                    .map((skill) => (
+                    <Badge
+                      key={skill}
+                      variant="neutral"
+                      className="cursor-pointer hover:bg-primary-50"
+                      onClick={() => toggleSkill(skill)}
+                    >
+                      + {skill}
+                    </Badge>
+                  ))}
+                </div>
               </div>
 
               {/* Interests */}
@@ -788,20 +850,41 @@ export default function Profile() {
                     </Badge>
                   ))}
                 </div>
-                                 <div className="flex flex-wrap gap-2">
-                   {availableInterests
-                     .filter(interest => !skillsAndInterests.interests.includes(interest))
-                     .map((interest) => (
-                     <Badge
-                       key={interest}
-                       variant="neutral"
-                       className="cursor-pointer hover:bg-secondary-50"
-                       onClick={() => toggleInterest(interest)}
-                     >
-                       + {interest}
-                     </Badge>
-                   ))}
-                 </div>
+                
+                {/* Add custom interest */}
+                <div className="flex gap-2 mb-4">
+                  <input
+                    type="text"
+                    value={customInterestInput}
+                    onChange={(e) => setCustomInterestInput(e.target.value)}
+                    onKeyPress={handleCustomInterestKeyPress}
+                    placeholder="Add a custom interest..."
+                    className="flex-1 px-3 py-2 border border-surface-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                  />
+                  <Button
+                    onClick={addCustomInterest}
+                    variant="outline"
+                    size="sm"
+                    disabled={!customInterestInput.trim()}
+                  >
+                    Add
+                  </Button>
+                </div>
+                
+                <div className="flex flex-wrap gap-2">
+                  {availableInterests
+                    .filter(interest => !skillsAndInterests.interests.includes(interest))
+                    .map((interest) => (
+                    <Badge
+                      key={interest}
+                      variant="neutral"
+                      className="cursor-pointer hover:bg-secondary-50"
+                      onClick={() => toggleInterest(interest)}
+                    >
+                      + {interest}
+                    </Badge>
+                  ))}
+                </div>
               </div>
             </div>
           </Card>

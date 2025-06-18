@@ -19,11 +19,14 @@ export default function Goals() {
   const [saving, setSaving] = useState(false);
   const [goalForm, setGoalForm] = useState({
     title: '',
+    type: 'financial' as 'financial' | 'skill' | 'behavior' | 'lifestyle' | 'networking' | 'project',
     targetAmount: '',
     currentAmount: '',
+    progress: '',
     targetDate: '',
     status: 'Not Started',
-    description: ''
+    description: '',
+    category: ''
   });
 
   // Load profile and stats on component mount
@@ -51,11 +54,14 @@ export default function Goals() {
     setEditingGoal(null);
     setGoalForm({
       title: '',
+      type: 'financial',
       targetAmount: '',
       currentAmount: '',
+      progress: '',
       targetDate: '',
       status: 'Not Started',
-      description: ''
+      description: '',
+      category: ''
     });
     setShowModal(true);
   };
@@ -64,17 +70,20 @@ export default function Goals() {
     setEditingGoal(goal);
     setGoalForm({
       title: goal.title,
-      targetAmount: goal.targetAmount.toString(),
-      currentAmount: goal.currentAmount.toString(),
+      type: goal.type,
+      targetAmount: goal.targetAmount?.toString() || '',
+      currentAmount: goal.currentAmount?.toString() || '',
+      progress: goal.progress?.toString() || '',
       targetDate: goal.targetDate || '',
       status: goal.status,
-      description: goal.description || ''
+      description: goal.description || '',
+      category: goal.category || ''
     });
     setShowModal(true);
   };
 
   const handleSaveGoal = async () => {
-    if (!profile || !goalForm.title || !goalForm.targetAmount) return;
+    if (!profile || !goalForm.title || !goalForm.type) return;
 
     try {
       setSaving(true);
@@ -82,11 +91,14 @@ export default function Goals() {
       const newGoal: IntermediateGoal = {
         id: editingGoal?.id || Date.now().toString(),
         title: goalForm.title,
-        targetAmount: parseFloat(goalForm.targetAmount) || 0,
-        currentAmount: parseFloat(goalForm.currentAmount) || 0,
-        targetDate: goalForm.targetDate || '',
+        type: goalForm.type,
+        targetAmount: goalForm.type === 'financial' ? (parseFloat(goalForm.targetAmount) || 0) : undefined,
+        currentAmount: goalForm.type === 'financial' ? (parseFloat(goalForm.currentAmount) || 0) : undefined,
+        progress: goalForm.type !== 'financial' ? (parseFloat(goalForm.progress) || 0) : undefined,
+        targetDate: goalForm.targetDate || undefined,
         status: goalForm.status as 'Not Started' | 'In Progress' | 'Completed',
-        description: goalForm.description || undefined
+        description: goalForm.description || undefined,
+        category: goalForm.category || undefined
       };
 
       let updatedGoals = [...(profile.intermediateGoals || [])];
@@ -193,6 +205,58 @@ export default function Goals() {
     }).format(amount);
   };
 
+  const getGoalTypeIcon = (type: string) => {
+    switch (type) {
+      case 'skill':
+        return '🧠';
+      case 'behavior':
+        return '📊';
+      case 'lifestyle':
+        return '🏋️';
+      case 'networking':
+        return '💬';
+      case 'project':
+        return '🛠️';
+      case 'financial':
+      default:
+        return '💰';
+    }
+  };
+
+  const getGoalTypeColor = (type: string) => {
+    switch (type) {
+      case 'skill':
+        return 'bg-blue-100 text-blue-800';
+      case 'behavior':
+        return 'bg-green-100 text-green-800';
+      case 'lifestyle':
+        return 'bg-purple-100 text-purple-800';
+      case 'networking':
+        return 'bg-orange-100 text-orange-800';
+      case 'project':
+        return 'bg-red-100 text-red-800';
+      case 'financial':
+      default:
+        return 'bg-emerald-100 text-emerald-800';
+    }
+  };
+
+  const goalTypeOptions = [
+    { value: 'financial', label: '💰 Financial Goals', description: 'Savings, investments, debt payoff' },
+    { value: 'skill', label: '🧠 Skill-Based Goals', description: 'Learning, courses, certifications' },
+    { value: 'behavior', label: '📊 Financial Behavior Goals', description: 'Budgeting, tracking, habits' },
+    { value: 'lifestyle', label: '🏋️ Lifestyle Discipline Goals', description: 'Routines, productivity, wellness' },
+    { value: 'networking', label: '💬 Networking & Mentorship Goals', description: 'Connections, opportunities' },
+    { value: 'project', label: '🛠️ Project / Output-Based Goals', description: 'Side hustles, portfolios, MVPs' }
+  ];
+
+  const getGoalProgress = (goal: IntermediateGoal) => {
+    if (goal.type === 'financial' && goal.targetAmount && goal.targetAmount > 0) {
+      return ((goal.currentAmount || 0) / goal.targetAmount) * 100;
+    }
+    return goal.progress || 0;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-surface-50 flex items-center justify-center">
@@ -228,14 +292,46 @@ export default function Goals() {
       <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-start">
             <div>
               <h1 className="text-3xl font-bold text-surface-900">Your Financial Goals</h1>
               <p className="text-surface-600 mt-2">Track your progress toward financial independence</p>
+              
+              {/* Progress Summary */}
+              <div className="flex items-center gap-6 mt-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-surface-700">
+                    {progress.toFixed(1)}% Complete
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-accent-500 rounded-full"></div>
+                  <span className="text-sm text-surface-600">
+                    {yearsRemaining} years remaining
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-secondary-500 rounded-full"></div>
+                  <span className="text-sm text-surface-600">
+                    {formatCurrency(monthlyTarget)}/month needed
+                  </span>
+                </div>
+              </div>
             </div>
-            <Button onClick={() => window.location.href = '/profile'} variant="outline">
-              Edit Goals
-            </Button>
+            
+            {/* Quick Actions */}
+            <div className="flex items-center gap-3">
+              <Button onClick={openAddModal} size="sm">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add Goal
+              </Button>
+              <Button onClick={() => window.location.href = '/profile'} variant="outline">
+                Edit Profile
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -329,8 +425,14 @@ export default function Goals() {
                   {profile.intermediateGoals && profile.intermediateGoals.map((goal, index) => (
                     <Card key={goal.id || index} className="p-4">
                       <div className="flex justify-between items-start mb-3">
-                        <h4 className="font-semibold text-surface-900">{goal.title}</h4>
                         <div className="flex items-center gap-2">
+                          <span className="text-lg">{getGoalTypeIcon(goal.type)}</span>
+                          <h4 className="font-semibold text-surface-900">{goal.title}</h4>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 text-xs rounded-full ${getGoalTypeColor(goal.type)}`}>
+                            {goal.type}
+                          </span>
                           <Badge variant={goal.status === 'Completed' ? 'success' : goal.status === 'In Progress' ? 'primary' : 'neutral' as any} size="sm">
                             {goal.status}
                           </Badge>
@@ -350,28 +452,37 @@ export default function Goals() {
                         <div className="flex justify-between items-center mb-1">
                           <span className="text-xs font-medium text-surface-600">Progress</span>
                           <span className="text-xs font-medium text-surface-600">
-                            {goal.targetAmount > 0 ? ((goal.currentAmount / goal.targetAmount) * 100).toFixed(1) : 0}%
+                            {getGoalProgress(goal).toFixed(1)}%
                           </span>
                         </div>
                         <div className="w-full bg-surface-200 rounded-full h-1.5">
                           <div 
                             className="bg-gradient-to-r from-secondary-500 to-accent-500 h-1.5 rounded-full transition-all duration-300"
                             style={{ 
-                              width: `${goal.targetAmount > 0 ? Math.min((goal.currentAmount / goal.targetAmount) * 100, 100) : 0}%` 
+                              width: `${Math.min(getGoalProgress(goal), 100)}%` 
                             }}
                           ></div>
                         </div>
                       </div>
 
                       <div className="space-y-1 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-surface-500">Current:</span>
-                          <span className="font-medium">{formatCurrency(goal.currentAmount)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-surface-500">Target:</span>
-                          <span className="font-medium">{formatCurrency(goal.targetAmount)}</span>
-                        </div>
+                        {goal.type === 'financial' ? (
+                          <>
+                            <div className="flex justify-between">
+                              <span className="text-surface-500">Current:</span>
+                              <span className="font-medium">{formatCurrency(goal.currentAmount || 0)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-surface-500">Target:</span>
+                              <span className="font-medium">{formatCurrency(goal.targetAmount || 0)}</span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex justify-between">
+                            <span className="text-surface-500">Progress:</span>
+                            <span className="font-medium">{(goal.progress || 0).toFixed(0)}% Complete</span>
+                          </div>
+                        )}
                         {goal.targetDate && (
                           <div className="flex justify-between">
                             <span className="text-surface-500">Due:</span>
@@ -519,29 +630,49 @@ export default function Goals() {
               label="Goal Title"
               value={goalForm.title}
               onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })}
-              placeholder="e.g., Emergency Fund, Vacation, New Car"
+              placeholder="e.g., Emergency Fund, Learn Python, Build Portfolio"
             />
             
-            <div className="grid grid-cols-2 gap-4">
+            <Select
+              label="Goal Type"
+              value={goalForm.type}
+              onChange={(e) => setGoalForm({ ...goalForm, type: e.target.value as any })}
+              options={goalTypeOptions.map(option => ({
+                value: option.value,
+                label: option.label
+              }))}
+            />
+            
+            {goalForm.type === 'financial' ? (
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="Target Amount ($)"
+                  type="number"
+                  value={goalForm.targetAmount}
+                  onChange={(e) => setGoalForm({ ...goalForm, targetAmount: e.target.value })}
+                  placeholder="10000"
+                />
+                <Input
+                  label="Current Amount ($)"
+                  type="number"
+                  value={goalForm.currentAmount}
+                  onChange={(e) => setGoalForm({ ...goalForm, currentAmount: e.target.value })}
+                  placeholder="0"
+                />
+              </div>
+            ) : (
               <Input
-                label="Target Amount ($)"
+                label="Progress (%)"
                 type="number"
-                value={goalForm.targetAmount}
-                onChange={(e) => setGoalForm({ ...goalForm, targetAmount: e.target.value })}
-                placeholder="10000"
-              />
-              <Input
-                label="Current Amount ($)"
-                type="number"
-                value={goalForm.currentAmount}
-                onChange={(e) => setGoalForm({ ...goalForm, currentAmount: e.target.value })}
+                value={goalForm.progress}
+                onChange={(e) => setGoalForm({ ...goalForm, progress: e.target.value })}
                 placeholder="0"
               />
-            </div>
+            )}
             
             <div className="grid grid-cols-2 gap-4">
               <Input
-                label="Target Date"
+                label="Target Date (Optional)"
                 type="date"
                 value={goalForm.targetDate}
                 onChange={(e) => setGoalForm({ ...goalForm, targetDate: e.target.value })}
@@ -589,7 +720,7 @@ export default function Goals() {
               </Button>
               <Button 
                 onClick={handleSaveGoal} 
-                disabled={saving || !goalForm.title || !goalForm.targetAmount}
+                disabled={saving || !goalForm.title || !goalForm.type}
               >
                 {saving ? 'Saving...' : editingGoal ? 'Update Goal' : 'Add Goal'}
               </Button>
