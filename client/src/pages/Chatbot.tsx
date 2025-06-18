@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { Button, Input } from '../components/ui';
 import Footer from '../components/Footer';
+import { getUserProfile } from '../services/firestore';
 
 interface Message {
   id: string;
@@ -10,19 +12,48 @@ interface Message {
 }
 
 export default function Chatbot() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: "Hi! I'm your AI financial advisor. I can help you with budgeting, goal setting, investment advice, and more. What would you like to discuss today?",
-      sender: 'bot',
-      timestamp: new Date()
-    }
-  ]);
+  const { currentUser } = useAuth();
+  const [userName, setUserName] = useState<string>('');
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  // Load user's name and set initial message
+  useEffect(() => {
+    const loadUserData = async () => {
+      if (!currentUser) return;
+      
+      try {
+        const profile = await getUserProfile();
+        const name = profile?.basicInfo?.name || currentUser.displayName || currentUser.email?.split('@')[0] || 'there';
+        setUserName(name.split(' ')[0]); // Use first name only
+        
+        // Set personalized initial message
+        const initialMessage: Message = {
+          id: '1',
+          text: `Hi ${name.split(' ')[0]}! I'm your AI financial advisor. I can help you with budgeting, goal setting, investment advice, and more. What would you like to discuss today?`,
+          sender: 'bot',
+          timestamp: new Date()
+        };
+        setMessages([initialMessage]);
+      } catch (error) {
+        console.error('Error loading user data:', error);
+        // Fallback to generic message
+        const fallbackMessage: Message = {
+          id: '1',
+          text: "Hi! I'm your AI financial advisor. I can help you with budgeting, goal setting, investment advice, and more. What would you like to discuss today?",
+          sender: 'bot',
+          timestamp: new Date()
+        };
+        setMessages([fallbackMessage]);
+      }
+    };
+
+    loadUserData();
+  }, [currentUser]);
 
   const scrollToBottom = () => {
     if (messagesContainerRef.current && messagesEndRef.current) {
@@ -109,8 +140,12 @@ export default function Chatbot() {
                   </svg>
                 </div>
                 <div>
-                  <h1 className="text-xl font-semibold text-surface-900">AI Financial Advisor</h1>
-                  <p className="text-sm text-surface-600">Your personal finance assistant</p>
+                  <h1 className="text-xl font-semibold text-surface-900">
+                    {userName ? `${userName}'s AI Financial Advisor` : 'AI Financial Advisor'}
+                  </h1>
+                  <p className="text-sm text-surface-600">
+                    {userName ? `Hello ${userName}! Your personal finance assistant` : 'Your personal finance assistant'}
+                  </p>
                 </div>
               </div>
             </div>

@@ -9,6 +9,7 @@ import { Dashboard } from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Chatbot from './pages/Chatbot';
 import Goals from './pages/Goals';
+import OnboardingSimple from './pages/OnboardingSimple';
 
 function App() {
   return (
@@ -57,6 +58,14 @@ function App() {
                 <Route path="/" element={<HomeRoute />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
+                <Route 
+                  path="/onboarding" 
+                  element={
+                    <PrivateRoute>
+                      <OnboardingSimple />
+                    </PrivateRoute>
+                  } 
+                />
                 <Route 
                   path="/dashboard" 
                   element={

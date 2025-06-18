@@ -8,7 +8,6 @@ import {
   BasicInfo,
   FinancialInfo,
   FinancialGoal,
-  IntermediateGoal,
   EducationEntry,
   ExperienceEntry,
   SkillsAndInterests
@@ -21,33 +20,49 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [savingSection, setSavingSection] = useState<string | null>(null);
 
+  // Collapsible sections state
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    basic: true,
+    financial: false,
+    goal: false,
+    education: false,
+    experience: false,
+    skills: false
+  });
+
   // Profile sections
   const [basicInfo, setBasicInfo] = useState<BasicInfo>({
     name: '',
     email: '',
     birthday: '',
+    location: '',
+    occupation: '',
+    country: '',
     employmentStatus: 'Employed'
   });
 
   const [financialInfo, setFinancialInfo] = useState<FinancialInfo>({
-    annualIncome: 50000,
-    annualExpenses: 35000,
-    totalAssets: 25000,
-    totalDebts: 5000,
-    currentSavings: 10000
+    annualIncome: 0,
+    annualExpenses: 0,
+    totalAssets: 0,
+    totalDebts: 0,
+    currentSavings: 0
   });
 
-  const [financialGoal, setFinancialGoal] = useState<FinancialGoal>({
+  const [financialGoal, setFinancialGoal] = useState<FinancialGoal & {
+    timeframe?: string;
+    riskTolerance?: string;
+    primaryStrategy?: string;
+  }>({
     targetAmount: 1000000,
-    targetYear: new Date().getFullYear() + 20
+    targetYear: new Date().getFullYear() + 20,
+    timeframe: '',
+    riskTolerance: '',
+    primaryStrategy: ''
   });
-
-  const [intermediateGoals, setIntermediateGoals] = useState<IntermediateGoal[]>([]);
 
   const [educationHistory, setEducationHistory] = useState<EducationEntry[]>([]);
-
   const [experience, setExperience] = useState<ExperienceEntry[]>([]);
-
   const [skillsAndInterests, setSkillsAndInterests] = useState<SkillsAndInterests>({
     skills: [],
     interests: []
@@ -82,6 +97,52 @@ export default function Profile() {
     { value: 'Retired', label: 'Retired' }
   ];
 
+  const countryOptions = [
+    { value: 'US', label: 'United States (USD)' },
+    { value: 'CA', label: 'Canada (CAD)' },
+    { value: 'GB', label: 'United Kingdom (GBP)' },
+    { value: 'AU', label: 'Australia (AUD)' },
+    { value: 'DE', label: 'Germany (EUR)' },
+    { value: 'FR', label: 'France (EUR)' },
+    { value: 'IT', label: 'Italy (EUR)' },
+    { value: 'ES', label: 'Spain (EUR)' },
+    { value: 'NL', label: 'Netherlands (EUR)' },
+    { value: 'CH', label: 'Switzerland (CHF)' },
+    { value: 'JP', label: 'Japan (JPY)' },
+    { value: 'SG', label: 'Singapore (SGD)' },
+    { value: 'OTHER', label: 'Other' }
+  ];
+
+  const timeframeOptions = [
+    { value: '1-5 years', label: '1-5 years' },
+    { value: '5-10 years', label: '5-10 years' },
+    { value: '10-20 years', label: '10-20 years' },
+    { value: '20+ years', label: '20+ years' }
+  ];
+
+  const riskToleranceOptions = [
+    { value: 'Conservative', label: 'Conservative (Low Risk)' },
+    { value: 'Moderate', label: 'Moderate (Medium Risk)' },
+    { value: 'Aggressive', label: 'Aggressive (High Risk)' }
+  ];
+
+  const strategyOptions = [
+    { value: 'Savings', label: 'High-Yield Savings' },
+    { value: 'Index Funds', label: 'Index Fund Investing' },
+    { value: 'Individual Stocks', label: 'Individual Stock Picking' },
+    { value: 'Real Estate', label: 'Real Estate Investment' },
+    { value: 'Business', label: 'Start/Grow a Business' },
+    { value: 'Mixed', label: 'Mixed Strategy' }
+  ];
+
+  // Toggle section visibility
+  const toggleSection = (section: string) => {
+    setOpenSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
   // Load profile data on component mount
   useEffect(() => {
     const loadProfile = async () => {
@@ -96,20 +157,27 @@ export default function Profile() {
             name: currentUser.displayName || '',
             email: currentUser.email || '',
             birthday: '',
+            location: '',
+            occupation: '',
+            country: '',
             employmentStatus: 'Employed'
           });
           setFinancialInfo(profile.financialInfo || {
-            annualIncome: 50000,
-            annualExpenses: 35000,
-            totalAssets: 25000,
-            totalDebts: 5000,
-            currentSavings: 10000
+            annualIncome: 0,
+            annualExpenses: 0,
+            totalAssets: 0,
+            totalDebts: 0,
+            currentSavings: 0
           });
-          setFinancialGoal(profile.financialGoal || {
-            targetAmount: 1000000,
-            targetYear: new Date().getFullYear() + 20
+          setFinancialGoal({
+            ...(profile.financialGoal || {
+              targetAmount: 1000000,
+              targetYear: new Date().getFullYear() + 20
+            }),
+            timeframe: '',
+            riskTolerance: '',
+            primaryStrategy: ''
           });
-          setIntermediateGoals(profile.intermediateGoals || []);
           setEducationHistory(profile.educationHistory || []);
           setExperience(profile.experience || []);
           setSkillsAndInterests(profile.skillsAndInterests || {
@@ -122,6 +190,9 @@ export default function Profile() {
             name: currentUser.displayName || '',
             email: currentUser.email || '',
             birthday: '',
+            location: '',
+            occupation: '',
+            country: '',
             employmentStatus: 'Employed'
           });
         }
@@ -136,32 +207,6 @@ export default function Profile() {
   }, [currentUser]);
 
   // Helper functions for managing arrays
-  const addIntermediateGoal = () => {
-    const newGoal: IntermediateGoal = {
-      id: Date.now().toString(),
-      title: '',
-      type: 'financial',
-      targetAmount: 0,
-      targetDate: '',
-      status: 'Not Started',
-      currentAmount: 0,
-      description: '',
-      progress: 0,
-      category: 'Personal Finance'
-    };
-    setIntermediateGoals([...intermediateGoals, newGoal]);
-  };
-
-  const updateIntermediateGoal = (index: number, field: keyof IntermediateGoal, value: string | number) => {
-    const updated = [...intermediateGoals];
-    updated[index] = { ...updated[index], [field]: value };
-    setIntermediateGoals(updated);
-  };
-
-  const removeIntermediateGoal = (index: number) => {
-    setIntermediateGoals(intermediateGoals.filter((_, i) => i !== index));
-  };
-
   const addEducationEntry = () => {
     const newEntry: EducationEntry = {
       school: '',
@@ -205,7 +250,7 @@ export default function Profile() {
   const toggleSkill = (skill: string) => {
     setSkillsAndInterests(prev => ({
       ...prev,
-      skills: prev.skills.includes(skill) 
+      skills: prev.skills.includes(skill)
         ? prev.skills.filter(s => s !== skill)
         : [...prev.skills, skill]
     }));
@@ -214,7 +259,7 @@ export default function Profile() {
   const toggleInterest = (interest: string) => {
     setSkillsAndInterests(prev => ({
       ...prev,
-      interests: prev.interests.includes(interest) 
+      interests: prev.interests.includes(interest)
         ? prev.interests.filter(i => i !== interest)
         : [...prev.interests, interest]
     }));
@@ -254,7 +299,7 @@ export default function Profile() {
     }
   };
 
-  // Save functions for each section
+  // Save functions
   const saveBasicInfo = async () => {
     setSavingSection('basic');
     try {
@@ -265,6 +310,8 @@ export default function Profile() {
       setSavingSection(null);
     }
   };
+
+
 
   const saveFinancialInfo = async () => {
     setSavingSection('financial');
@@ -283,17 +330,6 @@ export default function Profile() {
       await updateUserProfileSection('financialGoal', financialGoal);
     } catch (error) {
       console.error('Error saving financial goal:', error);
-    } finally {
-      setSavingSection(null);
-    }
-  };
-
-  const saveIntermediateGoals = async () => {
-    setSavingSection('intermediate');
-    try {
-      await updateUserProfileSection('intermediateGoals', intermediateGoals);
-    } catch (error) {
-      console.error('Error saving intermediate goals:', error);
     } finally {
       setSavingSection(null);
     }
@@ -348,549 +384,693 @@ export default function Profile() {
       <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-surface-900">Your Profile</h1>
-          <p className="text-surface-600 mt-2">Manage your personal and financial information</p>
+          <h1 className="text-3xl font-bold text-surface-900">
+            {basicInfo.name ? `${basicInfo.name}'s Profile` : 'Your Profile'}
+          </h1>
+          <p className="text-surface-600 mt-2">
+            {basicInfo.name 
+              ? `Welcome back, ${basicInfo.name.split(' ')[0]}! Manage your personal and financial information` 
+              : 'Manage your personal and financial information'
+            }
+          </p>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-6">
           {/* Basic Information */}
-          <Card className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-surface-900">Basic Information</h2>
-              <Button 
-                onClick={saveBasicInfo}
-                loading={savingSection === 'basic'}
-                size="sm"
-              >
-                Save
-              </Button>
+          <Card className="overflow-hidden">
+            <div 
+              className="p-6 cursor-pointer bg-gradient-to-r from-primary-50 to-secondary-50 border-b border-surface-200"
+              onClick={() => toggleSection('basic')}
+            >
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-semibold text-surface-900 flex items-center">
+                    <span className="w-2 h-2 bg-primary-500 rounded-full mr-3"></span>
+                    Basic Information
+                  </h2>
+                  <p className="text-sm text-surface-600 mt-1">Your personal details and contact information</p>
+                </div>
+                <svg 
+                  className={`w-5 h-5 text-surface-500 transition-transform duration-200 ${openSections.basic ? 'transform rotate-180' : ''}`}
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
-                label="Full Name"
-                type="text"
-                value={basicInfo.name}
-                onChange={(e) => setBasicInfo({...basicInfo, name: e.target.value})}
-                placeholder="Enter your full name"
-              />
-              
-              <Input
-                label="Email"
-                type="email"
-                value={basicInfo.email}
-                onChange={(e) => setBasicInfo({...basicInfo, email: e.target.value})}
-                placeholder="Enter your email"
-              />
-              
-              <Input
-                label="Birthday"
-                type="date"
-                value={basicInfo.birthday}
-                onChange={(e) => setBasicInfo({...basicInfo, birthday: e.target.value})}
-              />
-              
-              <Select
-                label="Employment Status"
-                value={basicInfo.employmentStatus}
-                onChange={(e) => setBasicInfo({...basicInfo, employmentStatus: e.target.value})}
-                options={employmentOptions}
-              />
-            </div>
+            {openSections.basic && (
+              <div className="p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Input
+                    label="Full Name"
+                    type="text"
+                    value={basicInfo.name}
+                    onChange={(e) => setBasicInfo({...basicInfo, name: e.target.value})}
+                    placeholder="Enter your full name"
+                  />
+                  
+                  <Input
+                    label="Email Address"
+                    type="email"
+                    value={basicInfo.email}
+                    onChange={(e) => setBasicInfo({...basicInfo, email: e.target.value})}
+                    placeholder="your.email@example.com"
+                  />
+                  
+                  <Input
+                    label="Date of Birth"
+                    type="date"
+                    value={basicInfo.birthday}
+                    onChange={(e) => setBasicInfo({...basicInfo, birthday: e.target.value})}
+                  />
+                  
+                  <Select
+                    label="Country"
+                    value={basicInfo.country}
+                    onChange={(e) => setBasicInfo({...basicInfo, country: e.target.value})}
+                    options={countryOptions}
+                  />
+                  
+                  <Input
+                    label="Location"
+                    value={basicInfo.location}
+                    onChange={(e) => setBasicInfo({...basicInfo, location: e.target.value})}
+                    placeholder="City, State/Province"
+                  />
+                  
+                  <Input
+                    label="Occupation"
+                    value={basicInfo.occupation}
+                    onChange={(e) => setBasicInfo({...basicInfo, occupation: e.target.value})}
+                    placeholder="Your job title or profession"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Select
+                    label="Employment Status"
+                    value={basicInfo.employmentStatus}
+                    onChange={(e) => setBasicInfo({...basicInfo, employmentStatus: e.target.value})}
+                    options={employmentOptions}
+                  />
+                </div>
+                
+                <div className="flex justify-end pt-4 border-t border-surface-200">
+                  <Button 
+                    onClick={saveBasicInfo}
+                    loading={savingSection === 'basic'}
+                    size="sm"
+                  >
+                    Save Changes
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
 
           {/* Financial Information */}
-          <Card className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-surface-900">Financial Information</h2>
-              <Button 
-                onClick={saveFinancialInfo}
-                loading={savingSection === 'financial'}
-                size="sm"
-              >
-                Save
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
-                label="Annual Income"
-                type="number"
-                value={financialInfo.annualIncome.toString()}
-                onChange={(e) => setFinancialInfo({...financialInfo, annualIncome: parseInt(e.target.value) || 0})}
-                placeholder="Enter your annual income"
-              />
-              
-              <Input
-                label="Annual Expenses"
-                type="number"
-                value={financialInfo.annualExpenses.toString()}
-                onChange={(e) => setFinancialInfo({...financialInfo, annualExpenses: parseInt(e.target.value) || 0})}
-                placeholder="Enter your annual expenses"
-              />
-              
-              <Input
-                label="Total Assets"
-                type="number"
-                value={financialInfo.totalAssets.toString()}
-                onChange={(e) => setFinancialInfo({...financialInfo, totalAssets: parseInt(e.target.value) || 0})}
-                placeholder="Enter your total assets"
-              />
-              
-              <Input
-                label="Total Debts"
-                type="number"
-                value={financialInfo.totalDebts.toString()}
-                onChange={(e) => setFinancialInfo({...financialInfo, totalDebts: parseInt(e.target.value) || 0})}
-                placeholder="Enter your total debts"
-              />
-              
-              <Input
-                label="Current Savings"
-                type="number"
-                value={financialInfo.currentSavings.toString()}
-                onChange={(e) => setFinancialInfo({...financialInfo, currentSavings: parseInt(e.target.value) || 0})}
-                placeholder="Enter your current savings"
-              />
-            </div>
-            
-            <div className="mt-4 p-4 bg-surface-100 rounded-lg">
-              <div className="text-sm text-surface-600 mb-2">Net Worth Calculation:</div>
-              <div className="text-lg font-semibold text-surface-900">
-                ${(financialInfo.totalAssets - financialInfo.totalDebts).toLocaleString()}
-              </div>
-              <div className="text-sm text-surface-500">
-                (Assets: ${financialInfo.totalAssets.toLocaleString()} - Debts: ${financialInfo.totalDebts.toLocaleString()})
-              </div>
-            </div>
-          </Card>
-
-          {/* Financial Goal */}
-          <Card className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-surface-900">Financial Goal</h2>
-              <Button 
-                onClick={saveFinancialGoal}
-                loading={savingSection === 'goal'}
-                size="sm"
-              >
-                Save
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
-                label="Target Amount"
-                type="number"
-                value={financialGoal.targetAmount.toString()}
-                onChange={(e) => setFinancialGoal({...financialGoal, targetAmount: parseInt(e.target.value) || 0})}
-                placeholder="Enter target amount"
-              />
-              
-              <Input
-                label="Target Year"
-                type="number"
-                value={financialGoal.targetYear.toString()}
-                onChange={(e) => setFinancialGoal({...financialGoal, targetYear: parseInt(e.target.value) || 0})}
-                placeholder="Enter target year"
-              />
-            </div>
-          </Card>
-
-          {/* Intermediate Goals */}
-          <Card className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-surface-900">Intermediate Goals</h2>
-              <div className="flex gap-2">
-                <Button 
-                  onClick={addIntermediateGoal}
-                  variant="outline"
-                  size="sm"
+          <Card className="overflow-hidden">
+            <div 
+              className="p-6 cursor-pointer bg-gradient-to-r from-accent-50 to-primary-50 border-b border-surface-200"
+              onClick={() => toggleSection('financial')}
+            >
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-semibold text-surface-900 flex items-center">
+                    <span className="w-2 h-2 bg-accent-500 rounded-full mr-3"></span>
+                    Financial Information
+                  </h2>
+                  <p className="text-sm text-surface-600 mt-1">Track your income, expenses, and wealth building progress</p>
+                </div>
+                <svg 
+                  className={`w-5 h-5 text-surface-500 transition-transform duration-200 ${openSections.financial ? 'transform rotate-180' : ''}`}
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
                 >
-                  Add Goal
-                </Button>
-                <Button 
-                  onClick={saveIntermediateGoals}
-                  loading={savingSection === 'intermediate'}
-                  size="sm"
-                >
-                  Save
-                </Button>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
             </div>
             
-            <div className="space-y-4">
-              {intermediateGoals.map((goal, index) => (
-                <div key={goal.id || index} className="p-4 border border-surface-200 rounded-lg">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            {openSections.financial && (
+              <div className="p-6 space-y-8">
+                {/* Income & Expenses Section */}
+                <div>
+                  <h3 className="text-lg font-medium text-surface-800 mb-4 flex items-center">
+                    <span className="w-2 h-2 bg-primary-500 rounded-full mr-2"></span>
+                    Cash Flow
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <Input
-                      label="Goal Title"
-                      value={goal.title}
-                      onChange={(e) => updateIntermediateGoal(index, 'title', e.target.value)}
-                      placeholder="e.g., Emergency Fund"
-                    />
-                    <Input
-                      label="Target Amount"
+                      label="Annual Income"
                       type="number"
-                      value={(goal.targetAmount || 0).toString()}
-                      onChange={(e) => updateIntermediateGoal(index, 'targetAmount', parseInt(e.target.value) || 0)}
-                      placeholder="10000"
+                      value={financialInfo.annualIncome === 0 ? '' : financialInfo.annualIncome.toString()}
+                      onChange={(e) => setFinancialInfo({...financialInfo, annualIncome: parseInt(e.target.value) || 0})}
+                      placeholder="75000"
                     />
+                    
                     <Input
-                      label="Current Amount"
+                      label="Annual Expenses"
                       type="number"
-                      value={(goal.currentAmount || 0).toString()}
-                      onChange={(e) => updateIntermediateGoal(index, 'currentAmount', parseInt(e.target.value) || 0)}
-                      placeholder="2500"
-                    />
-                    <Input
-                      label="Target Date"
-                      type="date"
-                      value={goal.targetDate}
-                      onChange={(e) => updateIntermediateGoal(index, 'targetDate', e.target.value)}
+                      value={financialInfo.annualExpenses === 0 ? '' : financialInfo.annualExpenses.toString()}
+                      onChange={(e) => setFinancialInfo({...financialInfo, annualExpenses: parseInt(e.target.value) || 0})}
+                      placeholder="45000"
                     />
                   </div>
                   
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-surface-700 mb-2">
-                      Status
-                    </label>
-                    <Select
-                      value={goal.status}
-                      onChange={(e) => updateIntermediateGoal(index, 'status', e.target.value as any)}
-                      options={[
-                        { value: 'Not Started', label: 'Not Started' },
-                        { value: 'In Progress', label: 'In Progress' },
-                        { value: 'Completed', label: 'Completed' }
-                      ]}
+                  {/* Cash Flow Summary */}
+                  {(financialInfo.annualIncome > 0 || financialInfo.annualExpenses > 0) && (
+                    <div className="mt-4 p-3 bg-gradient-to-r from-primary-50 to-accent-50 rounded-lg border">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-surface-700">Annual Cash Flow:</span>
+                        <span className={`font-semibold ${
+                          (financialInfo.annualIncome - financialInfo.annualExpenses) >= 0 
+                            ? 'text-green-600' 
+                            : 'text-red-600'
+                        }`}>
+                          {(financialInfo.annualIncome - financialInfo.annualExpenses) >= 0 ? '+' : ''}
+                          ${(financialInfo.annualIncome - financialInfo.annualExpenses).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Assets & Debts Section */}
+                <div>
+                  <h3 className="text-lg font-medium text-surface-800 mb-4 flex items-center">
+                    <span className="w-2 h-2 bg-accent-500 rounded-full mr-2"></span>
+                    Net Worth
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <Input
+                      label="Total Assets"
+                      type="number"
+                      value={financialInfo.totalAssets === 0 ? '' : financialInfo.totalAssets.toString()}
+                      onChange={(e) => setFinancialInfo({...financialInfo, totalAssets: parseInt(e.target.value) || 0})}
+                      placeholder="250000"
+                    />
+                    
+                    <Input
+                      label="Total Debts"
+                      type="number"
+                      value={financialInfo.totalDebts === 0 ? '' : financialInfo.totalDebts.toString()}
+                      onChange={(e) => setFinancialInfo({...financialInfo, totalDebts: parseInt(e.target.value) || 0})}
+                      placeholder="150000"
+                    />
+                    
+                    <Input
+                      label="Current Savings"
+                      type="number"
+                      value={financialInfo.currentSavings === 0 ? '' : financialInfo.currentSavings.toString()}
+                      onChange={(e) => setFinancialInfo({...financialInfo, currentSavings: parseInt(e.target.value) || 0})}
+                      placeholder="25000"
                     />
                   </div>
-
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-surface-700 mb-2">
-                      Description (Optional)
-                    </label>
-                    <textarea
-                      className="w-full px-3 py-2 border border-surface-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      rows={2}
-                      value={goal.description || ''}
-                      onChange={(e) => updateIntermediateGoal(index, 'description', e.target.value)}
-                      placeholder="Describe this goal..."
-                    />
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium text-surface-700">Progress</span>
-                      <span className="text-sm font-medium text-surface-700">
-                        {(goal.targetAmount || 0) > 0 ? (((goal.currentAmount || 0) / (goal.targetAmount || 1)) * 100).toFixed(1) : 0}%
-                      </span>
+                </div>
+                
+                {/* Net Worth Display */}
+                <div className="p-6 bg-gradient-to-r from-secondary-50 via-surface-50 to-primary-50 rounded-xl border-2 border-surface-200">
+                  <div className="text-center">
+                    <div className="text-sm font-medium text-surface-600 mb-2">Your Current Net Worth</div>
+                    <div className={`text-3xl font-bold mb-2 ${
+                      (financialInfo.totalAssets - financialInfo.totalDebts) >= 0 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                    }`}>
+                      ${(financialInfo.totalAssets - financialInfo.totalDebts).toLocaleString()}
                     </div>
-                    <div className="w-full bg-surface-200 rounded-full h-2">
-                      <div 
-                        className="bg-gradient-to-r from-primary-500 to-accent-500 h-2 rounded-full transition-all duration-300"
-                        style={{ 
-                          width: `${(goal.targetAmount || 0) > 0 ? Math.min(((goal.currentAmount || 0) / (goal.targetAmount || 1)) * 100, 100) : 0}%` 
-                        }}
-                      ></div>
+                    <div className="text-sm text-surface-500 space-y-1">
+                      <div>Assets: ${financialInfo.totalAssets.toLocaleString()}</div>
+                      <div>Debts: ${financialInfo.totalDebts.toLocaleString()}</div>
+                      {financialInfo.currentSavings > 0 && (
+                        <div className="pt-2 border-t border-surface-200">
+                          Liquid Savings: ${financialInfo.currentSavings.toLocaleString()}
+                        </div>
+                      )}
                     </div>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <div className="text-sm text-surface-600">
-                      ${(goal.currentAmount || 0).toLocaleString()} of ${(goal.targetAmount || 0).toLocaleString()}
-                    </div>
-                    <Button
-                      onClick={() => removeIntermediateGoal(index)}
-                      variant="outline"
-                      size="sm"
-                      className="text-red-600 border-red-300 hover:bg-red-50"
-                    >
-                      Remove
-                    </Button>
                   </div>
                 </div>
-              ))}
-              
-              {intermediateGoals.length === 0 && (
-                <div className="text-center py-8 text-surface-500">
-                  No intermediate goals yet. Click "Add Goal" to get started.
+                
+                <div className="flex justify-end pt-4 border-t border-surface-200">
+                  <Button 
+                    onClick={saveFinancialInfo}
+                    loading={savingSection === 'financial'}
+                    size="sm"
+                  >
+                    Save Changes
+                  </Button>
                 </div>
-              )}
+              </div>
+            )}
+          </Card>
+
+          {/* Financial Goal */}
+          <Card className="overflow-hidden">
+            <div 
+              className="p-6 cursor-pointer bg-gradient-to-r from-secondary-50 to-accent-50 border-b border-surface-200"
+              onClick={() => toggleSection('goal')}
+            >
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-semibold text-surface-900 flex items-center">
+                    <span className="w-2 h-2 bg-secondary-500 rounded-full mr-3"></span>
+                    Financial Goal & Strategy
+                  </h2>
+                  <p className="text-sm text-surface-600 mt-1">Set your ultimate wealth-building target and strategy</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      saveFinancialGoal();
+                    }}
+                    loading={savingSection === 'goal'}
+                    size="sm"
+                  >
+                    Save
+                  </Button>
+                  <svg 
+                    className={`w-5 h-5 text-surface-500 transition-transform duration-200 ${openSections.goal ? 'transform rotate-180' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
+            
+            {openSections.goal && (
+              <div className="p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Input
+                    label="Target Amount ($)"
+                    type="number"
+                    value={financialGoal.targetAmount === 0 ? '' : financialGoal.targetAmount.toString()}
+                    onChange={(e) => setFinancialGoal({...financialGoal, targetAmount: parseInt(e.target.value) || 0})}
+                    placeholder="1000000"
+                  />
+                  
+                  <Input
+                    label="Target Year"
+                    type="number"
+                    value={financialGoal.targetYear === 0 ? '' : financialGoal.targetYear.toString()}
+                    onChange={(e) => setFinancialGoal({...financialGoal, targetYear: parseInt(e.target.value) || 0})}
+                    placeholder="2030"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Select
+                    label="Timeframe"
+                    value={financialGoal.timeframe || ''}
+                    onChange={(e) => setFinancialGoal({...financialGoal, timeframe: e.target.value})}
+                    options={timeframeOptions}
+                  />
+                  
+                  <Select
+                    label="Risk Tolerance"
+                    value={financialGoal.riskTolerance || ''}
+                    onChange={(e) => setFinancialGoal({...financialGoal, riskTolerance: e.target.value})}
+                    options={riskToleranceOptions}
+                  />
+                  
+                  <Select
+                    label="Primary Strategy"
+                    value={financialGoal.primaryStrategy || ''}
+                    onChange={(e) => setFinancialGoal({...financialGoal, primaryStrategy: e.target.value})}
+                    options={strategyOptions}
+                  />
+                </div>
+                
+                {(financialGoal.targetAmount > 0 && financialGoal.targetYear > 0) && (
+                  <div className="p-4 bg-gradient-to-r from-accent-50 to-secondary-50 rounded-lg border">
+                    <div className="text-center">
+                      <div className="text-sm font-medium text-surface-700 mb-2">Your RT1M Goal</div>
+                      <div className="text-2xl font-bold text-accent-600 mb-1">
+                        ${financialGoal.targetAmount.toLocaleString()}
+                      </div>
+                      <div className="text-sm text-surface-600">
+                        Target: {financialGoal.targetYear}
+                        {financialGoal.targetYear > new Date().getFullYear() && (
+                          <span className="ml-2 text-surface-500">
+                            ({financialGoal.targetYear - new Date().getFullYear()} years to go)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </Card>
 
           {/* Education History */}
-          <Card className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-surface-900">Education History</h2>
-              <div className="flex gap-2">
-                <Button 
-                  onClick={addEducationEntry}
+          <Card className="overflow-hidden">
+            <div 
+              className="p-6 cursor-pointer bg-gradient-to-r from-primary-50 to-surface-50 border-b border-surface-200"
+              onClick={() => toggleSection('education')}
+            >
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-semibold text-surface-900 flex items-center">
+                    <span className="w-2 h-2 bg-primary-500 rounded-full mr-3"></span>
+                    Education History
+                  </h2>
+                  <p className="text-sm text-surface-600 mt-1">Your academic background and qualifications</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      saveEducationHistory();
+                    }}
+                    loading={savingSection === 'education'}
+                    size="sm"
+                  >
+                    Save
+                  </Button>
+                  <svg 
+                    className={`w-5 h-5 text-surface-500 transition-transform duration-200 ${openSections.education ? 'transform rotate-180' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            
+            {openSections.education && (
+              <div className="p-6 space-y-6">
+                {educationHistory.map((edu, index) => (
+                  <div key={index} className="p-4 border border-surface-200 rounded-lg">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      <Input
+                        label="School/Institution"
+                        value={edu.school}
+                        onChange={(e) => updateEducationEntry(index, 'school', e.target.value)}
+                        placeholder="University of Example"
+                      />
+                      <Input
+                        label="Field of Study"
+                        value={edu.field}
+                        onChange={(e) => updateEducationEntry(index, 'field', e.target.value)}
+                        placeholder="Computer Science"
+                      />
+                      <Input
+                        label="Graduation Year"
+                        value={edu.graduationYear}
+                        onChange={(e) => updateEducationEntry(index, 'graduationYear', e.target.value)}
+                        placeholder="2020"
+                      />
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeEducationEntry(index)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+                <Button
                   variant="outline"
-                  size="sm"
+                  onClick={addEducationEntry}
                 >
                   Add Education
                 </Button>
-                <Button 
-                  onClick={saveEducationHistory}
-                  loading={savingSection === 'education'}
-                  size="sm"
-                >
-                  Save
-                </Button>
+              </div>
+            )}
+          </Card>
+
+          {/* Work Experience */}
+          <Card className="overflow-hidden">
+            <div 
+              className="p-6 cursor-pointer bg-gradient-to-r from-accent-50 to-surface-50 border-b border-surface-200"
+              onClick={() => toggleSection('experience')}
+            >
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-semibold text-surface-900 flex items-center">
+                    <span className="w-2 h-2 bg-accent-500 rounded-full mr-3"></span>
+                    Work Experience
+                  </h2>
+                  <p className="text-sm text-surface-600 mt-1">Your professional work history and experience</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      saveExperience();
+                    }}
+                    loading={savingSection === 'experience'}
+                    size="sm"
+                  >
+                    Save
+                  </Button>
+                  <svg 
+                    className={`w-5 h-5 text-surface-500 transition-transform duration-200 ${openSections.experience ? 'transform rotate-180' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
               </div>
             </div>
             
-            <div className="space-y-4">
-              {educationHistory.map((entry, index) => (
-                <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border border-surface-200 rounded-lg">
-                  <Input
-                    label="School"
-                    value={entry.school}
-                    onChange={(e) => updateEducationEntry(index, 'school', e.target.value)}
-                    placeholder="University name"
-                  />
-                  <Input
-                    label="Field of Study"
-                    value={entry.field}
-                    onChange={(e) => updateEducationEntry(index, 'field', e.target.value)}
-                    placeholder="Major/Field"
-                  />
-                  <Input
-                    label="Graduation Year"
-                    value={entry.graduationYear}
-                    onChange={(e) => updateEducationEntry(index, 'graduationYear', e.target.value)}
-                    placeholder="YYYY"
-                  />
-                  <div className="flex items-end">
+            {openSections.experience && (
+              <div className="p-6 space-y-6">
+                {experience.map((exp, index) => (
+                  <div key={index} className="p-4 border border-surface-200 rounded-lg">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <Input
+                        label="Company"
+                        value={exp.company}
+                        onChange={(e) => updateExperienceEntry(index, 'company', e.target.value)}
+                        placeholder="Tech Corp"
+                      />
+                      <Input
+                        label="Position"
+                        value={exp.position}
+                        onChange={(e) => updateExperienceEntry(index, 'position', e.target.value)}
+                        placeholder="Software Engineer"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <Input
+                        label="Start Year"
+                        value={exp.startYear}
+                        onChange={(e) => updateExperienceEntry(index, 'startYear', e.target.value)}
+                        placeholder="2020"
+                      />
+                      <Input
+                        label="End Year"
+                        value={exp.endYear}
+                        onChange={(e) => updateExperienceEntry(index, 'endYear', e.target.value)}
+                        placeholder="Present or 2022"
+                      />
+                    </div>
+                    <Input
+                      label="Description (Optional)"
+                      value={exp.description}
+                      onChange={(e) => updateExperienceEntry(index, 'description', e.target.value)}
+                      placeholder="Brief description of your role..."
+                      className="mb-4"
+                    />
                     <Button
-                      onClick={() => removeEducationEntry(index)}
                       variant="outline"
                       size="sm"
-                      className="text-red-600 border-red-300 hover:bg-red-50"
+                      onClick={() => removeExperienceEntry(index)}
+                      className="text-red-600 hover:text-red-700"
                     >
                       Remove
                     </Button>
                   </div>
-                </div>
-              ))}
-              
-              {educationHistory.length === 0 && (
-                <div className="text-center py-8 text-surface-500">
-                  No education entries yet. Click "Add Education" to get started.
-                </div>
-              )}
-            </div>
-          </Card>
-
-          {/* Experience */}
-          <Card className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-surface-900">Professional Experience</h2>
-              <div className="flex gap-2">
-                <Button 
-                  onClick={addExperienceEntry}
+                ))}
+                <Button
                   variant="outline"
-                  size="sm"
+                  onClick={addExperienceEntry}
                 >
                   Add Experience
                 </Button>
-                <Button 
-                  onClick={saveExperience}
-                  loading={savingSection === 'experience'}
-                  size="sm"
-                >
-                  Save
-                </Button>
               </div>
-            </div>
-            
-            <div className="space-y-4">
-              {experience.map((entry, index) => (
-                <div key={index} className="p-4 border border-surface-200 rounded-lg">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <Input
-                      label="Company"
-                      value={entry.company}
-                      onChange={(e) => updateExperienceEntry(index, 'company', e.target.value)}
-                      placeholder="Company name"
-                    />
-                    <Input
-                      label="Position"
-                      value={entry.position}
-                      onChange={(e) => updateExperienceEntry(index, 'position', e.target.value)}
-                      placeholder="Job title"
-                    />
-                    <Input
-                      label="Start Year"
-                      value={entry.startYear}
-                      onChange={(e) => updateExperienceEntry(index, 'startYear', e.target.value)}
-                      placeholder="YYYY"
-                    />
-                    <Input
-                      label="End Year"
-                      value={entry.endYear}
-                      onChange={(e) => updateExperienceEntry(index, 'endYear', e.target.value)}
-                      placeholder="YYYY or 'Present'"
-                    />
-                  </div>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-surface-700 mb-2">
-                      Description
-                    </label>
-                    <textarea
-                      className="w-full px-3 py-2 border border-surface-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      rows={3}
-                      value={entry.description}
-                      onChange={(e) => updateExperienceEntry(index, 'description', e.target.value)}
-                      placeholder="Describe your role and achievements..."
-                    />
-                  </div>
-                  <div className="flex justify-end">
-                    <Button
-                      onClick={() => removeExperienceEntry(index)}
-                      variant="outline"
-                      size="sm"
-                      className="text-red-600 border-red-300 hover:bg-red-50"
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              
-              {experience.length === 0 && (
-                <div className="text-center py-8 text-surface-500">
-                  No experience entries yet. Click "Add Experience" to get started.
-                </div>
-              )}
-            </div>
+            )}
           </Card>
 
           {/* Skills & Interests */}
-          <Card className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-surface-900">Skills & Interests</h2>
-              <Button 
-                onClick={saveSkillsAndInterests}
-                loading={savingSection === 'skills'}
-                size="sm"
-              >
-                Save
-              </Button>
+          <Card className="overflow-hidden">
+            <div 
+              className="p-6 cursor-pointer bg-gradient-to-r from-secondary-50 to-surface-50 border-b border-surface-200"
+              onClick={() => toggleSection('skills')}
+            >
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-semibold text-surface-900 flex items-center">
+                    <span className="w-2 h-2 bg-secondary-500 rounded-full mr-3"></span>
+                    Skills & Interests
+                  </h2>
+                  <p className="text-sm text-surface-600 mt-1">Your professional skills and personal interests</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      saveSkillsAndInterests();
+                    }}
+                    loading={savingSection === 'skills'}
+                    size="sm"
+                  >
+                    Save
+                  </Button>
+                  <svg 
+                    className={`w-5 h-5 text-surface-500 transition-transform duration-200 ${openSections.skills ? 'transform rotate-180' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
             
-            <div className="space-y-6">
-              {/* Skills */}
-              <div>
-                <h3 className="text-lg font-medium text-surface-900 mb-3">Skills</h3>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {skillsAndInterests.skills.map((skill) => (
-                    <Badge
-                      key={skill}
-                      variant="primary"
-                      className="cursor-pointer"
-                      onClick={() => toggleSkill(skill)}
+            {openSections.skills && (
+              <div className="p-6 space-y-8">
+                {/* Skills Section */}
+                <div>
+                  <h3 className="text-lg font-medium text-surface-800 mb-4 flex items-center">
+                    <span className="w-2 h-2 bg-primary-500 rounded-full mr-2"></span>
+                    Skills
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-4">
+                    {availableSkills.map((skill) => (
+                      <button
+                        key={skill}
+                        onClick={() => toggleSkill(skill)}
+                        className={`px-3 py-2 rounded-full text-sm border transition-colors ${
+                          skillsAndInterests.skills.includes(skill)
+                            ? 'bg-primary-100 border-primary-300 text-primary-800'
+                            : 'bg-white border-surface-300 text-surface-700 hover:bg-surface-50'
+                        }`}
+                      >
+                        {skill}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  {/* Custom Skills */}
+                  <div className="flex gap-2 mb-4">
+                    <Input
+                      value={customSkillInput}
+                      onChange={(e) => setCustomSkillInput(e.target.value)}
+                      placeholder="Add a custom skill..."
+                      onKeyDown={handleCustomSkillKeyPress}
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={addCustomSkill}
+                      disabled={!customSkillInput.trim() || skillsAndInterests.skills.includes(customSkillInput.trim())}
                     >
-                      {skill} ×
-                    </Badge>
-                  ))}
+                      Add
+                    </Button>
+                  </div>
+                  
+                  {/* Selected Skills */}
+                  {skillsAndInterests.skills.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium text-surface-700 mb-2">Selected Skills:</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {skillsAndInterests.skills.map((skill) => (
+                          <Badge key={skill} variant="primary" className="flex items-center">
+                            {skill}
+                            <button
+                              onClick={() => toggleSkill(skill)}
+                              className="ml-2 text-primary-600 hover:text-primary-800"
+                            >
+                              ×
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                
-                {/* Add custom skill */}
-                <div className="flex gap-2 mb-4">
-                  <input
-                    type="text"
-                    value={customSkillInput}
-                    onChange={(e) => setCustomSkillInput(e.target.value)}
-                    onKeyPress={handleCustomSkillKeyPress}
-                    placeholder="Add a custom skill..."
-                    className="flex-1 px-3 py-2 border border-surface-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
-                  />
-                  <Button
-                    onClick={addCustomSkill}
-                    variant="outline"
-                    size="sm"
-                    disabled={!customSkillInput.trim()}
-                  >
-                    Add
-                  </Button>
-                </div>
-                
-                <div className="flex flex-wrap gap-2">
-                  {availableSkills
-                    .filter(skill => !skillsAndInterests.skills.includes(skill))
-                    .map((skill) => (
-                    <Badge
-                      key={skill}
-                      variant="neutral"
-                      className="cursor-pointer hover:bg-primary-50"
-                      onClick={() => toggleSkill(skill)}
-                    >
-                      + {skill}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
 
-              {/* Interests */}
-              <div>
-                <h3 className="text-lg font-medium text-surface-900 mb-3">Interests</h3>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {skillsAndInterests.interests.map((interest) => (
-                    <Badge
-                      key={interest}
-                      variant="secondary"
-                      className="cursor-pointer"
-                      onClick={() => toggleInterest(interest)}
+                {/* Interests Section */}
+                <div>
+                  <h3 className="text-lg font-medium text-surface-800 mb-4 flex items-center">
+                    <span className="w-2 h-2 bg-secondary-500 rounded-full mr-2"></span>
+                    Interests
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-4">
+                    {availableInterests.map((interest) => (
+                      <button
+                        key={interest}
+                        onClick={() => toggleInterest(interest)}
+                        className={`px-3 py-2 rounded-full text-sm border transition-colors ${
+                          skillsAndInterests.interests.includes(interest)
+                            ? 'bg-secondary-100 border-secondary-300 text-secondary-800'
+                            : 'bg-white border-surface-300 text-surface-700 hover:bg-surface-50'
+                        }`}
+                      >
+                        {interest}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  {/* Custom Interests */}
+                  <div className="flex gap-2 mb-4">
+                    <Input
+                      value={customInterestInput}
+                      onChange={(e) => setCustomInterestInput(e.target.value)}
+                      placeholder="Add a custom interest..."
+                      onKeyDown={handleCustomInterestKeyPress}
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={addCustomInterest}
+                      disabled={!customInterestInput.trim() || skillsAndInterests.interests.includes(customInterestInput.trim())}
                     >
-                      {interest} ×
-                    </Badge>
-                  ))}
-                </div>
-                
-                {/* Add custom interest */}
-                <div className="flex gap-2 mb-4">
-                  <input
-                    type="text"
-                    value={customInterestInput}
-                    onChange={(e) => setCustomInterestInput(e.target.value)}
-                    onKeyPress={handleCustomInterestKeyPress}
-                    placeholder="Add a custom interest..."
-                    className="flex-1 px-3 py-2 border border-surface-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
-                  />
-                  <Button
-                    onClick={addCustomInterest}
-                    variant="outline"
-                    size="sm"
-                    disabled={!customInterestInput.trim()}
-                  >
-                    Add
-                  </Button>
-                </div>
-                
-                <div className="flex flex-wrap gap-2">
-                  {availableInterests
-                    .filter(interest => !skillsAndInterests.interests.includes(interest))
-                    .map((interest) => (
-                    <Badge
-                      key={interest}
-                      variant="neutral"
-                      className="cursor-pointer hover:bg-secondary-50"
-                      onClick={() => toggleInterest(interest)}
-                    >
-                      + {interest}
-                    </Badge>
-                  ))}
+                      Add
+                    </Button>
+                  </div>
+                  
+                  {/* Selected Interests */}
+                  {skillsAndInterests.interests.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium text-surface-700 mb-2">Selected Interests:</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {skillsAndInterests.interests.map((interest) => (
+                          <Badge key={interest} variant="secondary" className="flex items-center">
+                            {interest}
+                            <button
+                              onClick={() => toggleInterest(interest)}
+                              className="ml-2 text-secondary-600 hover:text-secondary-800"
+                            >
+                              ×
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
+            )}
           </Card>
         </div>
       </div>
-      
       <Footer />
     </div>
   );

@@ -17,6 +17,7 @@ import StatCard from '../components/dashboard/StatCard';
 
 export const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
+  const [userName, setUserName] = useState<string>('');
   const [stats, setStats] = useState<UserStats | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,6 +49,15 @@ export const Dashboard: React.FC = () => {
         
         setStats(userStats);
         setProfile(userProfile);
+
+        // Set user name for personalization
+        if (userProfile?.basicInfo?.name) {
+          setUserName(userProfile.basicInfo.name.split(' ')[0]); // Use first name only
+        } else {
+          // Fallback to displayName or email prefix
+          const fallbackName = currentUser?.displayName || currentUser?.email?.split('@')[0] || '';
+          setUserName(fallbackName.split(' ')[0]);
+        }
 
         // Generate dynamic milestones
         if (userStats && userProfile) {
@@ -149,7 +159,7 @@ export const Dashboard: React.FC = () => {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold text-surface-900">
-                Welcome back, {currentUser?.displayName || currentUser?.email?.split('@')[0]}!
+                Welcome back, {userName || 'there'}!
               </h1>
               <p className="text-surface-600 mt-2">Track your journey to ${targetAmount.toLocaleString()}</p>
             </div>

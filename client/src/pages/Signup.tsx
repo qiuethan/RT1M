@@ -125,7 +125,7 @@ export default function Signup() {
       await createUserProfile();
 
       toast.success('Welcome to RT1M! Your account has been created.');
-      navigate('/dashboard');
+              navigate('/onboarding');
     } catch (error: any) {
       const errorCode = error.code || error.message;
       const message = getFirebaseErrorMessage(errorCode);

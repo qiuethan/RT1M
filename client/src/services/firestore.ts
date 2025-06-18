@@ -6,6 +6,9 @@ export interface BasicInfo {
   name: string;
   email: string;
   birthday: string;
+  location: string;
+  occupation: string;
+  country: string;
   employmentStatus: string;
 }
 

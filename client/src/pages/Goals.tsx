@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { Card, Button, Badge, Modal, Input, Select } from '../components/ui';
 import Footer from '../components/Footer';
 import { 
@@ -11,6 +12,8 @@ import {
 } from '../services/firestore';
 
 export default function Goals() {
+  const { currentUser } = useAuth();
+  const [userName, setUserName] = useState<string>('');
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,6 +35,8 @@ export default function Goals() {
   // Load profile and stats on component mount
   useEffect(() => {
     const loadData = async () => {
+      if (!currentUser) return;
+      
       try {
         setLoading(true);
         const [profileData, statsData] = await Promise.all([
@@ -40,6 +45,10 @@ export default function Goals() {
         ]);
         setProfile(profileData);
         setStats(statsData);
+        
+        // Set user name for personalization
+        const name = profileData?.basicInfo?.name || currentUser.displayName || currentUser.email?.split('@')[0] || '';
+        setUserName(name.split(' ')[0]); // Use first name only
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -48,7 +57,7 @@ export default function Goals() {
     };
 
     loadData();
-  }, []);
+  }, [currentUser]);
 
   const openAddModal = () => {
     setEditingGoal(null);
@@ -294,8 +303,15 @@ export default function Goals() {
         <div className="mb-8">
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-3xl font-bold text-surface-900">Your Financial Goals</h1>
-              <p className="text-surface-600 mt-2">Track your progress toward financial independence</p>
+              <h1 className="text-3xl font-bold text-surface-900">
+                {userName ? `${userName}'s Financial Goals` : 'Your Financial Goals'}
+              </h1>
+              <p className="text-surface-600 mt-2">
+                {userName 
+                  ? `Welcome back, ${userName}! Track your progress toward financial independence` 
+                  : 'Track your progress toward financial independence'
+                }
+              </p>
               
               {/* Progress Summary */}
               <div className="flex items-center gap-6 mt-4">
