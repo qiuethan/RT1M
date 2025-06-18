@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { createUserProfile, testCallable } from '../services/firestore';
+import { createUserProfile } from '../services/firestore';
 import toast from 'react-hot-toast';
 import { Logo, Button, Input, Card } from '../components/ui';
 
@@ -30,14 +30,12 @@ export default function Signup() {
     email: '',
     password: '',
     confirmPassword: '',
-    displayName: '',
     agreeToTerms: false
   });
   const [errors, setErrors] = useState({
     email: '',
     password: '',
     confirmPassword: '',
-    displayName: '',
     agreeToTerms: ''
   });
   const [loading, setLoading] = useState(false);
@@ -74,11 +72,7 @@ export default function Signup() {
     return '';
   };
 
-  const validateDisplayName = (displayName: string): string => {
-    if (!displayName.trim()) return 'Full name is required';
-    if (displayName.trim().length < 2) return 'Full name must be at least 2 characters';
-    return '';
-  };
+
 
   const validateAgreeToTerms = (agreeToTerms: boolean): string => {
     if (!agreeToTerms) return 'You must agree to the Terms of Service and Privacy Policy to create an account';
@@ -99,7 +93,6 @@ export default function Signup() {
   
     // Validate all fields
     const newErrors = {
-      displayName: validateDisplayName(formData.displayName),
       email: validateEmail(formData.email),
       password: validatePassword(formData.password),
       confirmPassword: validateConfirmPassword(formData.password, formData.confirmPassword),
@@ -116,55 +109,21 @@ export default function Signup() {
     try {
       setLoading(true);
   
-      // Create user account
+                  // Create user account
       const userCredential = await signup(formData.email, formData.password);
-  
-      // Create user profile with display name
-      await createUserProfile(formData.displayName.trim());
-  
       const user = userCredential.user;
-  
-      // Force refresh token
+
+      // Force refresh token to ensure auth is ready
       if (user) {
         await user.getIdToken(true);
       }
-  
-      // Wait briefly for auth propagation
-      await new Promise(resolve => setTimeout(resolve, 2000));
-  
-      // Test callable auth
-      try {
-        const result = await testCallable();
-        if (!(result.data as any)?.hasAuth) {
-          toast.error('Authentication not properly propagated. Try again shortly.');
-          return;
-        }
-      } catch (err) {
-        toast.error('Cloud function auth test failed.');
-        return;
-      }
-  
-      // Retry createUserProfile
-      let retries = 0;
-      const maxRetries = 5;
-      while (retries < maxRetries) {
-        try {
-          await createUserProfile(formData.displayName.trim());
-          break;
-        } catch (err: any) {
-          if (err.message.includes('authenticated') && retries < maxRetries - 1) {
-            await new Promise(resolve => setTimeout(resolve, 1000 + 500 * retries));
-            retries++;
-          } else {
-            throw err;
-          }
-        }
-      }
-  
-      if (retries >= maxRetries) {
-        throw new Error('Failed to create user profile after several attempts.');
-      }
-  
+
+      // Brief wait for auth propagation
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Create user profile
+      await createUserProfile();
+
       toast.success('Welcome to RT1M! Your account has been created.');
       navigate('/dashboard');
     } catch (error: any) {
@@ -200,15 +159,6 @@ export default function Signup() {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <Card className="py-8 px-4 shadow-card-hover sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit} noValidate>
-            <Input
-              label="Full Name"
-              type="text"
-              value={formData.displayName}
-              onChange={(e) => handleInputChange('displayName', e.target.value)}
-              placeholder="Enter your full name"
-              error={errors.displayName}
-            />
-
             <Input
               label="Email address"
               type="email"

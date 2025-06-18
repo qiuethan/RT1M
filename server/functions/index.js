@@ -42,8 +42,6 @@ export const createUserProfile = onCall(async (request) => {
     const uid = request.auth.uid;
     const email = (request.auth.token && request.auth.token.email) ||
       request.auth.email || "";
-    const displayName = (request.auth.token && request.auth.token.name) ||
-      request.auth.displayName || "";
 
     logger.info(`Creating profile for user with UID: ${uid}, email: ${email}`);
     const db = admin.firestore();
@@ -56,7 +54,7 @@ export const createUserProfile = onCall(async (request) => {
 
       // Basic Information
       basicInfo: {
-        name: displayName,
+        name: "",
         email: email,
         birthday: "",
         employmentStatus: "Employed",
@@ -208,23 +206,6 @@ export const healthCheck = onRequest(async (req, res) => {
     service: "RT1M Firebase Functions",
   });
 });
-
-// Test callable function for debugging
-export const testCallable = onCall(async (request) => {
-  logger.info("testCallable function called");
-  logger.info("Request auth:", !!request.auth);
-  if (request.auth) {
-    logger.info("Auth UID:", request.auth.uid);
-  }
-  return {
-    success: true,
-    message: "Test callable function working",
-    hasAuth: !!request.auth,
-    uid: request.auth ? request.auth.uid : null,
-    timestamp: new Date().toISOString(),
-  };
-});
-
 
 // Get user profile
 export const getUserProfile = onCall(async (request) => {

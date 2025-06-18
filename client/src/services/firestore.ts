@@ -166,7 +166,7 @@ const addGoalFn = httpsCallable(functions, 'addGoal');
 const updateGoalFn = httpsCallable(functions, 'updateGoal');
 const deleteGoalFn = httpsCallable(functions, 'deleteGoal');
 const cleanupUserDataFn = httpsCallable(functions, 'cleanupUserData');
-const testCallableFn = httpsCallable(functions, 'testCallable');
+
 const savePlanFn = httpsCallable(functions, 'savePlan');
 const getUserPlansFn = httpsCallable(functions, 'getUserPlans');
 const updatePlanFn = httpsCallable(functions, 'updatePlan');
@@ -201,8 +201,8 @@ const parseGoal = (data: any): Goal => {
 };
 
 // User Profile Management
-export const createUserProfile = async (displayName?: string): Promise<any> => {
-  return await handleFunctionCall(createUserProfileFn, displayName ? { displayName } : undefined);
+export const createUserProfile = async (): Promise<any> => {
+  return await handleFunctionCall(createUserProfileFn);
 };
 
 export const cleanupUserData = async () => {
@@ -267,10 +267,7 @@ export const deleteGoal = async (goalId: string) => {
   return await handleFunctionCall(deleteGoalFn, { goalId });
 };
 
-// Test function for debugging
-export const testCallable = async () => {
-  return await handleFunctionCall(testCallableFn);
-};
+
 
 export const savePlan = async (planData: Partial<Plan>) => {
   return await handleFunctionCall(savePlanFn, planData);
