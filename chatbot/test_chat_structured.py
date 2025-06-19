@@ -1,56 +1,30 @@
 from chatbot.langchain.chat_model import chat_chain
 
-# Simulated local profile (not Firestore)
-profile = {}
+user_input = "Hey, I'm Jane. I'm 18 and I want to save $100k by 2030."
 
-while True:
-    user_input = input("You: ")
-    if user_input.lower() in ("exit", "quit"):
-        break
+result = chat_chain.invoke({
+    "input": user_input,
+    "history": []
+})
 
-    try:
-        # Get structured response from AI
-        result = chat_chain.run(user_input)
+# ✅ Display the structured response
+print("🤖 Assistant:", result.message)
+print("\n📊 Extracted Data:")
+print(f"  Personal Info: {result.personalInfo}")
+print(f"  Financial Info: {result.financialInfo}")
+print(f"  Goals: {result.goals}")
 
-        # Print the natural message
-        print(f"\n🤖 Bot:\n{result.message}")
+# ✅ Test with different input
+print("\n" + "="*50)
+user_input2 = "I make $75,000 per year and have $10,000 in savings. I want to buy a house in 5 years."
 
-        # Print structured data (if any)
-        structured = result.dict(exclude_none=True)
-        del structured["message"]
-        if structured:
-            print("\n📦 Extracted data:")
-            for key, val in structured.items():
-                print(f"  {key}: {val}")
-        else:
-            print("\n📦 No structured data extracted.")
-    except Exception as e:
-        print(f"❌ Error: {e}")
-from langchain.chat_model import chat_chain  # adjust path if needed
+result2 = chat_chain.invoke({
+    "input": user_input2,
+    "history": []
+})
 
-# Simulated local profile (not Firestore)
-profile = {}
-
-while True:
-    user_input = input("You: ")
-    if user_input.lower() in ("exit", "quit"):
-        break
-
-    try:
-        # Get structured response from AI
-        result = chat_chain.run(user_input)
-
-        # Print the natural message
-        print(f"\n🤖 Bot:\n{result.message}")
-
-        # Print structured data (if any)
-        structured = result.dict(exclude_none=True)
-        del structured["message"]
-        if structured:
-            print("\n📦 Extracted data:")
-            for key, val in structured.items():
-                print(f"  {key}: {val}")
-        else:
-            print("\n📦 No structured data extracted.")
-    except Exception as e:
-        print(f"❌ Error: {e}")
+print("🤖 Assistant:", result2.message)
+print("\n📊 Extracted Data:")
+print(f"  Personal Info: {result2.personalInfo}")
+print(f"  Financial Info: {result2.financialInfo}")
+print(f"  Goals: {result2.goals}")

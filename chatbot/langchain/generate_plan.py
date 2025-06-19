@@ -26,4 +26,4 @@ def generate_plan(user_profile: dict, goal_data: dict) -> dict:
     if len(parsed.milestones) > MAX_MILESTONES:
         raise ValueError(f"AI returned too many milestones ({len(parsed.milestones)}). Limit is {MAX_MILESTONES}.")
 
-    return parsed.dict()
+    return parsed.model_dump()
