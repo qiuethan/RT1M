@@ -173,20 +173,53 @@ export default function Chatbot() {
               )}
             </div>
 
-            {/* Quick Questions */}
+            {/* Star Feature & Quick Questions */}
             {messages.length === 1 && (
-              <div className="px-6 py-2 border-t border-surface-100 flex-shrink-0">
-                <p className="text-sm text-surface-600 mb-3">Quick questions to get started:</p>
-                <div className="flex flex-wrap gap-2">
-                  {quickQuestions.map((question, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleQuickQuestion(question)}
-                      className="px-3 py-1 text-sm bg-surface-100 hover:bg-surface-200 text-surface-700 rounded-full transition-colors"
-                    >
-                      {question}
-                    </button>
-                  ))}
+              <div className="px-6 py-4 border-t border-surface-100 flex-shrink-0 space-y-4">
+                {/* Star Feature Button */}
+                <div>
+                  <p className="text-sm text-surface-600 mb-3 font-medium">⭐ Our most powerful feature:</p>
+                  <button
+                    onClick={() => {
+                      addMessage({
+                        text: "Make me a plan",
+                        sender: 'user'
+                      });
+                      setIsTyping(true);
+                      setTimeout(() => {
+                        addMessage({
+                          text: `Great choice, ${userName}! I'll create a comprehensive financial plan tailored specifically for you. Let me analyze your profile and goals to build a step-by-step roadmap to your RT1M target. This will include investment strategies, savings milestones, and actionable steps you can take starting today!`,
+                          sender: 'bot'
+                        });
+                        setIsTyping(false);
+                      }, 1500);
+                    }}
+                    className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-gradient-to-r from-accent-400 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                    Make me a plan
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Quick Questions */}
+                <div>
+                  <p className="text-sm text-surface-600 mb-3">Or ask a quick question:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {quickQuestions.map((question, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleQuickQuestion(question)}
+                        className="px-3 py-1 text-sm bg-surface-100 hover:bg-surface-200 text-surface-700 rounded-full transition-colors"
+                      >
+                        {question}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

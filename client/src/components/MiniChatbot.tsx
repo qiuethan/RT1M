@@ -155,6 +155,34 @@ export const MiniChatbot: React.FC = () => {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Star Feature Button */}
+      {messages.length <= 2 && (
+        <div className="px-3 py-2 border-t border-surface-100">
+          <button
+            onClick={() => {
+              addMessage({
+                text: "Make me a plan",
+                sender: 'user'
+              });
+              setIsTyping(true);
+              setTimeout(() => {
+                addMessage({
+                  text: "I'd love to help you create a personalized financial plan! To get started, I'll need to analyze your profile data. Please visit the full Chatbot page for a comprehensive planning session where I can create a detailed roadmap to your RT1M goal!",
+                  sender: 'bot'
+                });
+                setIsTyping(false);
+              }, 1000);
+            }}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-gradient-to-r from-accent-400 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white rounded-lg font-medium text-sm transition-all duration-200 shadow-sm hover:shadow-md"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+            Make me a plan
+          </button>
+        </div>
+      )}
+
       {/* Input */}
       <div className="p-3 border-t border-surface-200">
         <div className="flex gap-2">
