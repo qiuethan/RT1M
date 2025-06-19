@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, Button, Input, Select, Badge } from '../components/ui';
 import Footer from '../components/Footer';
+import { MiniChatbot } from '../components/MiniChatbot';
 import { 
   getUserProfile, 
   updateUserProfileSection, 
@@ -72,6 +73,8 @@ export default function Profile() {
   const [customSkillInput, setCustomSkillInput] = useState('');
   const [customInterestInput, setCustomInterestInput] = useState('');
 
+
+
   const availableSkills = [
     'Programming', 'Data Analysis', 'Project Management', 'Digital Marketing',
     'Graphic Design', 'Sales', 'Customer Service', 'Writing', 'Photography',
@@ -114,25 +117,24 @@ export default function Profile() {
   ];
 
   const timeframeOptions = [
-    { value: '1-5 years', label: '1-5 years' },
+    { value: '1-3 years', label: '1-3 years' },
+    { value: '3-5 years', label: '3-5 years' },
     { value: '5-10 years', label: '5-10 years' },
-    { value: '10-20 years', label: '10-20 years' },
-    { value: '20+ years', label: '20+ years' }
+    { value: '10+ years', label: '10+ years' }
   ];
 
   const riskToleranceOptions = [
-    { value: 'Conservative', label: 'Conservative (Low Risk)' },
-    { value: 'Moderate', label: 'Moderate (Medium Risk)' },
-    { value: 'Aggressive', label: 'Aggressive (High Risk)' }
+    { value: 'conservative', label: 'Conservative - Prefer stable, low-risk investments' },
+    { value: 'moderate', label: 'Moderate - Balanced approach to risk and return' },
+    { value: 'aggressive', label: 'Aggressive - High-risk, high-reward investments' }
   ];
 
   const strategyOptions = [
-    { value: 'Savings', label: 'High-Yield Savings' },
-    { value: 'Index Funds', label: 'Index Fund Investing' },
-    { value: 'Individual Stocks', label: 'Individual Stock Picking' },
-    { value: 'Real Estate', label: 'Real Estate Investment' },
-    { value: 'Business', label: 'Start/Grow a Business' },
-    { value: 'Mixed', label: 'Mixed Strategy' }
+    { value: 'investing', label: 'Investing in stocks/ETFs' },
+    { value: 'real-estate', label: 'Real estate investment' },
+    { value: 'business', label: 'Starting/growing a business' },
+    { value: 'mixed', label: 'Mixed approach' },
+    { value: 'other', label: 'Other' }
   ];
 
   // Toggle section visibility
@@ -170,13 +172,11 @@ export default function Profile() {
             currentSavings: 0
           });
           setFinancialGoal({
-            ...(profile.financialGoal || {
-              targetAmount: 1000000,
-              targetYear: new Date().getFullYear() + 20
-            }),
-            timeframe: '',
-            riskTolerance: '',
-            primaryStrategy: ''
+            targetAmount: profile.financialGoal?.targetAmount || 1000000,
+            targetYear: profile.financialGoal?.targetYear || new Date().getFullYear() + 20,
+            timeframe: profile.financialGoal?.timeframe || '',
+            riskTolerance: profile.financialGoal?.riskTolerance || '',
+            primaryStrategy: profile.financialGoal?.primaryStrategy || ''
           });
           setEducationHistory(profile.educationHistory || []);
           setExperience(profile.experience || []);
@@ -338,7 +338,12 @@ export default function Profile() {
   const saveEducationHistory = async () => {
     setSavingSection('education');
     try {
-      await updateUserProfileSection('educationHistory', educationHistory);
+      // Filter out empty entries
+      const validEducation = educationHistory.filter(edu => 
+        edu.school.trim() || edu.field.trim() || edu.graduationYear.trim()
+      );
+      await updateUserProfileSection('educationHistory', validEducation);
+      setEducationHistory(validEducation);
     } catch (error) {
       console.error('Error saving education history:', error);
     } finally {
@@ -349,7 +354,12 @@ export default function Profile() {
   const saveExperience = async () => {
     setSavingSection('experience');
     try {
-      await updateUserProfileSection('experience', experience);
+      // Filter out empty entries
+      const validExperience = experience.filter(exp => 
+        exp.company.trim() || exp.position.trim() || exp.startYear.trim() || exp.endYear.trim()
+      );
+      await updateUserProfileSection('experience', validExperience);
+      setExperience(validExperience);
     } catch (error) {
       console.error('Error saving experience:', error);
     } finally {
@@ -643,26 +653,14 @@ export default function Profile() {
                   </h2>
                   <p className="text-sm text-surface-600 mt-1">Set your ultimate wealth-building target and strategy</p>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <Button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      saveFinancialGoal();
-                    }}
-                    loading={savingSection === 'goal'}
-                    size="sm"
-                  >
-                    Save
-                  </Button>
-                  <svg 
-                    className={`w-5 h-5 text-surface-500 transition-transform duration-200 ${openSections.goal ? 'transform rotate-180' : ''}`}
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
+                <svg 
+                  className={`w-5 h-5 text-surface-500 transition-transform duration-200 ${openSections.goal ? 'transform rotate-180' : ''}`}
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
             </div>
             
@@ -727,6 +725,16 @@ export default function Profile() {
                     </div>
                   </div>
                 )}
+                
+                <div className="flex justify-end pt-4 border-t border-surface-200">
+                  <Button 
+                    onClick={saveFinancialGoal}
+                    loading={savingSection === 'goal'}
+                    size="sm"
+                  >
+                    Save Changes
+                  </Button>
+                </div>
               </div>
             )}
           </Card>
@@ -745,26 +753,14 @@ export default function Profile() {
                   </h2>
                   <p className="text-sm text-surface-600 mt-1">Your academic background and qualifications</p>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <Button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      saveEducationHistory();
-                    }}
-                    loading={savingSection === 'education'}
-                    size="sm"
-                  >
-                    Save
-                  </Button>
-                  <svg 
-                    className={`w-5 h-5 text-surface-500 transition-transform duration-200 ${openSections.education ? 'transform rotate-180' : ''}`}
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
+                <svg 
+                  className={`w-5 h-5 text-surface-500 transition-transform duration-200 ${openSections.education ? 'transform rotate-180' : ''}`}
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
             </div>
             
@@ -808,6 +804,16 @@ export default function Profile() {
                 >
                   Add Education
                 </Button>
+                
+                <div className="flex justify-end pt-4 border-t border-surface-200">
+                  <Button 
+                    onClick={saveEducationHistory}
+                    loading={savingSection === 'education'}
+                    size="sm"
+                  >
+                    Save Changes
+                  </Button>
+                </div>
               </div>
             )}
           </Card>
@@ -826,26 +832,14 @@ export default function Profile() {
                   </h2>
                   <p className="text-sm text-surface-600 mt-1">Your professional work history and experience</p>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <Button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      saveExperience();
-                    }}
-                    loading={savingSection === 'experience'}
-                    size="sm"
-                  >
-                    Save
-                  </Button>
-                  <svg 
-                    className={`w-5 h-5 text-surface-500 transition-transform duration-200 ${openSections.experience ? 'transform rotate-180' : ''}`}
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
+                <svg 
+                  className={`w-5 h-5 text-surface-500 transition-transform duration-200 ${openSections.experience ? 'transform rotate-180' : ''}`}
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
             </div>
             
@@ -904,6 +898,16 @@ export default function Profile() {
                 >
                   Add Experience
                 </Button>
+                
+                <div className="flex justify-end pt-4 border-t border-surface-200">
+                  <Button 
+                    onClick={saveExperience}
+                    loading={savingSection === 'experience'}
+                    size="sm"
+                  >
+                    Save Changes
+                  </Button>
+                </div>
               </div>
             )}
           </Card>
@@ -922,26 +926,14 @@ export default function Profile() {
                   </h2>
                   <p className="text-sm text-surface-600 mt-1">Your professional skills and personal interests</p>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <Button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      saveSkillsAndInterests();
-                    }}
-                    loading={savingSection === 'skills'}
-                    size="sm"
-                  >
-                    Save
-                  </Button>
-                  <svg 
-                    className={`w-5 h-5 text-surface-500 transition-transform duration-200 ${openSections.skills ? 'transform rotate-180' : ''}`}
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
+                <svg 
+                  className={`w-5 h-5 text-surface-500 transition-transform duration-200 ${openSections.skills ? 'transform rotate-180' : ''}`}
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
             </div>
             
@@ -1066,12 +1058,25 @@ export default function Profile() {
                     </div>
                   )}
                 </div>
+                
+                <div className="flex justify-end pt-4 border-t border-surface-200">
+                  <Button 
+                    onClick={saveSkillsAndInterests}
+                    loading={savingSection === 'skills'}
+                    size="sm"
+                  >
+                    Save Changes
+                  </Button>
+                </div>
               </div>
             )}
           </Card>
         </div>
       </div>
       <Footer />
+      
+      {/* Mini Chatbot */}
+      <MiniChatbot />
     </div>
   );
 } 

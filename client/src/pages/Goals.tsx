@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, Button, Badge, Modal, Input, Select } from '../components/ui';
 import Footer from '../components/Footer';
+import { MiniChatbot } from '../components/MiniChatbot';
 import { 
   getUserProfile, 
   getUserStats,
@@ -634,6 +635,9 @@ export default function Goals() {
       </div>
       
       <Footer />
+      
+      {/* Mini Chatbot */}
+      <MiniChatbot />
 
       {showModal && (
         <Modal

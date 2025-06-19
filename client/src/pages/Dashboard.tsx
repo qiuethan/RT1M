@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, Button, Badge, Modal, Input, Select } from '../components/ui';
 import Footer from '../components/Footer';
+import { MiniChatbot } from '../components/MiniChatbot';
 import { 
   getUserStats, 
   getUserProfile,
@@ -500,6 +501,10 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
       <Footer />
+      
+      {/* Mini Chatbot */}
+      <MiniChatbot />
+      
       {showModal && (
         <Modal
           isOpen={showModal}

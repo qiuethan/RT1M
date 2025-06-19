@@ -276,7 +276,10 @@ const OnboardingSimple: React.FC = () => {
         },
         financialGoal: {
           targetAmount: parseFloat(formData.targetAmount),
-          targetYear: parseInt(formData.targetYear)
+          targetYear: parseInt(formData.targetYear),
+          timeframe: formData.timeframe,
+          riskTolerance: formData.riskTolerance,
+          primaryStrategy: formData.primaryStrategy
         },
         intermediateGoals: [],
         educationHistory: formData.education.filter(edu => edu.school || edu.field || edu.graduationYear),

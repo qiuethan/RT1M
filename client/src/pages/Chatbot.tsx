@@ -1,59 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import { Button, Input } from '../components/ui';
 import Footer from '../components/Footer';
-import { getUserProfile } from '../services/firestore';
-
-interface Message {
-  id: string;
-  text: string;
-  sender: 'user' | 'bot';
-  timestamp: Date;
-}
+import { useChatContext, ChatMessage } from '../contexts/ChatContext';
 
 export default function Chatbot() {
-  const { currentUser } = useAuth();
-  const [userName, setUserName] = useState<string>('');
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { messages, addMessage, isTyping, setIsTyping, userName, clearMessages } = useChatContext();
   const [inputValue, setInputValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-
-  // Load user's name and set initial message
-  useEffect(() => {
-    const loadUserData = async () => {
-      if (!currentUser) return;
-      
-      try {
-        const profile = await getUserProfile();
-        const name = profile?.basicInfo?.name || currentUser.displayName || currentUser.email?.split('@')[0] || 'there';
-        setUserName(name.split(' ')[0]); // Use first name only
-        
-        // Set personalized initial message
-        const initialMessage: Message = {
-          id: '1',
-          text: `Hi ${name.split(' ')[0]}! I'm your AI financial advisor. I can help you with budgeting, goal setting, investment advice, and more. What would you like to discuss today?`,
-          sender: 'bot',
-          timestamp: new Date()
-        };
-        setMessages([initialMessage]);
-      } catch (error) {
-        console.error('Error loading user data:', error);
-        // Fallback to generic message
-        const fallbackMessage: Message = {
-          id: '1',
-          text: "Hi! I'm your AI financial advisor. I can help you with budgeting, goal setting, investment advice, and more. What would you like to discuss today?",
-          sender: 'bot',
-          timestamp: new Date()
-        };
-        setMessages([fallbackMessage]);
-      }
-    };
-
-    loadUserData();
-  }, [currentUser]);
 
   const scrollToBottom = () => {
     if (messagesContainerRef.current && messagesEndRef.current) {
@@ -79,26 +34,21 @@ export default function Chatbot() {
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
+    // Add user message
+    addMessage({
       text: inputValue,
-      sender: 'user',
-      timestamp: new Date()
-    };
+      sender: 'user'
+    });
 
-    setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsTyping(true);
 
     // Simulate bot response (replace with actual AI integration later)
     setTimeout(() => {
-      const botMessage: Message = {
-        id: (Date.now() + 1).toString(),
+      addMessage({
         text: "Thanks for your message! I'm still learning and will be able to provide personalized financial advice soon. In the meantime, feel free to explore your goals and track your progress!",
-        sender: 'bot',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, botMessage]);
+        sender: 'bot'
+      });
       setIsTyping(false);
     }, 1000);
   };
@@ -133,20 +83,36 @@ export default function Chatbot() {
           <div className="bg-white rounded-lg shadow-lg border border-surface-200 flex flex-col h-full">
             {/* Header */}
             <div className="bg-white border-b border-surface-200 px-6 py-4 rounded-t-lg flex-shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-primary-500 to-accent-500 rounded-full flex items-center justify-center">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                  </svg>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-primary-500 to-accent-500 rounded-full flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-semibold text-surface-900">
+                      {userName ? `${userName}'s AI Financial Advisor` : 'AI Financial Advisor'}
+                    </h1>
+                    <p className="text-sm text-surface-600">
+                      {userName ? `Hello ${userName}! Your personal finance assistant` : 'Your personal finance assistant'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h1 className="text-xl font-semibold text-surface-900">
-                    {userName ? `${userName}'s AI Financial Advisor` : 'AI Financial Advisor'}
-                  </h1>
-                  <p className="text-sm text-surface-600">
-                    {userName ? `Hello ${userName}! Your personal finance assistant` : 'Your personal finance assistant'}
-                  </p>
-                </div>
+                
+                {messages.length > 1 && (
+                  <Button
+                    onClick={clearMessages}
+                    variant="outline"
+                    size="sm"
+                    className="text-surface-600 hover:text-surface-800"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Clear Chat
+                  </Button>
+                )}
               </div>
             </div>
 

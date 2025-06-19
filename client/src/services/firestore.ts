@@ -25,6 +25,9 @@ export interface FinancialInfo {
 export interface FinancialGoal {
   targetAmount: number;
   targetYear: number;
+  timeframe?: string;
+  riskTolerance?: string;
+  primaryStrategy?: string;
 }
 
 // Intermediate Goal Interface

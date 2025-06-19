@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { ChatProvider } from './contexts/ChatContext';
 import { Navbar } from './components/Navbar';
 import PrivateRoute from './components/PrivateRoute';
 import HomeRoute from './components/HomeRoute';
@@ -42,8 +43,9 @@ function App() {
       </div>
 
       <AuthProvider>
-        <div className="relative z-10">
-          <Navbar />
+        <ChatProvider>
+          <div className="relative z-10">
+            <Navbar />
           
           {/* Main content with enhanced backdrop and proper spacing for mobile */}
           <main className="min-h-screen relative pt-16 md:pt-16 pb-16 md:pb-0">
@@ -102,6 +104,7 @@ function App() {
             </div>
           </main>
         </div>
+        </ChatProvider>
       </AuthProvider>
     </div>
   );
