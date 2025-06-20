@@ -12,6 +12,25 @@ export interface BasicInfo {
   employmentStatus: string;
 }
 
+// Asset Interface
+export interface Asset {
+  id?: string;
+  name: string;
+  type: 'real-estate' | 'stocks' | 'bonds' | 'savings' | 'retirement' | 'crypto' | 'business' | 'other';
+  value: number;
+  description?: string;
+}
+
+// Debt Interface
+export interface Debt {
+  id?: string;
+  name: string;
+  type: 'mortgage' | 'credit-card' | 'student-loan' | 'car-loan' | 'personal-loan' | 'business-loan' | 'other';
+  balance: number;
+  interestRate?: number;
+  description?: string;
+}
+
 // Financial Information Interface
 export interface FinancialInfo {
   annualIncome: number;
@@ -144,6 +163,8 @@ export interface UserFinancials {
   id?: string;
   userId: string;
   financialInfo: FinancialInfo;
+  assets: Asset[];
+  debts: Debt[];
   createdAt: Date;
   updatedAt: Date;
 }

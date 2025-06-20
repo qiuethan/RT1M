@@ -107,6 +107,16 @@ export const createUserProfile = onCall(async (request) => {
         currentSavings: 0,
       },
 
+      // Asset Objects
+      assets: [
+        // Example: { name: "Primary Home", type: "real-estate", value: 500000, description: "" }
+      ],
+
+      // Debt Objects
+      debts: [
+        // Example: { name: "Mortgage", type: "mortgage", balance: 300000, interestRate: 3.5, description: "" }
+      ],
+
       // Metadata
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),

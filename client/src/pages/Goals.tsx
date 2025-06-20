@@ -6,14 +6,12 @@ import { MiniChatbot } from '../components/MiniChatbot';
 import { 
   getUserProfile, 
   getUserStats,
-  getUserFinancials,
   getUserIntermediateGoals,
   addIntermediateGoal,
   updateIntermediateGoal,
   deleteIntermediateGoal,
   UserProfile,
   UserStats,
-  UserFinancials,
   UserGoals,
   IntermediateGoal
 } from '../services/firestore';
@@ -23,7 +21,6 @@ export default function Goals() {
   const [userName, setUserName] = useState<string>('');
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
-  const [financials, setFinancials] = useState<UserFinancials | null>(null);
   const [goals, setGoals] = useState<UserGoals | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -48,15 +45,13 @@ export default function Goals() {
       
       try {
         setLoading(true);
-        const [profileData, statsData, financialsData, goalsData] = await Promise.all([
+        const [profileData, statsData, goalsData] = await Promise.all([
           getUserProfile(),
           getUserStats(),
-          getUserFinancials(),
           getUserIntermediateGoals()
         ]);
         setProfile(profileData);
         setStats(statsData);
-        setFinancials(financialsData);
         setGoals(goalsData);
         
         // Set user name for personalization
@@ -159,7 +154,7 @@ export default function Goals() {
     }
   };
 
-  const calculateProgress = () => {
+  const calculateMainGoalProgress = () => {
     if (!profile?.financialGoal?.targetAmount || !stats?.netWorth) return 0;
     return Math.min((stats.netWorth / profile.financialGoal.targetAmount) * 100, 100);
   };
@@ -177,8 +172,8 @@ export default function Goals() {
     return remaining / (yearsRemaining * 12);
   };
 
-  const getGoalStatus = () => {
-    const progress = calculateProgress();
+  const getMainGoalStatus = () => {
+    const progress = calculateMainGoalProgress();
     if (progress >= 100) return 'Achieved';
     if (progress >= 75) return 'On Track';
     if (progress >= 50) return 'Making Progress';
@@ -212,20 +207,13 @@ export default function Goals() {
 
   const getGoalTypeIcon = (type: string) => {
     switch (type) {
-      case 'financial':
-        return '💰';
-      case 'skill':
-        return '🧠';
-      case 'behavior':
-        return '📊';
-      case 'lifestyle':
-        return '🏋️';
-      case 'networking':
-        return '💬';
-      case 'project':
-        return '🛠️';
-      default:
-        return '🎯';
+      case 'financial': return '💰';
+      case 'skill': return '🧠';
+      case 'behavior': return '📊';
+      case 'lifestyle': return '🏋️';
+      case 'networking': return '💬';
+      case 'project': return '🛠️';
+      default: return '🎯';
     }
   };
 
@@ -244,18 +232,9 @@ export default function Goals() {
       case 'project':
         return 'bg-indigo-100 text-indigo-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-surface-100 text-surface-800';
     }
   };
-
-  const goalTypeOptions = [
-    { value: 'financial', label: '💰 Financial Goals', description: 'Savings, investments, debt payoff' },
-    { value: 'skill', label: '🧠 Skill-Based Goals', description: 'Learning, courses, certifications' },
-    { value: 'behavior', label: '📊 Financial Behavior Goals', description: 'Budgeting, tracking, habits' },
-    { value: 'lifestyle', label: '🏋️ Lifestyle Discipline Goals', description: 'Routines, productivity, wellness' },
-    { value: 'networking', label: '💬 Networking & Mentorship Goals', description: 'Connections, opportunities' },
-    { value: 'project', label: '🛠️ Project / Output-Based Goals', description: 'Side hustles, portfolios, MVPs' }
-  ];
 
   const getGoalProgress = (goal: IntermediateGoal) => {
     if (goal.type === 'financial' && goal.targetAmount && goal.targetAmount > 0) {
@@ -263,6 +242,15 @@ export default function Goals() {
     }
     return goal.progress || 0;
   };
+
+  const goalTypeOptions = [
+    { value: 'financial', label: '💰 Financial Goals' },
+    { value: 'skill', label: '🧠 Skill-Based Goals' },
+    { value: 'behavior', label: '📊 Financial Behavior Goals' },
+    { value: 'lifestyle', label: '🏋️ Lifestyle Discipline Goals' },
+    { value: 'networking', label: '💬 Networking & Mentorship Goals' },
+    { value: 'project', label: '🛠️ Project / Output-Based Goals' }
+  ];
 
   if (loading) {
     return (
@@ -275,24 +263,9 @@ export default function Goals() {
     );
   }
 
-  if (!profile || !stats || !financials) {
-    return (
-      <div className="min-h-screen bg-surface-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-surface-900 mb-2">No Data Found</h2>
-          <p className="text-surface-600 mb-4">Please complete your profile and financial information first to track your goals.</p>
-          <Button onClick={() => window.location.href = '/profile'}>
-            Go to Profile
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  const progress = calculateProgress();
-  const yearsRemaining = calculateYearsRemaining();
+  const progress = calculateMainGoalProgress();
   const monthlyTarget = calculateMonthlyTarget();
-  const status = getGoalStatus();
+  const status = getMainGoalStatus();
 
   return (
     <div className="min-h-screen bg-surface-50">
@@ -302,36 +275,14 @@ export default function Goals() {
           <div className="flex justify-between items-start">
             <div>
               <h1 className="text-3xl font-bold text-surface-900">
-                {userName ? `${userName}'s Financial Goals` : 'Your Financial Goals'}
+                {userName ? `${userName}'s Goals & Progress` : 'Your Goals & Progress'}
               </h1>
               <p className="text-surface-600 mt-2">
                 {userName 
-                  ? `Welcome back, ${userName}! Track your progress toward financial independence` 
-                  : 'Track your progress toward financial independence'
+                  ? `Welcome back, ${userName}! Track and manage all your goals in one place` 
+                  : 'Track and manage all your goals in one place'
                 }
               </p>
-              
-              {/* Progress Summary */}
-              <div className="flex items-center gap-6 mt-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-surface-700">
-                    {progress.toFixed(1)}% Complete
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-accent-500 rounded-full"></div>
-                  <span className="text-sm text-surface-600">
-                    {yearsRemaining} years remaining
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-secondary-500 rounded-full"></div>
-                  <span className="text-sm text-surface-600">
-                    {formatCurrency(monthlyTarget)}/month needed
-                  </span>
-                </div>
-              </div>
             </div>
             
             {/* Quick Actions */}
@@ -342,301 +293,211 @@ export default function Goals() {
                 </svg>
                 Add Goal
               </Button>
-              <Button onClick={() => window.location.href = '/financials'} variant="outline">
-                View Financials
-              </Button>
             </div>
           </div>
         </div>
 
-        {/* Main Financial Goal */}
-        <div>
-          <h2 className="text-2xl font-semibold text-surface-900 mb-6">Main Financial Goal</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Goal Card */}
-            <div className="lg:col-span-2">
-              <Card className="p-8 mb-8">
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <h2 className="text-2xl font-bold text-surface-900 mb-2">
-                      {formatCurrency(profile?.financialGoal?.targetAmount || 0)}
-                    </h2>
-                    <p className="text-surface-600">
-                      Target by {profile?.financialGoal?.targetYear}
-                    </p>
-                  </div>
-                  <Badge variant={getStatusColor(status) as any}>
-                    {status}
-                  </Badge>
-                </div>
+        {/* Goal Overview Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card className="p-6 text-center">
+            <div className="text-2xl font-bold text-primary-600 mb-2">
+              {goals?.intermediateGoals?.length || 0}
+            </div>
+            <div className="text-sm text-surface-600">Total Goals</div>
+          </Card>
+          
+          <Card className="p-6 text-center">
+            <div className="text-2xl font-bold text-green-600 mb-2">
+              {goals?.intermediateGoals?.filter(g => g.status === 'Completed').length || 0}
+            </div>
+            <div className="text-sm text-surface-600">Completed</div>
+          </Card>
+          
+          <Card className="p-6 text-center">
+            <div className="text-2xl font-bold text-yellow-600 mb-2">
+              {goals?.intermediateGoals?.filter(g => g.status === 'In Progress').length || 0}
+            </div>
+            <div className="text-sm text-surface-600">In Progress</div>
+          </Card>
+          
+          <Card className="p-6 text-center">
+            <div className="text-2xl font-bold text-surface-600 mb-2">
+              {goals?.intermediateGoals?.filter(g => g.status === 'Not Started').length || 0}
+            </div>
+            <div className="text-sm text-surface-600">Not Started</div>
+          </Card>
+        </div>
 
-                {/* Progress Bar */}
-                <div className="mb-6">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-surface-700">Progress</span>
-                    <span className="text-sm font-medium text-surface-700">{progress.toFixed(1)}%</span>
+        {/* Main Financial Goal */}
+        <Card className="p-8 mb-8">
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-surface-900 mb-2">
+                RT1M Goal: {formatCurrency(profile?.financialGoal?.targetAmount || 1000000)}
+              </h2>
+              <p className="text-surface-600">
+                Target by {profile?.financialGoal?.targetYear || new Date().getFullYear() + 10}
+              </p>
+            </div>
+            <Badge variant={getStatusColor(status) as any}>
+              {status}
+            </Badge>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium text-surface-700">Overall Progress</span>
+              <span className="text-sm font-medium text-surface-700">{progress.toFixed(1)}%</span>
+            </div>
+            <div className="w-full bg-surface-200 rounded-full h-4">
+              <div 
+                className="bg-gradient-to-r from-primary-500 to-accent-500 h-4 rounded-full transition-all duration-300"
+                style={{ width: `${Math.min(progress, 100)}%` }}
+              ></div>
+            </div>
+          </div>
+
+          {/* Key Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <div className="text-xl font-bold text-green-700">
+                {formatCurrency(stats?.netWorth || 0)}
+              </div>
+              <div className="text-sm text-green-600">Current Net Worth</div>
+            </div>
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <div className="text-xl font-bold text-blue-700">
+                {formatCurrency((profile?.financialGoal?.targetAmount || 0) - (stats?.netWorth || 0))}
+              </div>
+              <div className="text-sm text-blue-600">Remaining to Goal</div>
+            </div>
+            <div className="text-center p-4 bg-purple-50 rounded-lg">
+              <div className="text-xl font-bold text-purple-700">
+                {formatCurrency(monthlyTarget)}
+              </div>
+              <div className="text-sm text-purple-600">Monthly Target</div>
+            </div>
+          </div>
+        </Card>
+
+        {/* All Goals */}
+        <div>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-semibold text-surface-900">All Goals</h3>
+            <Button onClick={openAddModal} size="sm">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Add Goal
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Existing Goals */}
+            {goals?.intermediateGoals?.map((goal, index) => (
+              <Card key={goal.id || index} className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{getGoalTypeIcon(goal.type)}</span>
+                    <h4 className="font-semibold text-surface-900">{goal.title}</h4>
                   </div>
-                  <div className="w-full bg-surface-200 rounded-full h-3">
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-1 text-xs rounded-full ${getGoalTypeColor(goal.type)}`}>
+                      {goal.type}
+                    </span>
+                    <Badge variant={goal.status === 'Completed' ? 'success' : goal.status === 'In Progress' ? 'primary' : 'neutral' as any} size="sm">
+                      {goal.status}
+                    </Badge>
+                    <button
+                      onClick={() => openEditModal(goal)}
+                      className="text-surface-400 hover:text-surface-600 transition-colors"
+                      title="Edit goal"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium text-surface-600">Progress</span>
+                    <span className="text-sm font-medium text-surface-600">
+                      {getGoalProgress(goal).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-surface-200 rounded-full h-2">
                     <div 
-                      className="bg-gradient-to-r from-primary-500 to-accent-500 h-3 rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(progress, 100)}%` }}
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        goal.type === 'financial' 
+                          ? 'bg-gradient-to-r from-green-500 to-emerald-500'
+                          : 'bg-gradient-to-r from-blue-500 to-purple-500'
+                      }`}
+                      style={{ 
+                        width: `${Math.min(getGoalProgress(goal), 100)}%` 
+                      }}
                     ></div>
                   </div>
                 </div>
 
-                {/* Current vs Target */}
-                <div className="grid grid-cols-2 gap-6 mb-6">
-                  <div className="text-center p-4 bg-surface-50 rounded-lg">
-                    <div className="text-2xl font-bold text-surface-900">
-                      {formatCurrency(stats.netWorth || 0)}
-                    </div>
-                    <div className="text-sm text-surface-600">Current Net Worth</div>
-                  </div>
-                  <div className="text-center p-4 bg-primary-50 rounded-lg">
-                    <div className="text-2xl font-bold text-primary-700">
-                      {formatCurrency((profile?.financialGoal?.targetAmount || 0) - (stats?.netWorth || 0))}
-                    </div>
-                    <div className="text-sm text-primary-600">Remaining to Goal</div>
-                  </div>
-                </div>
-
-                {/* Timeline */}
-                <div className="border-t pt-6">
-                  <h3 className="text-lg font-semibold text-surface-900 mb-4">Timeline</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 bg-accent-500 rounded-full mr-3"></div>
-                      <div>
-                        <div className="font-medium text-surface-900">{yearsRemaining} years remaining</div>
-                        <div className="text-sm text-surface-600">Until target year</div>
+                <div className="space-y-2 text-sm">
+                  {goal.type === 'financial' ? (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-surface-500">Current:</span>
+                        <span className="font-medium">{formatCurrency(goal.currentAmount || 0)}</span>
                       </div>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 bg-secondary-500 rounded-full mr-3"></div>
-                      <div>
-                        <div className="font-medium text-surface-900">{formatCurrency(monthlyTarget)}/month</div>
-                        <div className="text-sm text-surface-600">Needed to reach goal</div>
+                      <div className="flex justify-between">
+                        <span className="text-surface-500">Target:</span>
+                        <span className="font-medium">{formatCurrency(goal.targetAmount || 0)}</span>
                       </div>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Intermediate Goals */}
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-semibold text-surface-900">Intermediate Goals</h3>
-                  <Button onClick={openAddModal} size="sm">
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    Add Goal
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Existing Goals */}
-                  {goals?.intermediateGoals && goals.intermediateGoals.map((goal, index) => (
-                    <Card key={goal.id || index} className="p-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">{getGoalTypeIcon(goal.type)}</span>
-                          <h4 className="font-semibold text-surface-900">{goal.title}</h4>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2 py-1 text-xs rounded-full ${getGoalTypeColor(goal.type)}`}>
-                            {goal.type}
-                          </span>
-                          <Badge variant={goal.status === 'Completed' ? 'success' : goal.status === 'In Progress' ? 'primary' : 'neutral' as any} size="sm">
-                            {goal.status}
-                          </Badge>
-                          <button
-                            onClick={() => openEditModal(goal)}
-                            className="text-surface-400 hover:text-surface-600 transition-colors"
-                            title="Edit goal"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <div className="mb-3">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="text-xs font-medium text-surface-600">Progress</span>
-                          <span className="text-xs font-medium text-surface-600">
-                            {getGoalProgress(goal).toFixed(1)}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-surface-200 rounded-full h-1.5">
-                          <div 
-                            className="bg-gradient-to-r from-secondary-500 to-accent-500 h-1.5 rounded-full transition-all duration-300"
-                            style={{ 
-                              width: `${Math.min(getGoalProgress(goal), 100)}%` 
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1 text-xs">
-                        {goal.type === 'financial' ? (
-                          <>
-                            <div className="flex justify-between">
-                              <span className="text-surface-500">Current:</span>
-                              <span className="font-medium">{formatCurrency(goal.currentAmount || 0)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-surface-500">Target:</span>
-                              <span className="font-medium">{formatCurrency(goal.targetAmount || 0)}</span>
-                            </div>
-                          </>
-                        ) : (
-                          <div className="flex justify-between">
-                            <span className="text-surface-500">Progress:</span>
-                            <span className="font-medium">{(goal.progress || 0).toFixed(0)}% Complete</span>
-                          </div>
-                        )}
-                        {goal.targetDate && (
-                          <div className="flex justify-between">
-                            <span className="text-surface-500">Due:</span>
-                            <span className="font-medium">{new Date(goal.targetDate).toLocaleDateString()}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {goal.description && (
-                        <div className="mt-2 pt-2 border-t">
-                          <p className="text-xs text-surface-600">{goal.description}</p>
-                        </div>
-                      )}
-                    </Card>
-                  ))}
-
-                  {/* Add New Goal Card */}
-                  <div 
-                    className="p-4 border-2 border-dashed border-surface-300 hover:border-primary-300 transition-colors cursor-pointer bg-white rounded-lg shadow-sm"
-                    onClick={openAddModal}
-                  >
-                    <div className="flex flex-col items-center justify-center h-full min-h-[120px] text-center">
-                      <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center mb-3">
-                        <svg className="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                      </div>
-                      <h4 className="font-medium text-surface-900 mb-1">
-                        Add Goal
-                      </h4>
-                      <p className="text-xs text-surface-600">
-                        Set a new intermediate goal
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Sidebar */}
-            <div className="space-y-6">
-              {/* Financial Breakdown */}
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold text-surface-900 mb-4">Financial Breakdown</h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-surface-600">Total Assets</span>
-                    <span className="font-medium">{formatCurrency(financials.financialInfo?.totalAssets || 0)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-surface-600">Total Debts</span>
-                    <span className="font-medium text-red-600">-{formatCurrency(financials.financialInfo?.totalDebts || 0)}</span>
-                  </div>
-                  <div className="border-t pt-2 flex justify-between font-semibold">
-                    <span>Net Worth</span>
-                    <span>{formatCurrency(stats.netWorth || 0)}</span>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Annual Overview */}
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold text-surface-900 mb-4">Annual Overview</h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-surface-600">Annual Income</span>
-                    <span className="font-medium text-green-600">{formatCurrency(financials.financialInfo?.annualIncome || 0)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-surface-600">Annual Expenses</span>
-                    <span className="font-medium text-red-600">-{formatCurrency(financials.financialInfo?.annualExpenses || 0)}</span>
-                  </div>
-                  <div className="border-t pt-2 flex justify-between font-semibold">
-                    <span>Net Annual</span>
-                    <span className={`${(financials.financialInfo?.annualIncome || 0) - (financials.financialInfo?.annualExpenses || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatCurrency((financials.financialInfo?.annualIncome || 0) - (financials.financialInfo?.annualExpenses || 0))}
-                    </span>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Savings Rate */}
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold text-surface-900 mb-4">Savings Rate</h3>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-primary-600 mb-2">
-                    {financials.financialInfo?.annualIncome ? 
-                      (((financials.financialInfo.annualIncome - (financials.financialInfo.annualExpenses || 0)) / financials.financialInfo.annualIncome) * 100).toFixed(1)
-                      : 0}%
-                  </div>
-                  <div className="text-sm text-surface-600">of income saved annually</div>
-                </div>
-                <div className="mt-4 p-3 bg-surface-50 rounded-lg">
-                  <div className="text-sm text-surface-600 mb-1">Monthly Savings</div>
-                  <div className="font-semibold">
-                    {formatCurrency(((financials.financialInfo?.annualIncome || 0) - (financials.financialInfo?.annualExpenses || 0)) / 12)}
-                  </div>
-                </div>
-              </Card>
-
-              {/* Goal Insights */}
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold text-surface-900 mb-4">Insights</h3>
-                <div className="space-y-3 text-sm">
-                  {progress >= 100 ? (
-                    <div className="p-3 bg-green-50 text-green-700 rounded-lg">
-                      🎉 Congratulations! You've achieved your financial goal!
-                    </div>
-                  ) : yearsRemaining <= 0 ? (
-                    <div className="p-3 bg-red-50 text-red-700 rounded-lg">
-                      ⚠️ Your target year has passed. Consider updating your goal timeline.
-                    </div>
-                  ) : monthlyTarget > ((financials.financialInfo?.annualIncome || 0) - (financials.financialInfo?.annualExpenses || 0)) / 12 ? (
-                    <div className="p-3 bg-yellow-50 text-yellow-700 rounded-lg">
-                      💡 You may need to increase income or reduce expenses to reach your goal on time.
-                    </div>
+                    </>
                   ) : (
-                    <div className="p-3 bg-blue-50 text-blue-700 rounded-lg">
-                      ✅ You're on track! Keep saving consistently to reach your goal.
+                    <div className="flex justify-between">
+                      <span className="text-surface-500">Progress:</span>
+                      <span className="font-medium">{(goal.progress || 0).toFixed(0)}% Complete</span>
                     </div>
                   )}
-                  
-                  {progress < 25 && (
-                    <div className="p-3 bg-surface-50 text-surface-600 rounded-lg">
-                      💪 Every journey starts with a single step. You're building momentum!
+                  {goal.targetDate && (
+                    <div className="flex justify-between">
+                      <span className="text-surface-500">Due:</span>
+                      <span className="font-medium">{new Date(goal.targetDate).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                  {goal.description && (
+                    <div className="mt-3 p-2 bg-surface-50 rounded text-xs text-surface-600">
+                      {goal.description}
                     </div>
                   )}
                 </div>
               </Card>
+            )) || []}
+            
+            {/* Add New Goal Card */}
+            <div 
+              className="p-6 border-2 border-dashed border-surface-300 hover:border-primary-300 transition-colors cursor-pointer bg-white rounded-lg shadow-sm"
+              onClick={openAddModal}
+            >
+              <div className="flex flex-col items-center justify-center h-full min-h-[180px] text-center">
+                <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                </div>
+                <h4 className="text-lg font-medium text-surface-900 mb-2">
+                  Add New Goal
+                </h4>
+                <p className="text-sm text-surface-600">
+                  Create a financial or personal development goal
+                </p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      
-      <Footer />
-      
-      {/* Mini Chatbot */}
-      <MiniChatbot />
 
-      {showModal && (
+        {/* Goal Modal */}
         <Modal
           isOpen={showModal}
           onClose={() => setShowModal(false)}
@@ -646,18 +507,15 @@ export default function Goals() {
             <Input
               label="Goal Title"
               value={goalForm.title}
-              onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })}
-              placeholder="e.g., Emergency Fund, Learn Python, Build Portfolio"
+              onChange={(e) => setGoalForm({...goalForm, title: e.target.value})}
+              placeholder="Save $10,000 for emergency fund"
             />
             
             <Select
               label="Goal Type"
               value={goalForm.type}
-              onChange={(e) => setGoalForm({ ...goalForm, type: e.target.value as any })}
-              options={goalTypeOptions.map(option => ({
-                value: option.value,
-                label: option.label
-              }))}
+              onChange={(e) => setGoalForm({...goalForm, type: e.target.value as any})}
+              options={goalTypeOptions}
             />
             
             {goalForm.type === 'financial' ? (
@@ -666,15 +524,15 @@ export default function Goals() {
                   label="Target Amount ($)"
                   type="number"
                   value={goalForm.targetAmount}
-                  onChange={(e) => setGoalForm({ ...goalForm, targetAmount: e.target.value })}
+                  onChange={(e) => setGoalForm({...goalForm, targetAmount: e.target.value})}
                   placeholder="10000"
                 />
                 <Input
                   label="Current Amount ($)"
                   type="number"
                   value={goalForm.currentAmount}
-                  onChange={(e) => setGoalForm({ ...goalForm, currentAmount: e.target.value })}
-                  placeholder="0"
+                  onChange={(e) => setGoalForm({...goalForm, currentAmount: e.target.value})}
+                  placeholder="2500"
                 />
               </div>
             ) : (
@@ -682,69 +540,61 @@ export default function Goals() {
                 label="Progress (%)"
                 type="number"
                 value={goalForm.progress}
-                onChange={(e) => setGoalForm({ ...goalForm, progress: e.target.value })}
-                placeholder="0"
+                onChange={(e) => setGoalForm({...goalForm, progress: e.target.value})}
+                placeholder="25"
               />
             )}
             
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Target Date (Optional)"
-                type="date"
-                value={goalForm.targetDate}
-                onChange={(e) => setGoalForm({ ...goalForm, targetDate: e.target.value })}
-              />
-              <Select
-                label="Status"
-                value={goalForm.status}
-                onChange={(e) => setGoalForm({ ...goalForm, status: e.target.value as 'Not Started' | 'In Progress' | 'Completed' })}
-                options={[
-                  { value: 'Not Started', label: 'Not Started' },
-                  { value: 'In Progress', label: 'In Progress' },
-                  { value: 'Completed', label: 'Completed' }
-                ]}
-              />
-            </div>
+            <Input
+              label="Target Date (Optional)"
+              type="date"
+              value={goalForm.targetDate}
+              onChange={(e) => setGoalForm({...goalForm, targetDate: e.target.value})}
+            />
+            
+            <Select
+              label="Status"
+              value={goalForm.status}
+              onChange={(e) => setGoalForm({...goalForm, status: e.target.value})}
+              options={[
+                { value: 'Not Started', label: 'Not Started' },
+                { value: 'In Progress', label: 'In Progress' },
+                { value: 'Completed', label: 'Completed' }
+              ]}
+            />
             
             <Input
               label="Description (Optional)"
               value={goalForm.description}
-              onChange={(e) => setGoalForm({ ...goalForm, description: e.target.value })}
-              placeholder="Brief description of this goal..."
+              onChange={(e) => setGoalForm({...goalForm, description: e.target.value})}
+              placeholder="Additional details about this goal"
             />
-          </div>
-          
-          <div className="flex justify-between items-center mt-6 pt-4 border-t">
-            <div>
+            
+            <div className="flex justify-between pt-4">
               {editingGoal && (
                 <Button 
-                  onClick={() => handleDeleteGoal(editingGoal.id || '')} 
-                  disabled={saving} 
-                  variant="outline"
-                  className="text-red-600 border-red-300 hover:bg-red-50"
+                  variant="outline" 
+                  onClick={() => handleDeleteGoal(editingGoal.id!)}
+                  className="text-red-600 hover:text-red-700"
                 >
-                  {saving ? 'Deleting...' : 'Delete Goal'}
+                  Delete Goal
                 </Button>
               )}
-            </div>
-            <div className="flex gap-2">
-              <Button 
-                onClick={() => setShowModal(false)} 
-                variant="outline"
-                disabled={saving}
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleSaveGoal} 
-                disabled={saving || !goalForm.title || !goalForm.type}
-              >
-                {saving ? 'Saving...' : editingGoal ? 'Update Goal' : 'Add Goal'}
-              </Button>
+              <div className="flex space-x-3 ml-auto">
+                <Button variant="outline" onClick={() => setShowModal(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveGoal} loading={saving}>
+                  {editingGoal ? 'Update Goal' : 'Add Goal'}
+                </Button>
+              </div>
             </div>
           </div>
         </Modal>
-      )}
+
+        <MiniChatbot />
+      </div>
+      <Footer />
     </div>
   );
 } 

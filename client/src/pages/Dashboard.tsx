@@ -6,12 +6,10 @@ import { MiniChatbot } from '../components/MiniChatbot';
 import { 
   getUserStats, 
   getUserProfile,
-  getUserFinancials,
   getUserIntermediateGoals,
   addIntermediateGoal,
   UserStats,
   UserProfile,
-  UserFinancials,
   UserGoals,
   IntermediateGoal,
   generateDynamicMilestones,
@@ -23,7 +21,7 @@ export const Dashboard: React.FC = () => {
   const [userName, setUserName] = useState<string>('');
   const [stats, setStats] = useState<UserStats | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [financials, setFinancials] = useState<UserFinancials | null>(null);
+
   const [goals, setGoals] = useState<UserGoals | null>(null);
   const [loading, setLoading] = useState(true);
   const [dynamicMilestones, setDynamicMilestones] = useState<DynamicMilestone[]>([]);
@@ -47,16 +45,14 @@ export const Dashboard: React.FC = () => {
       
       try {
         setLoading(true);
-        const [userStats, userProfile, userFinancials, userGoals] = await Promise.all([
+        const [userStats, userProfile, userGoals] = await Promise.all([
           getUserStats(),
           getUserProfile(),
-          getUserFinancials(),
           getUserIntermediateGoals()
         ]);
         
         setStats(userStats);
         setProfile(userProfile);
-        setFinancials(userFinancials);
         setGoals(userGoals);
 
         // Set user name for personalization
@@ -325,60 +321,7 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 mb-8">
-          {/* Financial Overview */}
-          <Card className="p-6">
-            <h3 className="text-xl font-semibold text-surface-900 mb-4">Financial Overview</h3>
-            {financials?.financialInfo && (stats?.netWorth !== undefined) ? (
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-lg font-bold text-green-700">
-                      ${financials.financialInfo.annualIncome.toLocaleString()}
-                    </div>
-                    <div className="text-sm text-green-600">Annual Income</div>
-                  </div>
-                  <div className="text-center p-4 bg-red-50 rounded-lg">
-                    <div className="text-lg font-bold text-red-700">
-                      ${financials.financialInfo.annualExpenses.toLocaleString()}
-                    </div>
-                    <div className="text-sm text-red-600">Annual Expenses</div>
-                  </div>
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-lg font-bold text-blue-700">
-                      ${financials.financialInfo.totalAssets.toLocaleString()}
-                    </div>
-                    <div className="text-sm text-blue-600">Total Assets</div>
-                  </div>
-                  <div className="text-center p-4 bg-purple-50 rounded-lg">
-                    <div className="text-lg font-bold text-purple-700">
-                      ${stats.netWorth.toLocaleString()}
-                    </div>
-                    <div className="text-sm text-purple-600">Net Worth</div>
-                  </div>
-                </div>
-                
-                <div className="text-center">
-                  <Button onClick={() => window.location.href = '/profile'} variant="outline">
-                    Update Financial Information
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <div className="text-6xl mb-4">💰</div>
-                <h4 className="text-lg font-semibold text-surface-900 mb-2">Complete Your Financial Profile</h4>
-                <p className="text-surface-600 mb-4">
-                  Add your financial information to start tracking your progress toward your goal
-                </p>
-                <Button onClick={() => window.location.href = '/profile'} variant="outline">
-                  Complete Profile
-                </Button>
-              </div>
-            )}
-          </Card>
-        </div>
+
 
         {/* Dynamic Milestones */}
         <Card className="p-6 mb-8">
