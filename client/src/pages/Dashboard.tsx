@@ -6,21 +6,25 @@ import { MiniChatbot } from '../components/MiniChatbot';
 import { 
   getUserStats, 
   getUserProfile,
-  saveUserProfile,
+  getUserFinancials,
+  getUserIntermediateGoals,
+  addIntermediateGoal,
   UserStats,
   UserProfile,
+  UserFinancials,
+  UserGoals,
   IntermediateGoal,
   generateDynamicMilestones,
   DynamicMilestone
 } from '../services/firestore';
-import ProgressBar from '../components/dashboard/ProgressBar';
-import StatCard from '../components/dashboard/StatCard';
 
 export const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
   const [userName, setUserName] = useState<string>('');
   const [stats, setStats] = useState<UserStats | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [financials, setFinancials] = useState<UserFinancials | null>(null);
+  const [goals, setGoals] = useState<UserGoals | null>(null);
   const [loading, setLoading] = useState(true);
   const [dynamicMilestones, setDynamicMilestones] = useState<DynamicMilestone[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -43,13 +47,17 @@ export const Dashboard: React.FC = () => {
       
       try {
         setLoading(true);
-        const [userStats, userProfile] = await Promise.all([
+        const [userStats, userProfile, userFinancials, userGoals] = await Promise.all([
           getUserStats(),
-          getUserProfile()
+          getUserProfile(),
+          getUserFinancials(),
+          getUserIntermediateGoals()
         ]);
         
         setStats(userStats);
         setProfile(userProfile);
+        setFinancials(userFinancials);
+        setGoals(userGoals);
 
         // Set user name for personalization
         if (userProfile?.basicInfo?.name) {
@@ -61,10 +69,10 @@ export const Dashboard: React.FC = () => {
         }
 
         // Generate dynamic milestones
-        if (userStats && userProfile) {
+        if (userStats && userProfile && userGoals) {
           const currentAmount = userStats.netWorth || 0;
           const targetAmount = userProfile.financialGoal?.targetAmount || 1000000;
-          const intermediateGoals = userProfile.intermediateGoals || [];
+          const intermediateGoals = userGoals.intermediateGoals || [];
           
           const milestones = generateDynamicMilestones(currentAmount, targetAmount, intermediateGoals);
           setDynamicMilestones(milestones);
@@ -94,7 +102,7 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleSaveGoal = async () => {
-    if (!profile || !goalForm.title || !goalForm.type) return;
+    if (!goalForm.title || !goalForm.type) return;
 
     try {
       setSaving(true);
@@ -111,14 +119,11 @@ export const Dashboard: React.FC = () => {
         description: goalForm.description || undefined
       };
 
-      const updatedGoals = [...(profile.intermediateGoals || []), newGoal];
-      const updatedProfile = {
-        ...profile,
-        intermediateGoals: updatedGoals
-      };
-
-      await saveUserProfile(updatedProfile);
-      setProfile(updatedProfile);
+      await addIntermediateGoal(newGoal);
+      
+      // Reload goals data
+      const updatedGoals = await getUserIntermediateGoals();
+      setGoals(updatedGoals);
       setShowModal(false);
       
     } catch (error) {
@@ -258,7 +263,7 @@ export const Dashboard: React.FC = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Existing Goals */}
-            {profile?.intermediateGoals && profile.intermediateGoals.slice(0, 2).map((goal, index) => (
+            {goals?.intermediateGoals && goals.intermediateGoals.slice(0, 2).map((goal, index) => (
               <Card key={goal.id || index} className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="text-lg font-semibold text-surface-900">{goal.title}</h3>
@@ -325,24 +330,24 @@ export const Dashboard: React.FC = () => {
           {/* Financial Overview */}
           <Card className="p-6">
             <h3 className="text-xl font-semibold text-surface-900 mb-4">Financial Overview</h3>
-            {profile?.financialInfo && (stats?.netWorth !== undefined) ? (
+            {financials?.financialInfo && (stats?.netWorth !== undefined) ? (
               <div className="space-y-6">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="text-center p-4 bg-green-50 rounded-lg">
                     <div className="text-lg font-bold text-green-700">
-                      ${profile.financialInfo.annualIncome.toLocaleString()}
+                      ${financials.financialInfo.annualIncome.toLocaleString()}
                     </div>
                     <div className="text-sm text-green-600">Annual Income</div>
                   </div>
                   <div className="text-center p-4 bg-red-50 rounded-lg">
                     <div className="text-lg font-bold text-red-700">
-                      ${profile.financialInfo.annualExpenses.toLocaleString()}
+                      ${financials.financialInfo.annualExpenses.toLocaleString()}
                     </div>
                     <div className="text-sm text-red-600">Annual Expenses</div>
                   </div>
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
                     <div className="text-lg font-bold text-blue-700">
-                      ${profile.financialInfo.totalAssets.toLocaleString()}
+                      ${financials.financialInfo.totalAssets.toLocaleString()}
                     </div>
                     <div className="text-sm text-blue-600">Total Assets</div>
                   </div>

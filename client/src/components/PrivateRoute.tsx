@@ -8,7 +8,7 @@ interface PrivateRouteProps {
 
 export default function PrivateRoute({ children }: PrivateRouteProps) {
   const { currentUser, loading: authLoading } = useAuth();
-  const { loading: onboardingLoading, onboardingCompleted } = useOnboardingProtection();
+  const { loading: onboardingLoading } = useOnboardingProtection();
 
   if (authLoading || onboardingLoading) {
     return (

@@ -10,7 +10,8 @@ import { Dashboard } from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Chatbot from './pages/Chatbot';
 import Goals from './pages/Goals';
-import OnboardingSimple from './pages/OnboardingSimple';
+import Financials from './pages/Financials';
+import Onboarding from './pages/Onboarding';
 
 function App() {
   return (
@@ -64,7 +65,7 @@ function App() {
                   path="/onboarding" 
                   element={
                     <PrivateRoute>
-                      <OnboardingSimple />
+                      <Onboarding />
                     </PrivateRoute>
                   } 
                 />
@@ -89,6 +90,14 @@ function App() {
                   element={
                     <PrivateRoute>
                       <Goals />
+                    </PrivateRoute>
+                  } 
+                />
+                <Route 
+                  path="/financials" 
+                  element={
+                    <PrivateRoute>
+                      <Financials />
                     </PrivateRoute>
                   } 
                 />

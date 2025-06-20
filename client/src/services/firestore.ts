@@ -126,17 +126,33 @@ export interface DynamicMilestone {
   isGoal?: boolean;
 }
 
-// User Profile Interface
+// User Profile Interface (contains basic profile info + financial goal)
 export interface UserProfile {
   id?: string;
   userId: string;
   basicInfo: BasicInfo;
-  financialInfo: FinancialInfo;
-  financialGoal: FinancialGoal;
-  intermediateGoals: IntermediateGoal[];
   educationHistory: EducationEntry[];
   experience: ExperienceEntry[];
   skillsAndInterests: SkillsAndInterests;
+  financialGoal: FinancialGoal;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Financials Interface (separate collection - only contains financial info)
+export interface UserFinancials {
+  id?: string;
+  userId: string;
+  financialInfo: FinancialInfo;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Goals Interface (separate collection)
+export interface UserGoals {
+  id?: string;
+  userId: string;
+  intermediateGoals: IntermediateGoal[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -167,10 +183,24 @@ const getUserStatsFn = httpsCallable(functions, 'getUserStats');
 const getUserProfileFn = httpsCallable(functions, 'getUserProfile');
 const saveUserProfileFn = httpsCallable(functions, 'saveUserProfile');
 const updateUserProfileSectionFn = httpsCallable(functions, 'updateUserProfileSection');
-const getUserGoalsFn = httpsCallable(functions, 'getUserGoals');
+
+// Financials functions
+const getUserFinancialsFn = httpsCallable(functions, 'getUserFinancials');
+const saveUserFinancialsFn = httpsCallable(functions, 'saveUserFinancials');
+const updateUserFinancialsSectionFn = httpsCallable(functions, 'updateUserFinancialsSection');
+
+// Goals functions
+const getUserGoalsFn = httpsCallable(functions, 'getUserIntermediateGoals');
+const saveUserGoalsFn = httpsCallable(functions, 'saveUserIntermediateGoals');
+const addIntermediateGoalFn = httpsCallable(functions, 'addIntermediateGoal');
+const updateIntermediateGoalFn = httpsCallable(functions, 'updateIntermediateGoal');
+const deleteIntermediateGoalFn = httpsCallable(functions, 'deleteIntermediateGoal');
+
+// Legacy goal functions (for individual goals)
 const addGoalFn = httpsCallable(functions, 'addGoal');
 const updateGoalFn = httpsCallable(functions, 'updateGoal');
 const deleteGoalFn = httpsCallable(functions, 'deleteGoal');
+
 const cleanupUserDataFn = httpsCallable(functions, 'cleanupUserData');
 
 const savePlanFn = httpsCallable(functions, 'savePlan');
@@ -245,6 +275,54 @@ export const updateUserProfileSection = async (section: string, data: any) => {
   return await handleFunctionCall(updateUserProfileSectionFn, { profileSection: section, data });
 };
 
+// Financials Operations
+export const getUserFinancials = async (): Promise<UserFinancials | null> => {
+  const result = await handleFunctionCall(getUserFinancialsFn);
+  if (!result) return null;
+  
+  return {
+    ...result,
+    createdAt: result.createdAt?.toDate?.() || new Date(result.createdAt),
+    updatedAt: result.updatedAt?.toDate?.() || new Date(result.updatedAt)
+  };
+};
+
+export const saveUserFinancials = async (financialsData: Partial<UserFinancials>) => {
+  return await handleFunctionCall(saveUserFinancialsFn, financialsData);
+};
+
+export const updateUserFinancialsSection = async (section: string, data: any) => {
+  return await handleFunctionCall(updateUserFinancialsSectionFn, { section, data });
+};
+
+// Intermediate Goals Operations
+export const getUserIntermediateGoals = async (): Promise<UserGoals | null> => {
+  const result = await handleFunctionCall(getUserGoalsFn);
+  if (!result) return null;
+  
+  return {
+    ...result,
+    createdAt: result.createdAt?.toDate?.() || new Date(result.createdAt),
+    updatedAt: result.updatedAt?.toDate?.() || new Date(result.updatedAt)
+  };
+};
+
+export const saveUserIntermediateGoals = async (goalsData: Partial<UserGoals>) => {
+  return await handleFunctionCall(saveUserGoalsFn, goalsData);
+};
+
+export const addIntermediateGoal = async (goalData: IntermediateGoal) => {
+  return await handleFunctionCall(addIntermediateGoalFn, goalData);
+};
+
+export const updateIntermediateGoal = async (goalId: string, updates: Partial<IntermediateGoal>) => {
+  return await handleFunctionCall(updateIntermediateGoalFn, { goalId, updates });
+};
+
+export const deleteIntermediateGoal = async (goalId: string) => {
+  return await handleFunctionCall(deleteIntermediateGoalFn, { goalId });
+};
+
 // Goal Operations
 export const getUserGoals = async (): Promise<Goal[]> => {
   const response: any = await handleFunctionCall(getUserGoalsFn);
@@ -307,7 +385,7 @@ export const generateDynamicMilestones = (
   // Add standard percentage-based milestones
   const percentages = [0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1.0]; // 1%, 5%, 10%, 25%, 50%, 75%, 100%
   
-  percentages.forEach((percentage, index) => {
+  percentages.forEach((percentage) => {
     const amount = Math.round(targetAmount * percentage);
     if (amount > currentAmount || percentage === 1.0) { // Only show future milestones and final goal
       milestones.push({

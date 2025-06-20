@@ -47,7 +47,7 @@ export const createUserProfile = onCall(async (request) => {
     const db = admin.firestore();
     const batch = db.batch();
 
-    // Create user profile document with structured data
+    // Create user profile document (basic info, education, experience, skills)
     const currentYear = new Date().getFullYear();
     const userProfile = {
       userId: uid,
@@ -57,30 +57,11 @@ export const createUserProfile = onCall(async (request) => {
         name: "",
         email: email,
         birthday: "",
+        location: "",
+        occupation: "",
+        country: "",
         employmentStatus: "Employed",
       },
-
-      // Financial Information
-      financialInfo: {
-        annualIncome: 0,
-        annualExpenses: 0,
-        totalAssets: 0,
-        totalDebts: 0,
-        currentSavings: 0,
-      },
-
-      // Financial Goal
-      financialGoal: {
-        targetAmount: 1000000,
-        targetYear: currentYear + 20,
-      },
-
-      // Intermediate Goals
-      intermediateGoals: [
-        // Example: { title: "Emergency Fund", targetAmount: 10000,
-        // targetDate: "2025-12-31", status: "In Progress",
-        // currentAmount: 2500 }
-      ],
 
       // Education History
       educationHistory: [
@@ -99,16 +80,67 @@ export const createUserProfile = onCall(async (request) => {
         interests: [],
       },
 
+      // Financial Goal
+      financialGoal: {
+        targetAmount: 1000000,
+        targetYear: currentYear + 20,
+        timeframe: "",
+        riskTolerance: "",
+        primaryStrategy: "",
+      },
+
       // Metadata
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
+    // Create financials document
+    const userFinancials = {
+      userId: uid,
+
+      // Financial Information
+      financialInfo: {
+        annualIncome: 0,
+        annualExpenses: 0,
+        totalAssets: 0,
+        totalDebts: 0,
+        currentSavings: 0,
+      },
+
+      // Metadata
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    // Create goals document
+    const userGoals = {
+      userId: uid,
+
+      // Intermediate Goals
+      intermediateGoals: [
+        // Example: { title: "Emergency Fund", targetAmount: 10000,
+        // targetDate: "2025-12-31", status: "In Progress",
+        // currentAmount: 2500 }
+      ],
+
+      // Metadata
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    // Create all documents
     const userProfileRef = db.collection("users").doc(uid)
         .collection("profile").doc("data");
-    batch.set(userProfileRef, userProfile);
+    const userFinancialsRef = db.collection("users").doc(uid)
+        .collection("financials").doc("data");
+    const userGoalsRef = db.collection("users").doc(uid)
+        .collection("goals").doc("data");
 
-    // Commit the profile document
+    batch.set(userProfileRef, userProfile);
+    batch.set(userFinancialsRef, userFinancials);
+    batch.set(userGoalsRef, userGoals);
+
+    // Commit all documents
     await batch.commit();
 
     logger.info(`Created user profile for UID: ${uid}`);
@@ -134,11 +166,11 @@ export const getUserStats = onCall(async (request) => {
     const db = admin.firestore();
     const userId = request.auth.uid;
 
-    // Get user profile
-    const profileDoc = await db.collection("users").doc(userId)
-        .collection("profile").doc("data").get();
+    // Get user financials
+    const financialsDoc = await db.collection("users").doc(userId)
+        .collection("financials").doc("data").get();
 
-    if (!profileDoc.exists) {
+    if (!financialsDoc.exists) {
       return {
         success: true,
         data: {
@@ -148,8 +180,8 @@ export const getUserStats = onCall(async (request) => {
       };
     }
 
-    const userData = profileDoc.data();
-    const financialInfo = userData.financialInfo || {};
+    const financialsData = financialsDoc.data();
+    const financialInfo = financialsData.financialInfo || {};
 
     // Calculate net worth
     const netWorth = (financialInfo.totalAssets || 0) -
@@ -184,6 +216,16 @@ export const cleanupUserData = onCall(async (request) => {
     const userProfileRef = db.collection("users").doc(userId)
         .collection("profile").doc("data");
     batch.delete(userProfileRef);
+
+    // Delete user financials
+    const userFinancialsRef = db.collection("users").doc(userId)
+        .collection("financials").doc("data");
+    batch.delete(userFinancialsRef);
+
+    // Delete user goals
+    const userGoalsRef = db.collection("users").doc(userId)
+        .collection("goals").doc("data");
+    batch.delete(userGoalsRef);
 
     // Delete the main user document
     const userRef = db.collection("users").doc(userId);
@@ -235,26 +277,11 @@ export const getUserProfile = onCall(async (request) => {
         name: "",
         email: "",
         birthday: "",
+        location: "",
+        occupation: "",
+        country: "",
         employmentStatus: "",
       },
-
-      // Financial Information
-      financialInfo: userData.financialInfo || {
-        annualIncome: 0,
-        annualExpenses: 0,
-        totalAssets: 0,
-        totalDebts: 0,
-        currentSavings: 0,
-      },
-
-      // Financial Goal
-      financialGoal: userData.financialGoal || {
-        targetAmount: 1000000,
-        targetYear: new Date().getFullYear() + 10,
-      },
-
-      // Intermediate Goals
-      intermediateGoals: userData.intermediateGoals || [],
 
       // Education History
       educationHistory: userData.educationHistory || [],
@@ -266,6 +293,15 @@ export const getUserProfile = onCall(async (request) => {
       skillsAndInterests: userData.skillsAndInterests || {
         skills: [],
         interests: [],
+      },
+
+      // Financial Goal
+      financialGoal: userData.financialGoal || {
+        targetAmount: 1000000,
+        targetYear: new Date().getFullYear() + 20,
+        timeframe: "",
+        riskTolerance: "",
+        primaryStrategy: "",
       },
 
       // Metadata
@@ -489,5 +525,322 @@ export const deleteGoal = onCall(async (request) => {
   } catch (error) {
     logger.error("Error deleting goal:", error);
     throw new Error(error.message || "Failed to delete goal");
+  }
+});
+
+// ===== NEW RESTRUCTURED DATA FUNCTIONS =====
+
+// Get user financials
+export const getUserFinancials = onCall(async (request) => {
+  try {
+    if (!request.auth) {
+      throw new Error("Authentication required");
+    }
+
+    const uid = request.auth.uid;
+    const db = admin.firestore();
+
+    const financialsDoc = await db.collection("users").doc(uid)
+        .collection("financials").doc("data").get();
+
+    if (!financialsDoc.exists) {
+      return null;
+    }
+
+    const financialsData = financialsDoc.data();
+
+    return {
+      id: financialsDoc.id,
+      userId: financialsData.userId,
+      financialInfo: financialsData.financialInfo || {
+        annualIncome: 0,
+        annualExpenses: 0,
+        totalAssets: 0,
+        totalDebts: 0,
+        currentSavings: 0,
+      },
+      createdAt: financialsData.createdAt,
+      updatedAt: financialsData.updatedAt,
+    };
+  } catch (error) {
+    logger.error("Error getting user financials:", error);
+    throw new Error("Failed to get user financials");
+  }
+});
+
+// Save user financials
+export const saveUserFinancials = onCall(async (request) => {
+  try {
+    if (!request.auth) {
+      throw new Error("Authentication required");
+    }
+
+    const uid = request.auth.uid;
+    const financialsData = request.data;
+    const db = admin.firestore();
+
+    const updateData = {
+      userId: uid,
+      ...financialsData,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    // Set createdAt if it doesn't exist
+    const financialsRef = db.collection("users").doc(uid)
+        .collection("financials").doc("data");
+    const existingDoc = await financialsRef.get();
+
+    if (!existingDoc.exists) {
+      updateData.createdAt = admin.firestore.FieldValue.serverTimestamp();
+    }
+
+    await financialsRef.set(updateData, {merge: true});
+
+    logger.info(`Updated user financials for UID: ${uid}`);
+    return {success: true, message: "Financials saved successfully"};
+  } catch (error) {
+    logger.error("Error saving user financials:", error);
+    throw new Error("Failed to save user financials");
+  }
+});
+
+// Update specific section of user financials
+export const updateUserFinancialsSection = onCall(async (request) => {
+  try {
+    if (!request.auth) {
+      throw new Error("Authentication required");
+    }
+
+    const uid = request.auth.uid;
+    const {section, data} = request.data;
+    const db = admin.firestore();
+
+    if (!section || !data) {
+      throw new Error("Section and data are required");
+    }
+
+    const updateData = {
+      [section]: data,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    const financialsRef = db.collection("users").doc(uid)
+        .collection("financials").doc("data");
+
+    // Check if document exists, create if not
+    const existingDoc = await financialsRef.get();
+    if (!existingDoc.exists) {
+      updateData.userId = uid;
+      updateData.createdAt = admin.firestore.FieldValue.serverTimestamp();
+      await financialsRef.set(updateData);
+    } else {
+      await financialsRef.update(updateData);
+    }
+
+    logger.info(`Updated financials ${section} for UID: ${uid}`);
+    return {success: true, message: `${section} updated successfully`};
+  } catch (error) {
+    logger.error(`Error updating financials 
+      ${request.data.section || "unknown section"}:`, error);
+    throw new Error(`Failed to update financials 
+      ${request.data.section || "unknown section"}`);
+  }
+});
+
+// Get user intermediate goals
+export const getUserIntermediateGoals = onCall(async (request) => {
+  try {
+    if (!request.auth) {
+      throw new Error("Authentication required");
+    }
+
+    const uid = request.auth.uid;
+    const db = admin.firestore();
+
+    const goalsDoc = await db.collection("users").doc(uid)
+        .collection("goals").doc("data").get();
+
+    if (!goalsDoc.exists) {
+      return null;
+    }
+
+    const goalsData = goalsDoc.data();
+
+    return {
+      id: goalsDoc.id,
+      userId: goalsData.userId,
+      intermediateGoals: goalsData.intermediateGoals || [],
+      createdAt: goalsData.createdAt,
+      updatedAt: goalsData.updatedAt,
+    };
+  } catch (error) {
+    logger.error("Error getting user intermediate goals:", error);
+    throw new Error("Failed to get user intermediate goals");
+  }
+});
+
+// Save user intermediate goals
+export const saveUserIntermediateGoals = onCall(async (request) => {
+  try {
+    if (!request.auth) {
+      throw new Error("Authentication required");
+    }
+
+    const uid = request.auth.uid;
+    const goalsData = request.data;
+    const db = admin.firestore();
+
+    const updateData = {
+      userId: uid,
+      ...goalsData,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    // Set createdAt if it doesn't exist
+    const goalsRef = db.collection("users").doc(uid)
+        .collection("goals").doc("data");
+    const existingDoc = await goalsRef.get();
+
+    if (!existingDoc.exists) {
+      updateData.createdAt = admin.firestore.FieldValue.serverTimestamp();
+    }
+
+    await goalsRef.set(updateData, {merge: true});
+
+    logger.info(`Updated user intermediate goals for UID: ${uid}`);
+    return {success: true, message: "Goals saved successfully"};
+  } catch (error) {
+    logger.error("Error saving user intermediate goals:", error);
+    throw new Error("Failed to save user intermediate goals");
+  }
+});
+
+// Add intermediate goal
+export const addIntermediateGoal = onCall(async (request) => {
+  try {
+    if (!request.auth) {
+      throw new Error("Authentication required");
+    }
+
+    const uid = request.auth.uid;
+    const goalData = request.data;
+    const db = admin.firestore();
+
+    const goalsRef = db.collection("users").doc(uid)
+        .collection("goals").doc("data");
+
+    // Get existing goals or create new document
+    const existingDoc = await goalsRef.get();
+    let currentGoals = [];
+
+    if (existingDoc.exists) {
+      currentGoals = existingDoc.data().intermediateGoals || [];
+    }
+
+    // Add new goal
+    currentGoals.push(goalData);
+
+    const updateData = {
+      userId: uid,
+      intermediateGoals: currentGoals,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    if (!existingDoc.exists) {
+      updateData.createdAt = admin.firestore.FieldValue.serverTimestamp();
+    }
+
+    await goalsRef.set(updateData, {merge: true});
+
+    logger.info(`Added intermediate goal for UID: ${uid}`);
+    return {success: true, message: "Goal added successfully"};
+  } catch (error) {
+    logger.error("Error adding intermediate goal:", error);
+    throw new Error("Failed to add intermediate goal");
+  }
+});
+
+// Update intermediate goal
+export const updateIntermediateGoal = onCall(async (request) => {
+  try {
+    if (!request.auth) {
+      throw new Error("Authentication required");
+    }
+
+    const uid = request.auth.uid;
+    const {goalId, updates} = request.data;
+    const db = admin.firestore();
+
+    if (!goalId || !updates) {
+      throw new Error("Goal ID and updates are required");
+    }
+
+    const goalsRef = db.collection("users").doc(uid)
+        .collection("goals").doc("data");
+
+    const existingDoc = await goalsRef.get();
+    if (!existingDoc.exists) {
+      throw new Error("No goals found for user");
+    }
+
+    const currentGoals = existingDoc.data().intermediateGoals || [];
+    const goalIndex = currentGoals.findIndex((goal) => goal.id === goalId);
+
+    if (goalIndex === -1) {
+      throw new Error("Goal not found");
+    }
+
+    // Update the goal
+    currentGoals[goalIndex] = {...currentGoals[goalIndex], ...updates};
+
+    await goalsRef.update({
+      intermediateGoals: currentGoals,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    logger.info(`Updated intermediate goal ${goalId} for UID: ${uid}`);
+    return {success: true, message: "Goal updated successfully"};
+  } catch (error) {
+    logger.error("Error updating intermediate goal:", error);
+    throw new Error("Failed to update intermediate goal");
+  }
+});
+
+// Delete intermediate goal
+export const deleteIntermediateGoal = onCall(async (request) => {
+  try {
+    if (!request.auth) {
+      throw new Error("Authentication required");
+    }
+
+    const uid = request.auth.uid;
+    const {goalId} = request.data;
+    const db = admin.firestore();
+
+    if (!goalId) {
+      throw new Error("Goal ID is required");
+    }
+
+    const goalsRef = db.collection("users").doc(uid)
+        .collection("goals").doc("data");
+
+    const existingDoc = await goalsRef.get();
+    if (!existingDoc.exists) {
+      throw new Error("No goals found for user");
+    }
+
+    const currentGoals = existingDoc.data().intermediateGoals || [];
+    const filteredGoals = currentGoals.filter((goal) => goal.id !== goalId);
+
+    await goalsRef.update({
+      intermediateGoals: filteredGoals,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    logger.info(`Deleted intermediate goal ${goalId} for UID: ${uid}`);
+    return {success: true, message: "Goal deleted successfully"};
+  } catch (error) {
+    logger.error("Error deleting intermediate goal:", error);
+    throw new Error("Failed to delete intermediate goal");
   }
 });

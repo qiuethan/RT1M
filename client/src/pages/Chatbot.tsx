@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { Button, Input } from '../components/ui';
+import { Button } from '../components/ui';
 import Footer from '../components/Footer';
-import { useChatContext, ChatMessage } from '../contexts/ChatContext';
+import { useChatContext } from '../contexts/ChatContext';
 
 export default function Chatbot() {
   const { messages, addMessage, isTyping, setIsTyping, userName, clearMessages } = useChatContext();

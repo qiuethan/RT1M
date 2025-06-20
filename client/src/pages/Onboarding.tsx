@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { saveUserProfile, getUserProfile } from '../services/firestore';
+import { 
+  saveUserProfile, 
+  getUserProfile, 
+  saveUserFinancials, 
+  saveUserIntermediateGoals,
+  getUserFinancials,
+  getUserIntermediateGoals
+} from '../services/firestore';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Card from '../components/ui/Card';
-import { Badge } from '../components/ui';
 
 interface OnboardingStep {
   title: string;
@@ -28,11 +34,11 @@ const onboardingSteps: OnboardingStep[] = [
   },
   {
     title: "Education & Experience",
-    description: "Tell us about your background"
+    description: "Tell us about your background (optional)"
   },
   {
     title: "Skills & Interests",
-    description: "What skills and interests do you have?"
+    description: "What skills and interests do you have? (optional)"
   }
 ];
 
@@ -157,8 +163,12 @@ const Onboarding: React.FC = () => {
         email: currentUser.email || ''
       }));
 
-      // Load existing profile data if available
-      getUserProfile().then(profile => {
+      // Load existing data if available
+      Promise.all([
+        getUserProfile(),
+        getUserFinancials(),
+        getUserIntermediateGoals()
+      ]).then(([profile, financials]) => {
         if (profile) {
           setFormData(prev => ({
             ...prev,
@@ -168,13 +178,6 @@ const Onboarding: React.FC = () => {
             occupation: profile.basicInfo?.occupation || '',
             country: profile.basicInfo?.country || '',
             employmentStatus: profile.basicInfo?.employmentStatus || '',
-            annualIncome: profile.financialInfo?.annualIncome?.toString() || '',
-            annualExpenses: profile.financialInfo?.annualExpenses?.toString() || '',
-            totalAssets: profile.financialInfo?.totalAssets?.toString() || '',
-            totalDebts: profile.financialInfo?.totalDebts?.toString() || '',
-            currentSavings: profile.financialInfo?.currentSavings?.toString() || '',
-            targetAmount: profile.financialGoal?.targetAmount?.toString() || '1000000',
-            targetYear: profile.financialGoal?.targetYear?.toString() || '',
             education: profile.educationHistory && profile.educationHistory.length > 0 
               ? profile.educationHistory 
               : [{ school: '', field: '', graduationYear: '' }],
@@ -182,7 +185,24 @@ const Onboarding: React.FC = () => {
               ? profile.experience 
               : [{ company: '', position: '', startYear: '', endYear: '', description: '' }],
             skills: profile.skillsAndInterests?.skills || [],
-            interests: profile.skillsAndInterests?.interests || []
+            interests: profile.skillsAndInterests?.interests || [],
+            // Financial goal data now comes from profile
+            targetAmount: profile.financialGoal?.targetAmount?.toString() || '1000000',
+            targetYear: profile.financialGoal?.targetYear?.toString() || '',
+            timeframe: profile.financialGoal?.timeframe || '',
+            riskTolerance: profile.financialGoal?.riskTolerance || '',
+            primaryStrategy: profile.financialGoal?.primaryStrategy || ''
+          }));
+        }
+        
+        if (financials) {
+          setFormData(prev => ({
+            ...prev,
+            annualIncome: financials.financialInfo?.annualIncome?.toString() || '',
+            annualExpenses: financials.financialInfo?.annualExpenses?.toString() || '',
+            totalAssets: financials.financialInfo?.totalAssets?.toString() || '',
+            totalDebts: financials.financialInfo?.totalDebts?.toString() || '',
+            currentSavings: financials.financialInfo?.currentSavings?.toString() || ''
           }));
         }
       });
@@ -227,7 +247,7 @@ const Onboarding: React.FC = () => {
         if (!formData.riskTolerance) newErrors.riskTolerance = 'Risk tolerance is required';
         if (!formData.primaryStrategy) newErrors.primaryStrategy = 'Primary strategy is required';
         break;
-      case 3: // Education & Experience - optional but validate if filled
+      case 3: // Education & Experience - optional
         break;
       case 4: // Skills & Interests - optional
         break;
@@ -258,6 +278,7 @@ const Onboarding: React.FC = () => {
 
     setLoading(true);
     try {
+      // Prepare profile data (basic info, education, experience, skills, financial goal)
       const profileData = {
         basicInfo: {
           name: formData.name,
@@ -268,27 +289,44 @@ const Onboarding: React.FC = () => {
           country: formData.country,
           employmentStatus: formData.employmentStatus
         },
+        educationHistory: formData.education.filter(edu => edu.school || edu.field || edu.graduationYear),
+        experience: formData.experience.filter(exp => exp.company || exp.position),
+        skillsAndInterests: {
+          interests: formData.interests,
+          skills: formData.skills
+        },
+        financialGoal: {
+          targetAmount: parseFloat(formData.targetAmount),
+          targetYear: parseInt(formData.targetYear),
+          timeframe: formData.timeframe,
+          riskTolerance: formData.riskTolerance,
+          primaryStrategy: formData.primaryStrategy
+        }
+      };
+
+      // Prepare financials data (only financial info)
+      const financialsData = {
         financialInfo: {
           annualIncome: parseFloat(formData.annualIncome) || 0,
           annualExpenses: parseFloat(formData.annualExpenses) || 0,
           totalAssets: parseFloat(formData.totalAssets) || 0,
           totalDebts: parseFloat(formData.totalDebts) || 0,
           currentSavings: parseFloat(formData.currentSavings) || 0
-        },
-        financialGoal: {
-          targetAmount: parseFloat(formData.targetAmount),
-          targetYear: parseInt(formData.targetYear)
-        },
-        intermediateGoals: [],
-        educationHistory: formData.education.filter(edu => edu.school || edu.field || edu.graduationYear),
-        experience: formData.experience.filter(exp => exp.company || exp.position),
-        skillsAndInterests: {
-          interests: formData.interests,
-          skills: formData.skills
         }
       };
 
-      await saveUserProfile(profileData);
+      // Prepare goals data (empty for now, will be added later)
+      const goalsData = {
+        intermediateGoals: []
+      };
+
+      // Save all data in parallel
+      await Promise.all([
+        saveUserProfile(profileData),
+        saveUserFinancials(financialsData),
+        saveUserIntermediateGoals(goalsData)
+      ]);
+
       navigate('/dashboard');
     } catch (error) {
       console.error('Error completing onboarding:', error);
@@ -308,54 +346,16 @@ const Onboarding: React.FC = () => {
     }
   };
 
-  const addEducationEntry = () => {
-    setFormData(prev => ({
-      ...prev,
-      education: [...prev.education, { school: '', field: '', graduationYear: '' }]
-    }));
+  const calculateNetWorth = () => {
+    const assets = parseFloat(formData.totalAssets) || 0;
+    const debts = parseFloat(formData.totalDebts) || 0;
+    return assets - debts;
   };
 
-  const updateEducationEntry = (index: number, field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      education: prev.education.map((edu, i) => 
-        i === index ? { ...edu, [field]: value } : edu
-      )
-    }));
-  };
-
-  const removeEducationEntry = (index: number) => {
-    if (formData.education.length > 1) {
-      setFormData(prev => ({
-        ...prev,
-        education: prev.education.filter((_, i) => i !== index)
-      }));
-    }
-  };
-
-  const addExperienceEntry = () => {
-    setFormData(prev => ({
-      ...prev,
-      experience: [...prev.experience, { company: '', position: '', startYear: '', endYear: '', description: '' }]
-    }));
-  };
-
-  const updateExperienceEntry = (index: number, field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      experience: prev.experience.map((exp, i) => 
-        i === index ? { ...exp, [field]: value } : exp
-      )
-    }));
-  };
-
-  const removeExperienceEntry = (index: number) => {
-    if (formData.experience.length > 1) {
-      setFormData(prev => ({
-        ...prev,
-        experience: prev.experience.filter((_, i) => i !== index)
-      }));
-    }
+  const calculateCashFlow = () => {
+    const income = parseFloat(formData.annualIncome) || 0;
+    const expenses = parseFloat(formData.annualExpenses) || 0;
+    return income - expenses;
   };
 
   const toggleSkill = (skill: string) => {
@@ -374,38 +374,6 @@ const Onboarding: React.FC = () => {
         ? prev.interests.filter(i => i !== interest)
         : [...prev.interests, interest]
     }));
-  };
-
-  const addCustomSkill = () => {
-    if (formData.customSkill.trim() && !formData.skills.includes(formData.customSkill.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        skills: [...prev.skills, prev.customSkill.trim()],
-        customSkill: ''
-      }));
-    }
-  };
-
-  const addCustomInterest = () => {
-    if (formData.customInterest.trim() && !formData.interests.includes(formData.customInterest.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        interests: [...prev.interests, prev.customInterest.trim()],
-        customInterest: ''
-      }));
-    }
-  };
-
-  const calculateNetWorth = () => {
-    const assets = parseFloat(formData.totalAssets) || 0;
-    const debts = parseFloat(formData.totalDebts) || 0;
-    return assets - debts;
-  };
-
-  const calculateCashFlow = () => {
-    const income = parseFloat(formData.annualIncome) || 0;
-    const expenses = parseFloat(formData.annualExpenses) || 0;
-    return income - expenses;
   };
 
   if (!currentUser) {
@@ -575,21 +543,36 @@ const Onboarding: React.FC = () => {
               {/* Financial Summary */}
               {(formData.annualIncome || formData.annualExpenses || formData.totalAssets || formData.totalDebts) && (
                 <div className="space-y-4">
-                  <div className="bg-indigo-50 p-4 rounded-lg">
-                    <h3 className="font-medium text-indigo-900 mb-2">Annual Cash Flow</h3>
-                    <div className="text-2xl font-bold">
-                      <span className={calculateCashFlow() >= 0 ? 'text-green-600' : 'text-red-600'}>
+                  {/* Cash Flow Summary */}
+                  <div className="p-4 bg-gradient-to-r from-primary-50 to-accent-50 rounded-lg border">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-surface-700">Annual Cash Flow:</span>
+                      <span className={`font-semibold ${
+                        calculateCashFlow() >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
                         {calculateCashFlow() >= 0 ? '+' : ''}${calculateCashFlow().toLocaleString()}
                       </span>
                     </div>
                   </div>
                   
-                  <div className="bg-purple-50 p-4 rounded-lg">
-                    <h3 className="font-medium text-purple-900 mb-2">Net Worth</h3>
-                    <div className="text-2xl font-bold">
-                      <span className={calculateNetWorth() >= 0 ? 'text-green-600' : 'text-red-600'}>
+                  {/* Net Worth Display */}
+                  <div className="p-6 bg-gradient-to-r from-secondary-50 via-surface-50 to-primary-50 rounded-xl border-2 border-surface-200">
+                    <div className="text-center">
+                      <div className="text-sm font-medium text-surface-600 mb-2">Your Current Net Worth</div>
+                      <div className={`text-3xl font-bold mb-2 ${
+                        calculateNetWorth() >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
                         ${calculateNetWorth().toLocaleString()}
-                      </span>
+                      </div>
+                      <div className="text-sm text-surface-500 space-y-1">
+                        <div>Assets: ${(parseFloat(formData.totalAssets) || 0).toLocaleString()}</div>
+                        <div>Debts: ${(parseFloat(formData.totalDebts) || 0).toLocaleString()}</div>
+                        {formData.currentSavings && parseFloat(formData.currentSavings) > 0 && (
+                          <div className="pt-2 border-t border-surface-200">
+                            Liquid Savings: ${parseFloat(formData.currentSavings).toLocaleString()}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -646,16 +629,21 @@ const Onboarding: React.FC = () => {
               
               {/* Goal Summary */}
               {formData.targetAmount && formData.targetYear && (
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <h3 className="font-medium text-green-900 mb-2">Your RT1M Goal</h3>
-                  <div className="text-xl font-bold text-green-600">
-                    ${parseFloat(formData.targetAmount).toLocaleString()} by {formData.targetYear}
-                  </div>
-                  {parseInt(formData.targetYear) > new Date().getFullYear() && (
-                    <div className="text-sm text-green-700 mt-1">
-                      {parseInt(formData.targetYear) - new Date().getFullYear()} years to go
+                <div className="p-4 bg-gradient-to-r from-accent-50 to-secondary-50 rounded-lg border">
+                  <div className="text-center">
+                    <div className="text-sm font-medium text-surface-700 mb-2">Your RT1M Goal</div>
+                    <div className="text-2xl font-bold text-accent-600 mb-1">
+                      ${parseFloat(formData.targetAmount).toLocaleString()}
                     </div>
-                  )}
+                    <div className="text-sm text-surface-600">
+                      Target: {formData.targetYear}
+                      {parseInt(formData.targetYear) > new Date().getFullYear() && (
+                        <span className="ml-2 text-surface-500">
+                          ({parseInt(formData.targetYear) - new Date().getFullYear()} years to go)
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -663,115 +651,158 @@ const Onboarding: React.FC = () => {
 
           {currentStep === 3 && (
             <div className="space-y-8">
+              <div className="text-center text-gray-600 mb-6">
+                <p className="text-sm">This information is optional but helps us create more personalized recommendations.</p>
+              </div>
+              
               {/* Education Section */}
               <div>
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium text-gray-800">Education History (Optional)</h3>
-                  <Button onClick={addEducationEntry} variant="outline" size="sm">
-                    Add Education
-                  </Button>
-                </div>
-                
-                <div className="space-y-4">
-                  {formData.education.map((edu, index) => (
-                    <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg">
+                <h3 className="text-lg font-medium text-gray-800 mb-4">Education History</h3>
+                {formData.education.map((edu, index) => (
+                  <div key={index} className="p-4 border border-gray-200 rounded-lg mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                       <Input
                         label="School/Institution"
                         value={edu.school}
-                        onChange={(e) => updateEducationEntry(index, 'school', e.target.value)}
+                        onChange={(e) => {
+                          const newEducation = [...formData.education];
+                          newEducation[index].school = e.target.value;
+                          setFormData(prev => ({ ...prev, education: newEducation }));
+                        }}
                         placeholder="University of Example"
                       />
                       <Input
                         label="Field of Study"
                         value={edu.field}
-                        onChange={(e) => updateEducationEntry(index, 'field', e.target.value)}
+                        onChange={(e) => {
+                          const newEducation = [...formData.education];
+                          newEducation[index].field = e.target.value;
+                          setFormData(prev => ({ ...prev, education: newEducation }));
+                        }}
                         placeholder="Computer Science"
                       />
-                      <div className="flex gap-2">
-                        <Input
-                          label="Graduation Year"
-                          value={edu.graduationYear}
-                          onChange={(e) => updateEducationEntry(index, 'graduationYear', e.target.value)}
-                          placeholder="2020"
-                        />
-                        {formData.education.length > 1 && (
-                          <Button
-                            onClick={() => removeEducationEntry(index)}
-                            variant="outline"
-                            size="sm"
-                            className="mt-6 text-red-600 border-red-300 hover:bg-red-50"
-                          >
-                            Remove
-                          </Button>
-                        )}
-                      </div>
+                      <Input
+                        label="Graduation Year"
+                        value={edu.graduationYear}
+                        onChange={(e) => {
+                          const newEducation = [...formData.education];
+                          newEducation[index].graduationYear = e.target.value;
+                          setFormData(prev => ({ ...prev, education: newEducation }));
+                        }}
+                        placeholder="2020"
+                      />
                     </div>
-                  ))}
-                </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const newEducation = formData.education.filter((_, i) => i !== index);
+                        setFormData(prev => ({ ...prev, education: newEducation }));
+                      }}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setFormData(prev => ({
+                      ...prev,
+                      education: [...prev.education, { school: '', field: '', graduationYear: '' }]
+                    }));
+                  }}
+                  className="mb-6"
+                >
+                  Add Education
+                </Button>
               </div>
 
               {/* Experience Section */}
               <div>
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium text-gray-800">Work Experience (Optional)</h3>
-                  <Button onClick={addExperienceEntry} variant="outline" size="sm">
-                    Add Experience
-                  </Button>
-                </div>
-                
-                <div className="space-y-4">
-                  {formData.experience.map((exp, index) => (
-                    <div key={index} className="space-y-4 p-4 border rounded-lg">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input
-                          label="Company"
-                          value={exp.company}
-                          onChange={(e) => updateExperienceEntry(index, 'company', e.target.value)}
-                          placeholder="Tech Corp"
-                        />
-                        <Input
-                          label="Position"
-                          value={exp.position}
-                          onChange={(e) => updateExperienceEntry(index, 'position', e.target.value)}
-                          placeholder="Software Engineer"
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input
-                          label="Start Year"
-                          value={exp.startYear}
-                          onChange={(e) => updateExperienceEntry(index, 'startYear', e.target.value)}
-                          placeholder="2020"
-                        />
-                        <Input
-                          label="End Year"
-                          value={exp.endYear}
-                          onChange={(e) => updateExperienceEntry(index, 'endYear', e.target.value)}
-                          placeholder="2023 or 'Present'"
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <textarea
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          rows={3}
-                          placeholder="Brief description of your role and achievements..."
-                          value={exp.description}
-                          onChange={(e) => updateExperienceEntry(index, 'description', e.target.value)}
-                        />
-                        {formData.experience.length > 1 && (
-                          <Button
-                            onClick={() => removeExperienceEntry(index)}
-                            variant="outline"
-                            size="sm"
-                            className="text-red-600 border-red-300 hover:bg-red-50"
-                          >
-                            Remove
-                          </Button>
-                        )}
-                      </div>
+                <h3 className="text-lg font-medium text-gray-800 mb-4">Work Experience</h3>
+                {formData.experience.map((exp, index) => (
+                  <div key={index} className="p-4 border border-gray-200 rounded-lg mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <Input
+                        label="Company"
+                        value={exp.company}
+                        onChange={(e) => {
+                          const newExperience = [...formData.experience];
+                          newExperience[index].company = e.target.value;
+                          setFormData(prev => ({ ...prev, experience: newExperience }));
+                        }}
+                        placeholder="Tech Corp"
+                      />
+                      <Input
+                        label="Position"
+                        value={exp.position}
+                        onChange={(e) => {
+                          const newExperience = [...formData.experience];
+                          newExperience[index].position = e.target.value;
+                          setFormData(prev => ({ ...prev, experience: newExperience }));
+                        }}
+                        placeholder="Software Engineer"
+                      />
                     </div>
-                  ))}
-                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <Input
+                        label="Start Year"
+                        value={exp.startYear}
+                        onChange={(e) => {
+                          const newExperience = [...formData.experience];
+                          newExperience[index].startYear = e.target.value;
+                          setFormData(prev => ({ ...prev, experience: newExperience }));
+                        }}
+                        placeholder="2020"
+                      />
+                      <Input
+                        label="End Year"
+                        value={exp.endYear}
+                        onChange={(e) => {
+                          const newExperience = [...formData.experience];
+                          newExperience[index].endYear = e.target.value;
+                          setFormData(prev => ({ ...prev, experience: newExperience }));
+                        }}
+                        placeholder="Present or 2022"
+                      />
+                    </div>
+                    <Input
+                      label="Description (Optional)"
+                      value={exp.description}
+                      onChange={(e) => {
+                        const newExperience = [...formData.experience];
+                        newExperience[index].description = e.target.value;
+                        setFormData(prev => ({ ...prev, experience: newExperience }));
+                      }}
+                      placeholder="Brief description of your role..."
+                      className="mb-4"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const newExperience = formData.experience.filter((_, i) => i !== index);
+                        setFormData(prev => ({ ...prev, experience: newExperience }));
+                      }}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setFormData(prev => ({
+                      ...prev,
+                      experience: [...prev.experience, { company: '', position: '', startYear: '', endYear: '', description: '' }]
+                    }));
+                  }}
+                >
+                  Add Experience
+                </Button>
               </div>
             </div>
           )}
@@ -783,27 +814,80 @@ const Onboarding: React.FC = () => {
                 <h3 className="text-lg font-medium text-gray-800 mb-4">Skills (Optional)</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-4">
                   {availableSkills.map((skill) => (
-                    <Badge
+                    <button
                       key={skill}
-                      variant={formData.skills.includes(skill) ? "primary" : "neutral"}
-                      className="cursor-pointer text-center justify-center py-2"
                       onClick={() => toggleSkill(skill)}
+                      className={`px-3 py-2 rounded-full text-sm border transition-colors ${
+                        formData.skills.includes(skill)
+                          ? 'bg-indigo-100 border-indigo-300 text-indigo-800'
+                          : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                      }`}
                     >
                       {skill}
-                    </Badge>
+                    </button>
                   ))}
                 </div>
                 
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Add custom skill..."
-                    value={formData.customSkill}
-                    onChange={(e) => handleInputChange('customSkill', e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && addCustomSkill()}
-                  />
-                  <Button onClick={addCustomSkill} variant="outline" size="sm">
-                    Add
-                  </Button>
+                {/* Custom Skills */}
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Add Custom Skills</h4>
+                  <div className="flex gap-2 mb-2">
+                    <Input
+                      value={formData.customSkill}
+                      onChange={(e) => handleInputChange('customSkill', e.target.value)}
+                      placeholder="Enter a skill..."
+                      onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                        if (e.key === 'Enter' && formData.customSkill.trim()) {
+                          e.preventDefault();
+                          if (!formData.skills.includes(formData.customSkill.trim())) {
+                            setFormData(prev => ({
+                              ...prev,
+                              skills: [...prev.skills, prev.customSkill.trim()],
+                              customSkill: ''
+                            }));
+                          } else {
+                            setFormData(prev => ({ ...prev, customSkill: '' }));
+                          }
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (formData.customSkill.trim() && !formData.skills.includes(formData.customSkill.trim())) {
+                          setFormData(prev => ({
+                            ...prev,
+                            skills: [...prev.skills, prev.customSkill.trim()],
+                            customSkill: ''
+                          }));
+                        }
+                      }}
+                      disabled={!formData.customSkill.trim() || formData.skills.includes(formData.customSkill.trim())}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                  
+                  {/* Display custom skills with remove option */}
+                  {formData.skills.filter(skill => !availableSkills.includes(skill)).length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {formData.skills.filter(skill => !availableSkills.includes(skill)).map((skill) => (
+                        <span
+                          key={skill}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-indigo-100 border border-indigo-300 text-indigo-800"
+                        >
+                          {skill}
+                          <button
+                            onClick={() => toggleSkill(skill)}
+                            className="ml-2 text-indigo-600 hover:text-indigo-800"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -812,37 +896,90 @@ const Onboarding: React.FC = () => {
                 <h3 className="text-lg font-medium text-gray-800 mb-4">Interests (Optional)</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-4">
                   {availableInterests.map((interest) => (
-                    <Badge
+                    <button
                       key={interest}
-                      variant={formData.interests.includes(interest) ? "default" : "outline"}
-                      className="cursor-pointer text-center justify-center py-2"
                       onClick={() => toggleInterest(interest)}
+                      className={`px-3 py-2 rounded-full text-sm border transition-colors ${
+                        formData.interests.includes(interest)
+                          ? 'bg-purple-100 border-purple-300 text-purple-800'
+                          : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                      }`}
                     >
                       {interest}
-                    </Badge>
+                    </button>
                   ))}
                 </div>
                 
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Add custom interest..."
-                    value={formData.customInterest}
-                    onChange={(e) => handleInputChange('customInterest', e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && addCustomInterest()}
-                  />
-                  <Button onClick={addCustomInterest} variant="outline" size="sm">
-                    Add
-                  </Button>
+                {/* Custom Interests */}
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Add Custom Interests</h4>
+                  <div className="flex gap-2 mb-2">
+                    <Input
+                      value={formData.customInterest}
+                      onChange={(e) => handleInputChange('customInterest', e.target.value)}
+                      placeholder="Enter an interest..."
+                      onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                        if (e.key === 'Enter' && formData.customInterest.trim()) {
+                          e.preventDefault();
+                          if (!formData.interests.includes(formData.customInterest.trim())) {
+                            setFormData(prev => ({
+                              ...prev,
+                              interests: [...prev.interests, prev.customInterest.trim()],
+                              customInterest: ''
+                            }));
+                          } else {
+                            setFormData(prev => ({ ...prev, customInterest: '' }));
+                          }
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (formData.customInterest.trim() && !formData.interests.includes(formData.customInterest.trim())) {
+                          setFormData(prev => ({
+                            ...prev,
+                            interests: [...prev.interests, prev.customInterest.trim()],
+                            customInterest: ''
+                          }));
+                        }
+                      }}
+                      disabled={!formData.customInterest.trim() || formData.interests.includes(formData.customInterest.trim())}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                  
+                  {/* Display custom interests with remove option */}
+                  {formData.interests.filter(interest => !availableInterests.includes(interest)).length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {formData.interests.filter(interest => !availableInterests.includes(interest)).map((interest) => (
+                        <span
+                          key={interest}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-purple-100 border border-purple-300 text-purple-800"
+                        >
+                          {interest}
+                          <button
+                            onClick={() => toggleInterest(interest)}
+                            className="ml-2 text-purple-600 hover:text-purple-800"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Summary */}
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-medium text-blue-900 mb-2">Profile Summary</h3>
-                <div className="text-sm text-blue-800 space-y-1">
+              <div className="p-4 bg-gradient-to-r from-primary-50 to-accent-50 rounded-lg border">
+                <h3 className="font-medium text-surface-700 mb-2">Profile Summary</h3>
+                <div className="text-sm text-surface-600 space-y-1">
                   <div>Selected Skills: {formData.skills.length}</div>
                   <div>Selected Interests: {formData.interests.length}</div>
-                  <div className="text-xs text-blue-600 mt-2">
+                  <div className="text-xs text-surface-500 mt-2">
                     This information helps us provide more personalized recommendations and connect you with relevant opportunities.
                   </div>
                 </div>

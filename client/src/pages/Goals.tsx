@@ -6,9 +6,15 @@ import { MiniChatbot } from '../components/MiniChatbot';
 import { 
   getUserProfile, 
   getUserStats,
-  saveUserProfile,
+  getUserFinancials,
+  getUserIntermediateGoals,
+  addIntermediateGoal,
+  updateIntermediateGoal,
+  deleteIntermediateGoal,
   UserProfile,
   UserStats,
+  UserFinancials,
+  UserGoals,
   IntermediateGoal
 } from '../services/firestore';
 
@@ -17,6 +23,8 @@ export default function Goals() {
   const [userName, setUserName] = useState<string>('');
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
+  const [financials, setFinancials] = useState<UserFinancials | null>(null);
+  const [goals, setGoals] = useState<UserGoals | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingGoal, setEditingGoal] = useState<IntermediateGoal | null>(null);
@@ -33,19 +41,23 @@ export default function Goals() {
     category: ''
   });
 
-  // Load profile and stats on component mount
+  // Load all data on component mount
   useEffect(() => {
     const loadData = async () => {
       if (!currentUser) return;
       
       try {
         setLoading(true);
-        const [profileData, statsData] = await Promise.all([
+        const [profileData, statsData, financialsData, goalsData] = await Promise.all([
           getUserProfile(),
-          getUserStats()
+          getUserStats(),
+          getUserFinancials(),
+          getUserIntermediateGoals()
         ]);
         setProfile(profileData);
         setStats(statsData);
+        setFinancials(financialsData);
+        setGoals(goalsData);
         
         // Set user name for personalization
         const name = profileData?.basicInfo?.name || currentUser.displayName || currentUser.email?.split('@')[0] || '';
@@ -93,7 +105,7 @@ export default function Goals() {
   };
 
   const handleSaveGoal = async () => {
-    if (!profile || !goalForm.title || !goalForm.type) return;
+    if (!goalForm.title || !goalForm.type) return;
 
     try {
       setSaving(true);
@@ -111,26 +123,15 @@ export default function Goals() {
         category: goalForm.category || undefined
       };
 
-      let updatedGoals = [...(profile.intermediateGoals || [])];
-      
       if (editingGoal) {
-        // Update existing goal
-        const index = updatedGoals.findIndex(g => g.id === editingGoal.id);
-        if (index !== -1) {
-          updatedGoals[index] = newGoal;
-        }
+        await updateIntermediateGoal(editingGoal.id!, newGoal);
       } else {
-        // Add new goal
-        updatedGoals.push(newGoal);
+        await addIntermediateGoal(newGoal);
       }
 
-      const updatedProfile = {
-        ...profile,
-        intermediateGoals: updatedGoals
-      };
-
-      await saveUserProfile(updatedProfile);
-      setProfile(updatedProfile);
+      // Reload goals data
+      const updatedGoals = await getUserIntermediateGoals();
+      setGoals(updatedGoals);
       setShowModal(false);
       
     } catch (error) {
@@ -141,19 +142,14 @@ export default function Goals() {
   };
 
   const handleDeleteGoal = async (goalId: string) => {
-    if (!profile) return;
-
     try {
       setSaving(true);
       
-      const updatedGoals = (profile.intermediateGoals || []).filter(g => g.id !== goalId);
-      const updatedProfile = {
-        ...profile,
-        intermediateGoals: updatedGoals
-      };
-
-      await saveUserProfile(updatedProfile);
-      setProfile(updatedProfile);
+      await deleteIntermediateGoal(goalId);
+      
+      // Reload goals data
+      const updatedGoals = await getUserIntermediateGoals();
+      setGoals(updatedGoals);
       setShowModal(false);
       
     } catch (error) {
@@ -199,9 +195,7 @@ export default function Goals() {
       case 'Making Progress':
         return 'accent';
       case 'Getting Started':
-        return 'warning';
-      case 'Just Starting':
-        return 'neutral';
+        return 'secondary';
       default:
         return 'neutral';
     }
@@ -212,11 +206,14 @@ export default function Goals() {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(amount);
   };
 
   const getGoalTypeIcon = (type: string) => {
     switch (type) {
+      case 'financial':
+        return '💰';
       case 'skill':
         return '🧠';
       case 'behavior':
@@ -227,27 +224,27 @@ export default function Goals() {
         return '💬';
       case 'project':
         return '🛠️';
-      case 'financial':
       default:
-        return '💰';
+        return '🎯';
     }
   };
 
   const getGoalTypeColor = (type: string) => {
     switch (type) {
+      case 'financial':
+        return 'bg-green-100 text-green-800';
       case 'skill':
         return 'bg-blue-100 text-blue-800';
       case 'behavior':
-        return 'bg-green-100 text-green-800';
-      case 'lifestyle':
         return 'bg-purple-100 text-purple-800';
-      case 'networking':
+      case 'lifestyle':
         return 'bg-orange-100 text-orange-800';
+      case 'networking':
+        return 'bg-pink-100 text-pink-800';
       case 'project':
-        return 'bg-red-100 text-red-800';
-      case 'financial':
+        return 'bg-indigo-100 text-indigo-800';
       default:
-        return 'bg-emerald-100 text-emerald-800';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -278,12 +275,12 @@ export default function Goals() {
     );
   }
 
-  if (!profile || !stats) {
+  if (!profile || !stats || !financials) {
     return (
       <div className="min-h-screen bg-surface-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-surface-900 mb-2">No Profile Found</h2>
-          <p className="text-surface-600 mb-4">Please complete your profile first to track your financial goals.</p>
+          <h2 className="text-xl font-semibold text-surface-900 mb-2">No Data Found</h2>
+          <p className="text-surface-600 mb-4">Please complete your profile and financial information first to track your goals.</p>
           <Button onClick={() => window.location.href = '/profile'}>
             Go to Profile
           </Button>
@@ -345,8 +342,8 @@ export default function Goals() {
                 </svg>
                 Add Goal
               </Button>
-              <Button onClick={() => window.location.href = '/profile'} variant="outline">
-                Edit Profile
+              <Button onClick={() => window.location.href = '/financials'} variant="outline">
+                View Financials
               </Button>
             </div>
           </div>
@@ -362,10 +359,10 @@ export default function Goals() {
                 <div className="flex justify-between items-start mb-6">
                   <div>
                     <h2 className="text-2xl font-bold text-surface-900 mb-2">
-                      {formatCurrency(profile.financialGoal?.targetAmount || 0)}
+                      {formatCurrency(profile?.financialGoal?.targetAmount || 0)}
                     </h2>
                     <p className="text-surface-600">
-                      Target by {profile.financialGoal?.targetYear}
+                      Target by {profile?.financialGoal?.targetYear}
                     </p>
                   </div>
                   <Badge variant={getStatusColor(status) as any}>
@@ -397,7 +394,7 @@ export default function Goals() {
                   </div>
                   <div className="text-center p-4 bg-primary-50 rounded-lg">
                     <div className="text-2xl font-bold text-primary-700">
-                      {formatCurrency((profile.financialGoal?.targetAmount || 0) - (stats.netWorth || 0))}
+                      {formatCurrency((profile?.financialGoal?.targetAmount || 0) - (stats?.netWorth || 0))}
                     </div>
                     <div className="text-sm text-primary-600">Remaining to Goal</div>
                   </div>
@@ -439,7 +436,7 @@ export default function Goals() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Existing Goals */}
-                  {profile.intermediateGoals && profile.intermediateGoals.map((goal, index) => (
+                  {goals?.intermediateGoals && goals.intermediateGoals.map((goal, index) => (
                     <Card key={goal.id || index} className="p-4">
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex items-center gap-2">
@@ -547,11 +544,11 @@ export default function Goals() {
                 <div className="space-y-4">
                   <div className="flex justify-between">
                     <span className="text-surface-600">Total Assets</span>
-                    <span className="font-medium">{formatCurrency(profile.financialInfo?.totalAssets || 0)}</span>
+                    <span className="font-medium">{formatCurrency(financials.financialInfo?.totalAssets || 0)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-surface-600">Total Debts</span>
-                    <span className="font-medium text-red-600">-{formatCurrency(profile.financialInfo?.totalDebts || 0)}</span>
+                    <span className="font-medium text-red-600">-{formatCurrency(financials.financialInfo?.totalDebts || 0)}</span>
                   </div>
                   <div className="border-t pt-2 flex justify-between font-semibold">
                     <span>Net Worth</span>
@@ -566,16 +563,16 @@ export default function Goals() {
                 <div className="space-y-4">
                   <div className="flex justify-between">
                     <span className="text-surface-600">Annual Income</span>
-                    <span className="font-medium text-green-600">{formatCurrency(profile.financialInfo?.annualIncome || 0)}</span>
+                    <span className="font-medium text-green-600">{formatCurrency(financials.financialInfo?.annualIncome || 0)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-surface-600">Annual Expenses</span>
-                    <span className="font-medium text-red-600">-{formatCurrency(profile.financialInfo?.annualExpenses || 0)}</span>
+                    <span className="font-medium text-red-600">-{formatCurrency(financials.financialInfo?.annualExpenses || 0)}</span>
                   </div>
                   <div className="border-t pt-2 flex justify-between font-semibold">
                     <span>Net Annual</span>
-                    <span className={`${(profile.financialInfo?.annualIncome || 0) - (profile.financialInfo?.annualExpenses || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatCurrency((profile.financialInfo?.annualIncome || 0) - (profile.financialInfo?.annualExpenses || 0))}
+                    <span className={`${(financials.financialInfo?.annualIncome || 0) - (financials.financialInfo?.annualExpenses || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {formatCurrency((financials.financialInfo?.annualIncome || 0) - (financials.financialInfo?.annualExpenses || 0))}
                     </span>
                   </div>
                 </div>
@@ -586,8 +583,8 @@ export default function Goals() {
                 <h3 className="text-lg font-semibold text-surface-900 mb-4">Savings Rate</h3>
                 <div className="text-center">
                   <div className="text-3xl font-bold text-primary-600 mb-2">
-                    {profile.financialInfo?.annualIncome ? 
-                      (((profile.financialInfo.annualIncome - profile.financialInfo.annualExpenses) / profile.financialInfo.annualIncome) * 100).toFixed(1)
+                    {financials.financialInfo?.annualIncome ? 
+                      (((financials.financialInfo.annualIncome - (financials.financialInfo.annualExpenses || 0)) / financials.financialInfo.annualIncome) * 100).toFixed(1)
                       : 0}%
                   </div>
                   <div className="text-sm text-surface-600">of income saved annually</div>
@@ -595,7 +592,7 @@ export default function Goals() {
                 <div className="mt-4 p-3 bg-surface-50 rounded-lg">
                   <div className="text-sm text-surface-600 mb-1">Monthly Savings</div>
                   <div className="font-semibold">
-                    {formatCurrency(((profile.financialInfo?.annualIncome || 0) - (profile.financialInfo?.annualExpenses || 0)) / 12)}
+                    {formatCurrency(((financials.financialInfo?.annualIncome || 0) - (financials.financialInfo?.annualExpenses || 0)) / 12)}
                   </div>
                 </div>
               </Card>
@@ -612,7 +609,7 @@ export default function Goals() {
                     <div className="p-3 bg-red-50 text-red-700 rounded-lg">
                       ⚠️ Your target year has passed. Consider updating your goal timeline.
                     </div>
-                  ) : monthlyTarget > ((profile.financialInfo?.annualIncome || 0) - (profile.financialInfo?.annualExpenses || 0)) / 12 ? (
+                  ) : monthlyTarget > ((financials.financialInfo?.annualIncome || 0) - (financials.financialInfo?.annualExpenses || 0)) / 12 ? (
                     <div className="p-3 bg-yellow-50 text-yellow-700 rounded-lg">
                       💡 You may need to increase income or reduce expenses to reach your goal on time.
                     </div>

@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui';
-import { useChatContext, ChatMessage } from '../contexts/ChatContext';
+import { useChatContext } from '../contexts/ChatContext';
 
 export const MiniChatbot: React.FC = () => {
   const navigate = useNavigate();
-  const { messages, addMessage, isTyping, setIsTyping, userName, isMiniChatbotOpen, toggleMiniChatbot } = useChatContext();
+  const { messages, addMessage, isTyping, setIsTyping, isMiniChatbotOpen, toggleMiniChatbot } = useChatContext();
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 

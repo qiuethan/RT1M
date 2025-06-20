@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getUserProfile } from '../services/firestore';
+import { getUserProfile, getUserFinancials } from '../services/firestore';
 
 export const useOnboardingProtection = () => {
   const { currentUser, loading: authLoading } = useAuth();
@@ -20,7 +20,10 @@ export const useOnboardingProtection = () => {
       }
 
       try {
-        const profile = await getUserProfile();
+        const [profile, financials] = await Promise.all([
+          getUserProfile(),
+          getUserFinancials()
+        ]);
         
         // Check if essential fields are filled (matching onboarding validation requirements)
         const hasBasicInfo = profile?.basicInfo?.name && 
@@ -28,10 +31,10 @@ export const useOnboardingProtection = () => {
                             profile?.basicInfo?.country && 
                             profile?.basicInfo?.employmentStatus;
         
-        const hasFinancialInfo = profile?.financialInfo?.annualIncome !== undefined && 
-                               profile?.financialInfo?.annualIncome >= 0 &&
-                               profile?.financialInfo?.annualExpenses !== undefined && 
-                               profile?.financialInfo?.annualExpenses >= 0;
+        const hasFinancialInfo = financials?.financialInfo?.annualIncome !== undefined && 
+                               financials?.financialInfo?.annualIncome >= 0 &&
+                               financials?.financialInfo?.annualExpenses !== undefined && 
+                               financials?.financialInfo?.annualExpenses >= 0;
         
         const hasGoal = profile?.financialGoal?.targetAmount && 
                        profile?.financialGoal?.targetAmount > 0 &&
