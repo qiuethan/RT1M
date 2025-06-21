@@ -85,6 +85,15 @@ export interface SkillsAndInterests {
   interests: string[];
 }
 
+// User Skills Interface (separate backend collection)
+export interface UserSkills {
+  id?: string;
+  userId: string;
+  skillsAndInterests: SkillsAndInterests;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // AI Plan Interface - designed for AI to save structured financial plans
 export interface Plan {
   id?: string;
@@ -145,14 +154,13 @@ export interface DynamicMilestone {
   isGoal?: boolean;
 }
 
-// User Profile Interface (contains basic profile info + financial goal)
+// User Profile Interface (contains basic profile info + financial goal - NO skills)
 export interface UserProfile {
   id?: string;
   userId: string;
   basicInfo: BasicInfo;
   educationHistory: EducationEntry[];
   experience: ExperienceEntry[];
-  skillsAndInterests: SkillsAndInterests;
   financialGoal: FinancialGoal;
   createdAt: Date;
   updatedAt: Date;
@@ -217,6 +225,11 @@ const addIntermediateGoalFn = httpsCallable(functions, 'addIntermediateGoal');
 const updateIntermediateGoalFn = httpsCallable(functions, 'updateIntermediateGoal');
 const deleteIntermediateGoalFn = httpsCallable(functions, 'deleteIntermediateGoal');
 
+// Skills functions (backend collection - not used by frontend directly)
+const getUserSkillsFn = httpsCallable(functions, 'getUserSkills');
+const saveUserSkillsFn = httpsCallable(functions, 'saveUserSkills');
+const updateUserSkillsSectionFn = httpsCallable(functions, 'updateUserSkillsSection');
+
 // Legacy goal functions (for individual goals)
 const addGoalFn = httpsCallable(functions, 'addGoal');
 const updateGoalFn = httpsCallable(functions, 'updateGoal');
@@ -269,10 +282,13 @@ export const cleanupUserData = async () => {
 // Statistics
 export const getUserStats = async (): Promise<UserStats> => {
   const response: any = await handleFunctionCall(getUserStatsFn);
+  console.log('getUserStats - Raw backend response:', response);
+  console.log('getUserStats - Response.data:', response.data);
+  console.log('getUserStats - NetWorth from response:', response.data?.netWorth);
   
   return {
-    financialInfo: response.financialInfo,
-    netWorth: response.netWorth,
+    financialInfo: response.data?.financialInfo || null,
+    netWorth: response.data?.netWorth || 0,
   };
 };
 
@@ -344,6 +360,26 @@ export const deleteIntermediateGoal = async (goalId: string) => {
   return await handleFunctionCall(deleteIntermediateGoalFn, { goalId });
 };
 
+// Skills & Interests Backend Operations (separate collection)
+export const getUserSkills = async (): Promise<UserSkills | null> => {
+  const result = await handleFunctionCall(getUserSkillsFn);
+  if (!result) return null;
+  
+  return {
+    ...result,
+    createdAt: result.createdAt?.toDate?.() || new Date(result.createdAt),
+    updatedAt: result.updatedAt?.toDate?.() || new Date(result.updatedAt)
+  };
+};
+
+export const saveUserSkills = async (skillsData: Partial<UserSkills>) => {
+  return await handleFunctionCall(saveUserSkillsFn, skillsData);
+};
+
+export const updateUserSkillsSection = async (section: string, data: any) => {
+  return await handleFunctionCall(updateUserSkillsSectionFn, { section, data });
+};
+
 // Goal Operations
 export const getUserGoals = async (): Promise<Goal[]> => {
   const response: any = await handleFunctionCall(getUserGoalsFn);
@@ -401,50 +437,40 @@ export const generateDynamicMilestones = (
   targetAmount: number,
   intermediateGoals: IntermediateGoal[]
 ): DynamicMilestone[] => {
+  console.log('generateDynamicMilestones called with:', { currentAmount, targetAmount });
+  
   const milestones: DynamicMilestone[] = [];
   
-  // Add standard percentage-based milestones
+  // Add standard percentage-based milestones - always show all benchmarks
   const percentages = [0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1.0]; // 1%, 5%, 10%, 25%, 50%, 75%, 100%
   
   percentages.forEach((percentage) => {
-    const amount = Math.round(targetAmount * percentage);
-    if (amount > currentAmount || percentage === 1.0) { // Only show future milestones and final goal
-      milestones.push({
-        id: `percentage_${percentage}`,
-        amount,
-        title: percentage === 1.0 ? 'Final Goal' : `${(percentage * 100).toFixed(0)}% Milestone`,
-        description: percentage === 1.0 
-          ? 'Congratulations! You\'ve reached your RT1M goal!' 
-          : `Reach ${(percentage * 100).toFixed(0)}% of your target amount`,
-        completed: currentAmount >= amount,
-        progress: currentAmount >= amount ? 100 : Math.min((currentAmount / amount) * 100, 99),
-        isGoal: percentage === 1.0
-      });
-    }
+    const amount = Math.round(targetAmount * percentage); // Round to nearest dollar
+    const completed = currentAmount >= amount;
+    const progress = currentAmount >= amount ? 100 : Math.max((currentAmount / amount) * 100, 0);
+    
+    console.log(`Milestone ${(percentage * 100).toFixed(0)}%:`, {
+      amount,
+      currentAmount,
+      completed,
+      progress
+    });
+    
+    milestones.push({
+      id: `percentage_${percentage}`,
+      amount,
+      title: percentage === 1.0 ? 'Final Goal - RT1M Achieved!' : `${(percentage * 100).toFixed(0)}% Milestone`,
+      description: percentage === 1.0 
+        ? 'Congratulations! You\'ve reached your RT1M goal!' 
+        : `Reach ${(percentage * 100).toFixed(0)}% of your target amount`,
+      completed,
+      progress,
+      isGoal: percentage === 1.0
+    });
   });
   
-  // Add intermediate goals as milestones
-  intermediateGoals.forEach((goal) => {
-    if (goal.targetAmount && goal.targetAmount > currentAmount) {
-      milestones.push({
-        id: `goal_${goal.id}`,
-        amount: goal.targetAmount,
-        title: goal.title,
-        description: goal.description || `Complete your ${goal.title} goal`,
-        completed: goal.status === 'Completed',
-        progress: goal.targetAmount > 0 ? Math.min(((goal.currentAmount || 0) / goal.targetAmount) * 100, 100) : 0,
-        isGoal: false
-      });
-    }
-  });
-  
-  // Sort by amount and remove duplicates
-  return milestones
-    .sort((a, b) => a.amount - b.amount)
-    .filter((milestone, index, array) => 
-      index === 0 || milestone.amount !== array[index - 1].amount
-    )
-    .slice(0, 10); // Limit to 10 milestones to avoid clutter
+  // Sort by amount to ensure proper order
+  return milestones.sort((a, b) => a.amount - b.amount);
 };
 
  

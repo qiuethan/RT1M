@@ -83,9 +83,15 @@ export default function Financials() {
       
       try {
         setLoading(true);
+        console.log('Loading financials for user:', currentUser.uid);
         const financials = await getUserFinancials();
+        console.log('Raw financials response:', financials);
         
         if (financials) {
+          console.log('Setting financialInfo:', financials.financialInfo);
+          console.log('Setting assets:', financials.assets);
+          console.log('Setting debts:', financials.debts);
+          
           setFinancialInfo(financials.financialInfo || {
             annualIncome: 0,
             annualExpenses: 0,
@@ -95,6 +101,8 @@ export default function Financials() {
           });
           setAssets(financials.assets || []);
           setDebts(financials.debts || []);
+        } else {
+          console.log('No financials data found');
         }
       } catch (error) {
         console.error('Error loading financials:', error);
@@ -122,9 +130,13 @@ export default function Financials() {
   const saveFinancialInfo = async () => {
     setSavingSection('info');
     try {
-      await updateUserFinancialsSection('financialInfo', financialInfo);
+      console.log('Saving financial info:', financialInfo);
+      const result = await updateUserFinancialsSection('financialInfo', financialInfo);
+      console.log('Financial info save result:', result);
+      alert('Financial information saved successfully!');
     } catch (error) {
       console.error('Error saving financial info:', error);
+      alert('Failed to save financial information. Please try again.');
     } finally {
       setSavingSection(null);
     }
@@ -133,9 +145,12 @@ export default function Financials() {
   const saveAssets = async () => {
     setSavingSection('assets');
     try {
-      await updateUserFinancialsSection('assets', assets);
+      console.log('Saving assets:', assets);
+      const result = await updateUserFinancialsSection('assets', assets);
+      console.log('Assets save result:', result);
     } catch (error) {
       console.error('Error saving assets:', error);
+      alert('Failed to save assets. Please try again.');
     } finally {
       setSavingSection(null);
     }
@@ -144,9 +159,12 @@ export default function Financials() {
   const saveDebts = async () => {
     setSavingSection('debts');
     try {
-      await updateUserFinancialsSection('debts', debts);
+      console.log('Saving debts:', debts);
+      const result = await updateUserFinancialsSection('debts', debts);
+      console.log('Debts save result:', result);
     } catch (error) {
       console.error('Error saving debts:', error);
+      alert('Failed to save debts. Please try again.');
     } finally {
       setSavingSection(null);
     }
@@ -177,19 +195,77 @@ export default function Financials() {
       id: editingAsset?.id || Date.now().toString()
     };
 
+    let updatedAssets;
     if (editingAsset) {
-      setAssets(assets.map(a => a.id === editingAsset.id ? newAsset : a));
+      updatedAssets = assets.map(a => a.id === editingAsset.id ? newAsset : a);
     } else {
-      setAssets([...assets, newAsset]);
+      updatedAssets = [...assets, newAsset];
     }
 
+    // Calculate new totals
+    const newTotalAssets = updatedAssets.reduce((sum, asset) => sum + asset.value, 0);
+    const updatedFinancialInfo = {
+      ...financialInfo,
+      totalAssets: newTotalAssets
+    };
+
+    setAssets(updatedAssets);
+    setFinancialInfo(updatedFinancialInfo);
     setShowAssetModal(false);
-    await saveAssets();
+
+    // Save both assets and updated financial info to the backend
+    try {
+      setSavingSection('assets');
+      console.log('Saving assets after add/edit:', updatedAssets);
+      console.log('Saving updated financial info:', updatedFinancialInfo);
+      
+      // Save assets
+      const assetsResult = await updateUserFinancialsSection('assets', updatedAssets);
+      console.log('Assets save result:', assetsResult);
+      
+      // Save updated financial info
+      const infoResult = await updateUserFinancialsSection('financialInfo', updatedFinancialInfo);
+      console.log('Financial info save result:', infoResult);
+    } catch (error) {
+      console.error('Error saving assets:', error);
+      alert('Failed to save asset. Please try again.');
+    } finally {
+      setSavingSection(null);
+    }
   };
 
   const handleDeleteAsset = async (assetId: string) => {
-    setAssets(assets.filter(a => a.id !== assetId));
-    await saveAssets();
+    const updatedAssets = assets.filter(a => a.id !== assetId);
+    
+    // Calculate new totals
+    const newTotalAssets = updatedAssets.reduce((sum, asset) => sum + asset.value, 0);
+    const updatedFinancialInfo = {
+      ...financialInfo,
+      totalAssets: newTotalAssets
+    };
+
+    setAssets(updatedAssets);
+    setFinancialInfo(updatedFinancialInfo);
+    
+    // Save both assets and updated financial info to the backend
+    try {
+      setSavingSection('assets');
+      console.log('Saving assets after delete:', updatedAssets);
+      console.log('Saving updated financial info:', updatedFinancialInfo);
+      
+      // Save assets
+      const assetsResult = await updateUserFinancialsSection('assets', updatedAssets);
+      console.log('Assets delete save result:', assetsResult);
+      
+      // Save updated financial info
+      const infoResult = await updateUserFinancialsSection('financialInfo', updatedFinancialInfo);
+      console.log('Financial info save result:', infoResult);
+    } catch (error) {
+      console.error('Error saving assets after delete:', error);
+      alert('Failed to delete asset. Please try again.');
+    } finally {
+      setSavingSection(null);
+    }
   };
 
   // Debt management
@@ -218,19 +294,77 @@ export default function Financials() {
       id: editingDebt?.id || Date.now().toString()
     };
 
+    let updatedDebts;
     if (editingDebt) {
-      setDebts(debts.map(d => d.id === editingDebt.id ? newDebt : d));
+      updatedDebts = debts.map(d => d.id === editingDebt.id ? newDebt : d);
     } else {
-      setDebts([...debts, newDebt]);
+      updatedDebts = [...debts, newDebt];
     }
 
+    // Calculate new totals
+    const newTotalDebts = updatedDebts.reduce((sum, debt) => sum + debt.balance, 0);
+    const updatedFinancialInfo = {
+      ...financialInfo,
+      totalDebts: newTotalDebts
+    };
+
+    setDebts(updatedDebts);
+    setFinancialInfo(updatedFinancialInfo);
     setShowDebtModal(false);
-    await saveDebts();
+
+    // Save both debts and updated financial info to the backend
+    try {
+      setSavingSection('debts');
+      console.log('Saving debts after add/edit:', updatedDebts);
+      console.log('Saving updated financial info:', updatedFinancialInfo);
+      
+      // Save debts
+      const debtsResult = await updateUserFinancialsSection('debts', updatedDebts);
+      console.log('Debts save result:', debtsResult);
+      
+      // Save updated financial info
+      const infoResult = await updateUserFinancialsSection('financialInfo', updatedFinancialInfo);
+      console.log('Financial info save result:', infoResult);
+    } catch (error) {
+      console.error('Error saving debts:', error);
+      alert('Failed to save debt. Please try again.');
+    } finally {
+      setSavingSection(null);
+    }
   };
 
   const handleDeleteDebt = async (debtId: string) => {
-    setDebts(debts.filter(d => d.id !== debtId));
-    await saveDebts();
+    const updatedDebts = debts.filter(d => d.id !== debtId);
+    
+    // Calculate new totals
+    const newTotalDebts = updatedDebts.reduce((sum, debt) => sum + debt.balance, 0);
+    const updatedFinancialInfo = {
+      ...financialInfo,
+      totalDebts: newTotalDebts
+    };
+
+    setDebts(updatedDebts);
+    setFinancialInfo(updatedFinancialInfo);
+    
+    // Save both debts and updated financial info to the backend
+    try {
+      setSavingSection('debts');
+      console.log('Saving debts after delete:', updatedDebts);
+      console.log('Saving updated financial info:', updatedFinancialInfo);
+      
+      // Save debts
+      const debtsResult = await updateUserFinancialsSection('debts', updatedDebts);
+      console.log('Debts delete save result:', debtsResult);
+      
+      // Save updated financial info
+      const infoResult = await updateUserFinancialsSection('financialInfo', updatedFinancialInfo);
+      console.log('Financial info save result:', infoResult);
+    } catch (error) {
+      console.error('Error saving debts after delete:', error);
+      alert('Failed to delete debt. Please try again.');
+    } finally {
+      setSavingSection(null);
+    }
   };
 
   // Helper functions
@@ -343,10 +477,10 @@ export default function Financials() {
               <h2 className="text-xl font-semibold text-surface-900">Income & Expenses</h2>
               <Button 
                 onClick={saveFinancialInfo}
-                loading={savingSection === 'info'}
+                disabled={savingSection === 'info'}
                 size="sm"
               >
-                Save Changes
+                {savingSection === 'info' ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
             
@@ -356,7 +490,7 @@ export default function Financials() {
                   label="Annual Income"
                   type="number"
                   value={financialInfo.annualIncome === 0 ? '' : financialInfo.annualIncome.toString()}
-                  onChange={(e) => setFinancialInfo({...financialInfo, annualIncome: parseInt(e.target.value) || 0})}
+                  onChange={(e) => setFinancialInfo({...financialInfo, annualIncome: parseFloat(e.target.value) || 0})}
                   placeholder="75000"
                 />
                 
@@ -364,7 +498,7 @@ export default function Financials() {
                   label="Annual Expenses"
                   type="number"
                   value={financialInfo.annualExpenses === 0 ? '' : financialInfo.annualExpenses.toString()}
-                  onChange={(e) => setFinancialInfo({...financialInfo, annualExpenses: parseInt(e.target.value) || 0})}
+                  onChange={(e) => setFinancialInfo({...financialInfo, annualExpenses: parseFloat(e.target.value) || 0})}
                   placeholder="45000"
                 />
               </div>
@@ -373,7 +507,7 @@ export default function Financials() {
                 label="Current Savings"
                 type="number"
                 value={financialInfo.currentSavings === 0 ? '' : financialInfo.currentSavings.toString()}
-                onChange={(e) => setFinancialInfo({...financialInfo, currentSavings: parseInt(e.target.value) || 0})}
+                onChange={(e) => setFinancialInfo({...financialInfo, currentSavings: parseFloat(e.target.value) || 0})}
                 placeholder="25000"
               />
             </div>
@@ -410,12 +544,7 @@ export default function Financials() {
                   {assets.map((asset) => (
                     <div key={asset.id} className="flex items-center justify-between p-4 border border-surface-200 rounded-lg bg-surface-50">
                       <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-medium text-surface-900">{asset.name}</h4>
-                          <span className="text-lg font-semibold text-green-600">
-                            ${asset.value.toLocaleString()}
-                          </span>
-                        </div>
+                        <h4 className="font-medium text-surface-900">{asset.name}</h4>
                         <div className="flex items-center mt-1">
                           <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
                             {assetTypeOptions.find(opt => opt.value === asset.type)?.label}
@@ -425,22 +554,27 @@ export default function Financials() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2 ml-4">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openAssetModal(asset)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteAsset(asset.id!)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          Delete
-                        </Button>
+                      <div className="flex items-center space-x-4">
+                        <span className="text-lg font-semibold text-green-600">
+                          ${asset.value.toLocaleString()}
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openAssetModal(asset)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteAsset(asset.id!)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            Delete
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -480,12 +614,7 @@ export default function Financials() {
                   {debts.map((debt) => (
                     <div key={debt.id} className="flex items-center justify-between p-4 border border-surface-200 rounded-lg bg-surface-50">
                       <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-medium text-surface-900">{debt.name}</h4>
-                          <span className="text-lg font-semibold text-red-600">
-                            ${debt.balance.toLocaleString()}
-                          </span>
-                        </div>
+                        <h4 className="font-medium text-surface-900">{debt.name}</h4>
                         <div className="flex items-center mt-1">
                           <span className="text-xs px-2 py-1 bg-red-100 text-red-800 rounded-full">
                             {debtTypeOptions.find(opt => opt.value === debt.type)?.label}
@@ -498,22 +627,27 @@ export default function Financials() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2 ml-4">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openDebtModal(debt)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteDebt(debt.id!)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          Delete
-                        </Button>
+                      <div className="flex items-center space-x-4">
+                        <span className="text-lg font-semibold text-red-600">
+                          ${debt.balance.toLocaleString()}
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openDebtModal(debt)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteDebt(debt.id!)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            Delete
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}

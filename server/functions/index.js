@@ -74,12 +74,6 @@ export const createUserProfile = onCall(async (request) => {
         // endYear: "", description: "" }
       ],
 
-      // Skills & Interests
-      skillsAndInterests: {
-        skills: [],
-        interests: [],
-      },
-
       // Financial Goal
       financialGoal: {
         targetAmount: 1000000,
@@ -109,12 +103,14 @@ export const createUserProfile = onCall(async (request) => {
 
       // Asset Objects
       assets: [
-        // Example: { name: "Primary Home", type: "real-estate", value: 500000, description: "" }
+        // Example: { name: "Primary Home", type: "real-estate",
+        // value: 500000, description: "" }
       ],
 
       // Debt Objects
       debts: [
-        // Example: { name: "Mortgage", type: "mortgage", balance: 300000, interestRate: 3.5, description: "" }
+        // Example: { name: "Mortgage", type: "mortgage",
+        // balance: 300000, interestRate: 3.5, description: "" }
       ],
 
       // Metadata
@@ -138,6 +134,21 @@ export const createUserProfile = onCall(async (request) => {
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
+    // Create skills document
+    const userSkills = {
+      userId: uid,
+
+      // Skills & Interests
+      skillsAndInterests: {
+        skills: [],
+        interests: [],
+      },
+
+      // Metadata
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
     // Create all documents
     const userProfileRef = db.collection("users").doc(uid)
         .collection("profile").doc("data");
@@ -145,10 +156,13 @@ export const createUserProfile = onCall(async (request) => {
         .collection("financials").doc("data");
     const userGoalsRef = db.collection("users").doc(uid)
         .collection("goals").doc("data");
+    const userSkillsRef = db.collection("users").doc(uid)
+        .collection("skills").doc("data");
 
     batch.set(userProfileRef, userProfile);
     batch.set(userFinancialsRef, userFinancials);
     batch.set(userGoalsRef, userGoals);
+    batch.set(userSkillsRef, userSkills);
 
     // Commit all documents
     await batch.commit();
@@ -193,9 +207,21 @@ export const getUserStats = onCall(async (request) => {
     const financialsData = financialsDoc.data();
     const financialInfo = financialsData.financialInfo || {};
 
-    // Calculate net worth
-    const netWorth = (financialInfo.totalAssets || 0) -
-      (financialInfo.totalDebts || 0);
+    // Calculate net worth from individual assets and debts (more accurate)
+    const assets = financialsData.assets || [];
+    const debts = financialsData.debts || [];
+    
+    logger.info(`getUserStats - Assets found: ${assets.length}`, assets);
+    logger.info(`getUserStats - Debts found: ${debts.length}`, debts);
+    
+    const totalAssetsFromList = assets.reduce((sum, asset) => sum + (asset.value || 0), 0);
+    const totalDebtsFromList = debts.reduce((sum, debt) => sum + (debt.balance || 0), 0);
+    
+    logger.info(`getUserStats - Total assets: ${totalAssetsFromList}, Total debts: ${totalDebtsFromList}`);
+    
+    const netWorth = totalAssetsFromList - totalDebtsFromList;
+    
+    logger.info(`getUserStats - Calculated net worth: ${netWorth}`);
 
     return {
       success: true,
@@ -236,6 +262,11 @@ export const cleanupUserData = onCall(async (request) => {
     const userGoalsRef = db.collection("users").doc(userId)
         .collection("goals").doc("data");
     batch.delete(userGoalsRef);
+
+    // Delete user skills
+    const userSkillsRef = db.collection("users").doc(userId)
+        .collection("skills").doc("data");
+    batch.delete(userSkillsRef);
 
     // Delete the main user document
     const userRef = db.collection("users").doc(userId);
@@ -298,12 +329,6 @@ export const getUserProfile = onCall(async (request) => {
 
       // Experience
       experience: userData.experience || [],
-
-      // Skills & Interests
-      skillsAndInterests: userData.skillsAndInterests || {
-        skills: [],
-        interests: [],
-      },
 
       // Financial Goal
       financialGoal: userData.financialGoal || {
@@ -569,6 +594,8 @@ export const getUserFinancials = onCall(async (request) => {
         totalDebts: 0,
         currentSavings: 0,
       },
+      assets: financialsData.assets || [],
+      debts: financialsData.debts || [],
       createdAt: financialsData.createdAt,
       updatedAt: financialsData.updatedAt,
     };
@@ -852,5 +879,119 @@ export const deleteIntermediateGoal = onCall(async (request) => {
   } catch (error) {
     logger.error("Error deleting intermediate goal:", error);
     throw new Error("Failed to delete intermediate goal");
+  }
+});
+
+// Get user skills
+export const getUserSkills = onCall(async (request) => {
+  try {
+    if (!request.auth) {
+      throw new Error("Authentication required");
+    }
+
+    const uid = request.auth.uid;
+    const db = admin.firestore();
+
+    const skillsDoc = await db.collection("users").doc(uid)
+        .collection("skills").doc("data").get();
+
+    if (!skillsDoc.exists) {
+      return null;
+    }
+
+    const skillsData = skillsDoc.data();
+
+    return {
+      id: skillsDoc.id,
+      userId: skillsData.userId,
+      skillsAndInterests: skillsData.skillsAndInterests || {
+        skills: [],
+        interests: [],
+      },
+      createdAt: skillsData.createdAt,
+      updatedAt: skillsData.updatedAt,
+    };
+  } catch (error) {
+    logger.error("Error getting user skills:", error);
+    throw new Error("Failed to get user skills");
+  }
+});
+
+// Save user skills
+export const saveUserSkills = onCall(async (request) => {
+  try {
+    if (!request.auth) {
+      throw new Error("Authentication required");
+    }
+
+    const uid = request.auth.uid;
+    const skillsData = request.data;
+    const db = admin.firestore();
+
+    const updateData = {
+      userId: uid,
+      ...skillsData,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    // Set createdAt if it doesn't exist
+    const skillsRef = db.collection("users").doc(uid)
+        .collection("skills").doc("data");
+    const existingDoc = await skillsRef.get();
+
+    if (!existingDoc.exists) {
+      updateData.createdAt = admin.firestore.FieldValue.serverTimestamp();
+    }
+
+    await skillsRef.set(updateData, {merge: true});
+
+    logger.info(`Updated user skills for UID: ${uid}`);
+    return {success: true, message: "Skills saved successfully"};
+  } catch (error) {
+    logger.error("Error saving user skills:", error);
+    throw new Error("Failed to save user skills");
+  }
+});
+
+// Update specific section of user skills
+export const updateUserSkillsSection = onCall(async (request) => {
+  try {
+    if (!request.auth) {
+      throw new Error("Authentication required");
+    }
+
+    const uid = request.auth.uid;
+    const {section, data} = request.data;
+    const db = admin.firestore();
+
+    if (!section || !data) {
+      throw new Error("Section and data are required");
+    }
+
+    const updateData = {
+      [section]: data,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    const skillsRef = db.collection("users").doc(uid)
+        .collection("skills").doc("data");
+
+    // Check if document exists, create if not
+    const existingDoc = await skillsRef.get();
+    if (!existingDoc.exists) {
+      updateData.userId = uid;
+      updateData.createdAt = admin.firestore.FieldValue.serverTimestamp();
+      await skillsRef.set(updateData);
+    } else {
+      await skillsRef.update(updateData);
+    }
+
+    logger.info(`Updated skills ${section} for UID: ${uid}`);
+    return {success: true, message: `${section} updated successfully`};
+  } catch (error) {
+    logger.error(`Error updating skills 
+      ${request.data.section || "unknown section"}:`, error);
+    throw new Error(`Failed to update skills 
+      ${request.data.section || "unknown section"}`);
   }
 });

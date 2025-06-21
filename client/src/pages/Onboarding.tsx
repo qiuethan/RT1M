@@ -7,7 +7,9 @@ import {
   saveUserFinancials, 
   saveUserIntermediateGoals,
   getUserFinancials,
-  getUserIntermediateGoals
+  getUserIntermediateGoals,
+  saveUserSkills,
+  getUserSkills
 } from '../services/firestore';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -167,8 +169,9 @@ const Onboarding: React.FC = () => {
       Promise.all([
         getUserProfile(),
         getUserFinancials(),
-        getUserIntermediateGoals()
-      ]).then(([profile, financials]) => {
+        getUserIntermediateGoals(),
+        getUserSkills()
+      ]).then(([profile, financials, goals, skills]) => {
         if (profile) {
           setFormData(prev => ({
             ...prev,
@@ -184,8 +187,9 @@ const Onboarding: React.FC = () => {
             experience: profile.experience && profile.experience.length > 0 
               ? profile.experience 
               : [{ company: '', position: '', startYear: '', endYear: '', description: '' }],
-            skills: profile.skillsAndInterests?.skills || [],
-            interests: profile.skillsAndInterests?.interests || [],
+            // Skills now come from separate collection
+            skills: skills?.skillsAndInterests?.skills || [],
+            interests: skills?.skillsAndInterests?.interests || [],
             // Financial goal data now comes from profile
             targetAmount: profile.financialGoal?.targetAmount?.toString() || '1000000',
             targetYear: profile.financialGoal?.targetYear?.toString() || '',
@@ -278,7 +282,7 @@ const Onboarding: React.FC = () => {
 
     setLoading(true);
     try {
-      // Prepare profile data (basic info, education, experience, skills, financial goal)
+      // Prepare profile data (basic info, education, experience, financial goal - NO skills)
       const profileData = {
         basicInfo: {
           name: formData.name,
@@ -291,10 +295,6 @@ const Onboarding: React.FC = () => {
         },
         educationHistory: formData.education.filter(edu => edu.school || edu.field || edu.graduationYear),
         experience: formData.experience.filter(exp => exp.company || exp.position),
-        skillsAndInterests: {
-          interests: formData.interests,
-          skills: formData.skills
-        },
         financialGoal: {
           targetAmount: parseFloat(formData.targetAmount),
           targetYear: parseInt(formData.targetYear),
@@ -320,11 +320,20 @@ const Onboarding: React.FC = () => {
         intermediateGoals: []
       };
 
+      // Prepare skills data (separate from profile)
+      const skillsData = {
+        skillsAndInterests: {
+          interests: formData.interests,
+          skills: formData.skills
+        }
+      };
+
       // Save all data in parallel
       await Promise.all([
         saveUserProfile(profileData),
         saveUserFinancials(financialsData),
-        saveUserIntermediateGoals(goalsData)
+        saveUserIntermediateGoals(goalsData),
+        saveUserSkills(skillsData)
       ]);
 
       navigate('/dashboard');

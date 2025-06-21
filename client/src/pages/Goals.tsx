@@ -397,27 +397,35 @@ export default function Goals() {
             {/* Existing Goals */}
             {goals?.intermediateGoals?.map((goal, index) => (
               <Card key={goal.id || index} className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{getGoalTypeIcon(goal.type)}</span>
-                    <h4 className="font-semibold text-surface-900">{goal.title}</h4>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 text-xs rounded-full ${getGoalTypeColor(goal.type)}`}>
-                      {goal.type}
-                    </span>
-                    <Badge variant={goal.status === 'Completed' ? 'success' : goal.status === 'In Progress' ? 'primary' : 'neutral' as any} size="sm">
-                      {goal.status}
-                    </Badge>
+                <div className="mb-4">
+                  {/* Header with icon and title */}
+                  <div className="flex items-start gap-3 mb-3">
+                    <span className="text-lg mt-0.5 flex-shrink-0">{getGoalTypeIcon(goal.type)}</span>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-surface-900 leading-tight break-words">{goal.title}</h4>
+                    </div>
                     <button
                       onClick={() => openEditModal(goal)}
-                      className="text-surface-400 hover:text-surface-600 transition-colors"
+                      className="text-surface-400 hover:text-surface-600 transition-colors flex-shrink-0 ml-2"
                       title="Edit goal"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                     </button>
+                  </div>
+                  
+                  {/* Tags row */}
+                  <div className="flex items-center gap-2">
+                    <span className={`px-3 py-1 text-xs font-medium rounded-full ${getGoalTypeColor(goal.type)}`}>
+                      {goal.type}
+                    </span>
+                    <Badge 
+                      variant={goal.status === 'Completed' ? 'success' : goal.status === 'In Progress' ? 'primary' : 'neutral' as any} 
+                      className="px-3 py-1 text-xs font-medium"
+                    >
+                      {goal.status}
+                    </Badge>
                   </div>
                 </div>
                 

@@ -6,6 +6,8 @@ import { MiniChatbot } from '../components/MiniChatbot';
 import { 
   getUserProfile, 
   updateUserProfileSection, 
+  getUserSkills,
+  updateUserSkillsSection,
   BasicInfo,
   EducationEntry,
   ExperienceEntry,
@@ -136,7 +138,12 @@ export default function Profile() {
       
       try {
         setLoading(true);
-        const profile = await getUserProfile();
+        
+        // Load profile and skills in parallel
+        const [profile, skills] = await Promise.all([
+          getUserProfile(),
+          getUserSkills()
+        ]);
         
         if (profile) {
           setBasicInfo(profile.basicInfo || {
@@ -150,10 +157,6 @@ export default function Profile() {
           });
           setEducationHistory(profile.educationHistory || []);
           setExperience(profile.experience || []);
-          setSkillsAndInterests(profile.skillsAndInterests || {
-            skills: [],
-            interests: []
-          });
           setFinancialGoal(profile.financialGoal || {
             targetAmount: 1000000,
             targetYear: new Date().getFullYear() + 20,
@@ -171,6 +174,19 @@ export default function Profile() {
             occupation: '',
             country: '',
             employmentStatus: 'Employed'
+          });
+        }
+        
+        // Load skills from separate collection
+        if (skills) {
+          setSkillsAndInterests(skills.skillsAndInterests || {
+            skills: [],
+            interests: []
+          });
+        } else {
+          setSkillsAndInterests({
+            skills: [],
+            interests: []
           });
         }
       } catch (error) {
@@ -339,7 +355,7 @@ export default function Profile() {
   const saveSkillsAndInterests = async () => {
     setSavingSection('skills');
     try {
-      await updateUserProfileSection('skillsAndInterests', skillsAndInterests);
+      await updateUserSkillsSection('skillsAndInterests', skillsAndInterests);
     } catch (error) {
       console.error('Error saving skills and interests:', error);
     } finally {

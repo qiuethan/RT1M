@@ -41,15 +41,29 @@ export const Dashboard: React.FC = () => {
   // Load dashboard data
   useEffect(() => {
     const loadDashboardData = async () => {
-      if (!currentUser) return;
+      if (!currentUser) {
+        console.log('Dashboard - No current user, skipping data load');
+        return;
+      }
+      
+      console.log('Dashboard - Starting data load for user:', currentUser.uid);
       
       try {
         setLoading(true);
-        const [userStats, userProfile, userGoals] = await Promise.all([
-          getUserStats(),
-          getUserProfile(),
-          getUserIntermediateGoals()
-        ]);
+        
+        console.log('Dashboard - Loading stats...');
+        const userStats = await getUserStats();
+        console.log('Dashboard - Stats loaded:', userStats);
+        console.log('Dashboard - Stats netWorth:', userStats?.netWorth);
+        console.log('Dashboard - Stats full object:', JSON.stringify(userStats, null, 2));
+        
+        console.log('Dashboard - Loading profile...');
+        const userProfile = await getUserProfile();
+        console.log('Dashboard - Profile loaded:', userProfile);
+        
+        console.log('Dashboard - Loading goals...');
+        const userGoals = await getUserIntermediateGoals();
+        console.log('Dashboard - Goals loaded:', userGoals);
         
         setStats(userStats);
         setProfile(userProfile);
@@ -70,11 +84,26 @@ export const Dashboard: React.FC = () => {
           const targetAmount = userProfile.financialGoal?.targetAmount || 1000000;
           const intermediateGoals = userGoals.intermediateGoals || [];
           
+          console.log('Dashboard - Generating milestones with:', {
+            currentAmount,
+            targetAmount,
+            netWorth: userStats.netWorth,
+            stats: userStats
+          });
+          
           const milestones = generateDynamicMilestones(currentAmount, targetAmount, intermediateGoals);
+          console.log('Dashboard - Generated milestones:', milestones);
           setDynamicMilestones(milestones);
+        } else {
+          console.log('Dashboard - Missing data for milestone generation:', {
+            hasStats: !!userStats,
+            hasProfile: !!userProfile,
+            hasGoals: !!userGoals
+          });
         }
       } catch (error) {
         console.error('Error loading dashboard data:', error);
+        alert(`Dashboard loading error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       } finally {
         setLoading(false);
       }
@@ -152,6 +181,14 @@ export const Dashboard: React.FC = () => {
   const currentAmount = stats?.netWorth || 0;
   const targetAmount = profile?.financialGoal?.targetAmount ?? 1000000;
   const progressPercentage = targetAmount > 0 ? (currentAmount / targetAmount) * 100 : 0;
+  
+  console.log('Dashboard - Render values:', {
+    currentAmount,
+    targetAmount,
+    progressPercentage,
+    stats,
+    profile: profile?.financialGoal
+  });
 
   return (
     <div className="min-h-screen bg-surface-50">
@@ -165,12 +202,20 @@ export const Dashboard: React.FC = () => {
               </h1>
               <p className="text-surface-600 mt-2">Track your journey to ${targetAmount.toLocaleString()}</p>
             </div>
-            <Button onClick={() => window.location.href = '/goals'}>
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Manage Goals
-            </Button>
+            <div className="flex space-x-3">
+              <Button onClick={() => window.location.reload()}>
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh Data
+              </Button>
+              <Button onClick={() => window.location.href = '/goals'}>
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Manage Goals
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -386,67 +431,7 @@ export const Dashboard: React.FC = () => {
           </div>
         </Card>
 
-        {/* Bottom Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Financial Tasks Checklist */}
-          <Card className="p-6">
-            <h3 className="text-xl font-semibold text-surface-900 mb-4">Financial Tasks</h3>
-            <div className="space-y-3">
-              <div className="flex items-center p-3 bg-surface-50 rounded-lg">
-                <input type="checkbox" checked className="mr-3 h-4 w-4 text-secondary-600 rounded" readOnly />
-                <span className="text-surface-900 line-through">Set up emergency fund</span>
-              </div>
-              <div className="flex items-center p-3 bg-surface-50 rounded-lg">
-                <input type="checkbox" checked className="mr-3 h-4 w-4 text-secondary-600 rounded" readOnly />
-                <span className="text-surface-900 line-through">Open high-yield savings account</span>
-              </div>
-              <div className="flex items-center p-3 bg-primary-50 rounded-lg">
-                <input type="checkbox" className="mr-3 h-4 w-4 text-primary-600 rounded" readOnly />
-                <span className="text-surface-900">Increase 401k contribution</span>
-              </div>
-              <div className="flex items-center p-3 bg-surface-50 rounded-lg">
-                <input type="checkbox" className="mr-3 h-4 w-4 text-primary-600 rounded" readOnly />
-                <span className="text-surface-900">Review and optimize investment portfolio</span>
-              </div>
-              <div className="flex items-center p-3 bg-surface-50 rounded-lg">
-                <input type="checkbox" className="mr-3 h-4 w-4 text-primary-600 rounded" readOnly />
-                <span className="text-surface-900">Research real estate investment options</span>
-              </div>
-              <div className="flex items-center p-3 bg-surface-50 rounded-lg">
-                <input type="checkbox" className="mr-3 h-4 w-4 text-primary-600 rounded" readOnly />
-                <span className="text-surface-900">Start side hustle income stream</span>
-              </div>
-            </div>
-          </Card>
 
-          {/* Recommended Actions */}
-          <Card className="p-6">
-            <h3 className="text-xl font-semibold text-surface-900 mb-4">Recommended Actions</h3>
-            <div className="space-y-4">
-              <div className="text-center py-4">
-                <div className="text-4xl mb-2">🎯</div>
-                <p className="text-surface-600 font-medium">Next Steps</p>
-              </div>
-              
-              <div className="space-y-3">
-                <div className="p-3 bg-primary-50 rounded-lg">
-                  <div className="font-medium text-primary-900">Update Your Profile</div>
-                  <div className="text-sm text-primary-700">Add your financial information to track progress accurately</div>
-                </div>
-                
-                <div className="p-3 bg-secondary-50 rounded-lg">
-                  <div className="font-medium text-secondary-900">Set Goals</div>
-                  <div className="text-sm text-secondary-700">Create specific financial goals to stay motivated</div>
-                </div>
-                
-                <div className="p-3 bg-accent-50 rounded-lg">
-                  <div className="font-medium text-accent-900">Get AI Guidance</div>
-                  <div className="text-sm text-accent-700">Chat with our financial assistant for personalized advice</div>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
       </div>
       <Footer />
       
