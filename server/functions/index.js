@@ -210,17 +210,20 @@ export const getUserStats = onCall(async (request) => {
     // Calculate net worth from individual assets and debts (more accurate)
     const assets = financialsData.assets || [];
     const debts = financialsData.debts || [];
-    
+
     logger.info(`getUserStats - Assets found: ${assets.length}`, assets);
     logger.info(`getUserStats - Debts found: ${debts.length}`, debts);
-    
-    const totalAssetsFromList = assets.reduce((sum, asset) => sum + (asset.value || 0), 0);
-    const totalDebtsFromList = debts.reduce((sum, debt) => sum + (debt.balance || 0), 0);
-    
-    logger.info(`getUserStats - Total assets: ${totalAssetsFromList}, Total debts: ${totalDebtsFromList}`);
-    
+
+    const totalAssetsFromList = assets.reduce((sum, asset) =>
+      sum + (asset.value || 0), 0);
+    const totalDebtsFromList = debts.reduce((sum, debt) =>
+      sum + (debt.balance || 0), 0);
+
+    logger.info(`getUserStats - Total assets: ${totalAssetsFromList}, 
+      Total debts: ${totalDebtsFromList}`);
+
     const netWorth = totalAssetsFromList - totalDebtsFromList;
-    
+
     logger.info(`getUserStats - Calculated net worth: ${netWorth}`);
 
     return {

@@ -78,8 +78,8 @@ export default function Chatbot() {
 
   return (
     <div className="h-screen bg-surface-50 flex flex-col overflow-hidden">
-      <div className="flex-1 py-8 px-4 sm:px-6 lg:px-8 overflow-hidden">
-        <div className="max-w-4xl mx-auto h-full">
+      <div className="flex-1 py-6 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        <div className="max-w-7xl mx-auto h-full">
           <div className="bg-white rounded-lg shadow-lg border border-surface-200 flex flex-col h-full">
             {/* Header */}
             <div className="bg-white border-b border-surface-200 px-6 py-4 rounded-t-lg flex-shrink-0">
@@ -124,7 +124,7 @@ export default function Chatbot() {
                   className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                    className={`max-w-sm lg:max-w-2xl px-4 py-2 rounded-lg ${
                       message.sender === 'user'
                         ? 'bg-primary-500 text-white'
                         : 'bg-surface-100 border border-surface-200 text-surface-900'
@@ -144,7 +144,7 @@ export default function Chatbot() {
 
               {isTyping && (
                 <div className="flex justify-start">
-                  <div className="bg-surface-100 border border-surface-200 text-surface-900 max-w-xs lg:max-w-md px-4 py-2 rounded-lg">
+                  <div className="bg-surface-100 border border-surface-200 text-surface-900 max-w-sm lg:max-w-2xl px-4 py-2 rounded-lg">
                     <div className="flex items-center space-x-1">
                       <div className="flex space-x-1">
                         <div className="w-2 h-2 bg-surface-400 rounded-full animate-bounce"></div>
