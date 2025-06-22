@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Card, Button, Input, Select, Badge } from '../components/ui';
+import { Card, Button, Input, Select, Badge, DatePicker } from '../components/ui';
 import Footer from '../components/Footer';
 import { MiniChatbot } from '../components/MiniChatbot';
 import { 
@@ -14,6 +14,7 @@ import {
   SkillsAndInterests,
   FinancialGoal
 } from '../services/firestore';
+import { isFormChanged, useUnsavedChanges, UnsavedChangesPrompt } from '../utils/unsavedChanges';
 
 export default function Profile() {
   const { currentUser } = useAuth();
@@ -60,6 +61,27 @@ export default function Profile() {
   // Custom skill and interest input states
   const [customSkillInput, setCustomSkillInput] = useState('');
   const [customInterestInput, setCustomInterestInput] = useState('');
+
+  // Original data for change detection
+  const [originalBasicInfo, setOriginalBasicInfo] = useState<BasicInfo>(basicInfo);
+  const [originalEducationHistory, setOriginalEducationHistory] = useState<EducationEntry[]>(educationHistory);
+  const [originalExperience, setOriginalExperience] = useState<ExperienceEntry[]>(experience);
+  const [originalSkillsAndInterests, setOriginalSkillsAndInterests] = useState<SkillsAndInterests>(skillsAndInterests);
+  const [originalFinancialGoal, setOriginalFinancialGoal] = useState<FinancialGoal>(financialGoal);
+
+  // Check if any section has changes
+  const hasAnyChanges = 
+    isFormChanged(originalBasicInfo, basicInfo) ||
+    isFormChanged(originalEducationHistory, educationHistory) ||
+    isFormChanged(originalExperience, experience) ||
+    isFormChanged(originalSkillsAndInterests, skillsAndInterests) ||
+    isFormChanged(originalFinancialGoal, financialGoal);
+
+  // Unsaved changes protection
+  const { showPrompt, confirmNavigation, cancelNavigation } = useUnsavedChanges(
+    hasAnyChanges,
+    'You have unsaved changes to your profile. Are you sure you want to leave without saving?'
+  );
 
   const availableSkills = [
     'Programming', 'Data Analysis', 'Project Management', 'Digital Marketing',
@@ -145,50 +167,55 @@ export default function Profile() {
           getUserSkills()
         ]);
         
+        const defaultBasicInfo = {
+          name: currentUser.displayName || '',
+          email: currentUser.email || '',
+          birthday: '',
+          location: '',
+          occupation: '',
+          country: '',
+          employmentStatus: 'Employed'
+        };
+
+        const defaultFinancialGoal = {
+          targetAmount: 1000000,
+          targetYear: new Date().getFullYear() + 20,
+          timeframe: '',
+          riskTolerance: '',
+          primaryStrategy: ''
+        };
+
+        const defaultSkillsAndInterests = {
+          skills: [],
+          interests: []
+        };
+
         if (profile) {
-          setBasicInfo(profile.basicInfo || {
-            name: currentUser.displayName || '',
-            email: currentUser.email || '',
-            birthday: '',
-            location: '',
-            occupation: '',
-            country: '',
-            employmentStatus: 'Employed'
-          });
-          setEducationHistory(profile.educationHistory || []);
-          setExperience(profile.experience || []);
-          setFinancialGoal(profile.financialGoal || {
-            targetAmount: 1000000,
-            targetYear: new Date().getFullYear() + 20,
-            timeframe: '',
-            riskTolerance: '',
-            primaryStrategy: ''
-          });
+          const profileBasicInfo = profile.basicInfo || defaultBasicInfo;
+          const profileEducation = profile.educationHistory || [];
+          const profileExperience = profile.experience || [];
+          const profileFinancialGoal = profile.financialGoal || defaultFinancialGoal;
+
+          setBasicInfo(profileBasicInfo);
+          setEducationHistory(profileEducation);
+          setExperience(profileExperience);
+          setFinancialGoal(profileFinancialGoal);
+
+          // Set originals for change detection
+          setOriginalBasicInfo(profileBasicInfo);
+          setOriginalEducationHistory(profileEducation);
+          setOriginalExperience(profileExperience);
+          setOriginalFinancialGoal(profileFinancialGoal);
         } else {
           // Set defaults for new users
-          setBasicInfo({
-            name: currentUser.displayName || '',
-            email: currentUser.email || '',
-            birthday: '',
-            location: '',
-            occupation: '',
-            country: '',
-            employmentStatus: 'Employed'
-          });
+          setBasicInfo(defaultBasicInfo);
+          setOriginalBasicInfo(defaultBasicInfo);
         }
         
         // Load skills from separate collection
-        if (skills) {
-          setSkillsAndInterests(skills.skillsAndInterests || {
-            skills: [],
-            interests: []
-          });
-        } else {
-          setSkillsAndInterests({
-            skills: [],
-            interests: []
-          });
-        }
+        const skillsData = skills?.skillsAndInterests || defaultSkillsAndInterests;
+        setSkillsAndInterests(skillsData);
+        setOriginalSkillsAndInterests(skillsData);
       } catch (error) {
         console.error('Error loading profile:', error);
       } finally {
@@ -315,6 +342,7 @@ export default function Profile() {
     setSavingSection('basic');
     try {
       await updateUserProfileSection('basicInfo', basicInfo);
+      setOriginalBasicInfo(basicInfo);
     } catch (error) {
       console.error('Error saving basic info:', error);
     } finally {
@@ -330,6 +358,7 @@ export default function Profile() {
         entry.school.trim() && entry.field.trim() && entry.graduationYear.trim()
       );
       await updateUserProfileSection('educationHistory', validEducation);
+      setOriginalEducationHistory(educationHistory);
     } catch (error) {
       console.error('Error saving education history:', error);
     } finally {
@@ -345,6 +374,7 @@ export default function Profile() {
         entry.company.trim() && entry.position.trim() && entry.startYear.trim() && entry.endYear.trim()
       );
       await updateUserProfileSection('experience', validExperience);
+      setOriginalExperience(experience);
     } catch (error) {
       console.error('Error saving experience:', error);
     } finally {
@@ -356,6 +386,7 @@ export default function Profile() {
     setSavingSection('skills');
     try {
       await updateUserSkillsSection('skillsAndInterests', skillsAndInterests);
+      setOriginalSkillsAndInterests(skillsAndInterests);
     } catch (error) {
       console.error('Error saving skills and interests:', error);
     } finally {
@@ -367,6 +398,7 @@ export default function Profile() {
     setSavingSection('financialGoal');
     try {
       await updateUserProfileSection('financialGoal', financialGoal);
+      setOriginalFinancialGoal(financialGoal);
     } catch (error) {
       console.error('Error saving financial goal:', error);
     } finally {
@@ -455,11 +487,10 @@ export default function Profile() {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <Input
+                  <DatePicker
                     label="Birthday"
-                    type="date"
                     value={basicInfo.birthday}
-                    onChange={(e) => setBasicInfo({...basicInfo, birthday: e.target.value})}
+                    onChange={(date) => setBasicInfo({...basicInfo, birthday: date})}
                   />
                   
                   <Input
@@ -497,6 +528,8 @@ export default function Profile() {
                   <Button 
                     onClick={saveBasicInfo}
                     loading={savingSection === 'basic'}
+                    disabled={savingSection === 'basic' || !isFormChanged(originalBasicInfo, basicInfo)}
+                    variant={isFormChanged(originalBasicInfo, basicInfo) ? 'primary' : 'outline'}
                     size="sm"
                   >
                     Save Changes
@@ -537,7 +570,7 @@ export default function Profile() {
                   <Input
                     label="Target Amount ($)"
                     type="number"
-                    value={financialGoal.targetAmount.toString()}
+                    value={financialGoal.targetAmount === 0 ? '' : financialGoal.targetAmount.toString()}
                     onChange={(e) => setFinancialGoal({...financialGoal, targetAmount: parseFloat(e.target.value) || 0})}
                     placeholder="1000000"
                   />
@@ -545,7 +578,7 @@ export default function Profile() {
                   <Input
                     label="Target Year"
                     type="number"
-                    value={financialGoal.targetYear.toString()}
+                    value={financialGoal.targetYear === 0 ? '' : financialGoal.targetYear.toString()}
                     onChange={(e) => setFinancialGoal({...financialGoal, targetYear: parseInt(e.target.value) || new Date().getFullYear()})}
                     placeholder="2030"
                   />
@@ -576,6 +609,8 @@ export default function Profile() {
                   <Button 
                     onClick={saveFinancialGoal}
                     loading={savingSection === 'financialGoal'}
+                    disabled={savingSection === 'financialGoal' || !isFormChanged(originalFinancialGoal, financialGoal)}
+                    variant={isFormChanged(originalFinancialGoal, financialGoal) ? 'primary' : 'outline'}
                     size="sm"
                   >
                     Save Changes
@@ -676,6 +711,8 @@ export default function Profile() {
                   <Button 
                     onClick={saveEducationHistory}
                     loading={savingSection === 'education'}
+                    disabled={savingSection === 'education' || !isFormChanged(originalEducationHistory, educationHistory)}
+                    variant={isFormChanged(originalEducationHistory, educationHistory) ? 'primary' : 'outline'}
                     size="sm"
                   >
                     Save Changes
@@ -794,6 +831,8 @@ export default function Profile() {
                   <Button 
                     onClick={saveExperience}
                     loading={savingSection === 'experience'}
+                    disabled={savingSection === 'experience' || !isFormChanged(originalExperience, experience)}
+                    variant={isFormChanged(originalExperience, experience) ? 'primary' : 'outline'}
                     size="sm"
                   >
                     Save Changes
@@ -970,6 +1009,8 @@ export default function Profile() {
                   <Button 
                     onClick={saveSkillsAndInterests}
                     loading={savingSection === 'skills'}
+                    disabled={savingSection === 'skills' || !isFormChanged(originalSkillsAndInterests, skillsAndInterests)}
+                    variant={isFormChanged(originalSkillsAndInterests, skillsAndInterests) ? 'primary' : 'outline'}
                     size="sm"
                   >
                     Save Changes
@@ -984,6 +1025,14 @@ export default function Profile() {
       
       {/* Mini Chatbot */}
       <MiniChatbot />
+
+      {/* Unsaved Changes Prompt */}
+      <UnsavedChangesPrompt
+        isOpen={showPrompt}
+        onConfirm={confirmNavigation}
+        onCancel={cancelNavigation}
+        message="You have unsaved changes to your profile. Are you sure you want to leave without saving?"
+      />
     </div>
   );
 } 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Card, Button, Badge, Modal, Input, Select } from '../components/ui';
+import { Card, Button, Badge, Modal, Input, Select, DatePicker } from '../components/ui';
 import Footer from '../components/Footer';
 import { MiniChatbot } from '../components/MiniChatbot';
 import { 
@@ -11,10 +11,10 @@ import {
   UserStats,
   UserProfile,
   UserGoals,
-  IntermediateGoal,
-  generateDynamicMilestones,
-  DynamicMilestone
+  IntermediateGoal
 } from '../services/firestore';
+import { generateNextMilestone } from '../utils/financial';
+import { isFormChanged, useUnsavedChanges, UnsavedChangesPrompt } from '../utils/unsavedChanges';
 
 export const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
@@ -24,7 +24,7 @@ export const Dashboard: React.FC = () => {
 
   const [goals, setGoals] = useState<UserGoals | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dynamicMilestones, setDynamicMilestones] = useState<DynamicMilestone[]>([]);
+  const [nextMilestone, setNextMilestone] = useState<{ nextMilestone: any; progressToNext: number } | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [goalForm, setGoalForm] = useState({
@@ -37,6 +37,16 @@ export const Dashboard: React.FC = () => {
     status: 'Not Started',
     description: ''
   });
+  
+  // Original form for change detection
+  const [originalGoalForm, setOriginalGoalForm] = useState(goalForm);
+
+  // Unsaved changes protection (only when modal is open and has changes)
+  const hasUnsavedGoalChanges = showModal && isFormChanged(originalGoalForm, goalForm);
+  const { showPrompt, confirmNavigation, cancelNavigation } = useUnsavedChanges(
+    hasUnsavedGoalChanges,
+    'You have unsaved changes to your goal. Are you sure you want to leave without saving?'
+  );
 
   // Load dashboard data
   useEffect(() => {
@@ -78,28 +88,20 @@ export const Dashboard: React.FC = () => {
           setUserName(fallbackName.split(' ')[0]);
         }
 
-        // Generate dynamic milestones
-        if (userStats && userProfile && userGoals) {
+        // Generate next milestone
+        if (userStats && userProfile) {
           const currentAmount = userStats.netWorth || 0;
           const targetAmount = userProfile.financialGoal?.targetAmount || 1000000;
-          const intermediateGoals = userGoals.intermediateGoals || [];
           
-          console.log('Dashboard - Generating milestones with:', {
+          console.log('Dashboard - Generating next milestone with:', {
             currentAmount,
             targetAmount,
-            netWorth: userStats.netWorth,
-            stats: userStats
+            netWorth: userStats.netWorth
           });
           
-          const milestones = generateDynamicMilestones(currentAmount, targetAmount, intermediateGoals);
-          console.log('Dashboard - Generated milestones:', milestones);
-          setDynamicMilestones(milestones);
-        } else {
-          console.log('Dashboard - Missing data for milestone generation:', {
-            hasStats: !!userStats,
-            hasProfile: !!userProfile,
-            hasGoals: !!userGoals
-          });
+          const milestone = generateNextMilestone(currentAmount, targetAmount);
+          console.log('Dashboard - Generated milestone:', milestone);
+          setNextMilestone(milestone);
         }
       } catch (error) {
         console.error('Error loading dashboard data:', error);
@@ -113,16 +115,18 @@ export const Dashboard: React.FC = () => {
   }, [currentUser]);
 
   const openAddModal = () => {
-    setGoalForm({
+    const newForm = {
       title: '',
-      type: 'financial',
+      type: 'financial' as 'financial' | 'skill' | 'behavior' | 'lifestyle' | 'networking' | 'project',
       targetAmount: '',
       currentAmount: '',
       progress: '',
       targetDate: '',
       status: 'Not Started',
       description: ''
-    });
+    };
+    setGoalForm(newForm);
+    setOriginalGoalForm(newForm);
     setShowModal(true);
   };
 
@@ -169,10 +173,13 @@ export const Dashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-surface-50 via-primary-50/20 to-secondary-50/30 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-surface-600">Loading your dashboard...</p>
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary-200 border-t-primary-600 mx-auto mb-4"></div>
+            <div className="absolute inset-0 rounded-full h-16 w-16 border-4 border-transparent border-r-secondary-400 animate-spin animation-delay-150 mx-auto"></div>
+          </div>
+          <p className="text-surface-700 font-medium">Loading your dashboard...</p>
         </div>
       </div>
     );
@@ -191,7 +198,7 @@ export const Dashboard: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-surface-50">
+    <div className="min-h-screen bg-gradient-to-br from-surface-50 via-primary-50/20 to-secondary-50/30">
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Welcome Header */}
         <div className="mb-8">
@@ -203,12 +210,6 @@ export const Dashboard: React.FC = () => {
               <p className="text-surface-600 mt-2">Track your journey to ${targetAmount.toLocaleString()}</p>
             </div>
             <div className="flex space-x-3">
-              <Button onClick={() => window.location.reload()}>
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Refresh Data
-              </Button>
               <Button onClick={() => window.location.href = '/goals'}>
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -222,7 +223,7 @@ export const Dashboard: React.FC = () => {
         {/* Progress to Target & Quick Actions */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           {/* Progress to Target */}
-          <Card className="lg:col-span-2 p-8">
+          <Card variant="gradient" className="lg:col-span-2 p-8">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-surface-900 mb-2">Progress to ${targetAmount.toLocaleString()}</h2>
               <p className="text-surface-600">Your current net worth journey</p>
@@ -254,8 +255,8 @@ export const Dashboard: React.FC = () => {
           </Card>
 
           {/* Quick Actions */}
-          <Card className="p-6">
-            <h3 className="text-xl font-semibold text-surface-900 mb-4">Quick Actions</h3>
+          <Card variant="primary" className="p-6">
+            <h3 className="text-xl font-semibold text-primary-800 mb-4">Quick Actions</h3>
             <div className="space-y-3">
               <Button 
                 variant="outline" 
@@ -305,7 +306,7 @@ export const Dashboard: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Existing Goals */}
             {goals?.intermediateGoals && goals.intermediateGoals.slice(0, 2).map((goal, index) => (
-              <Card key={goal.id || index} className="p-6">
+              <Card key={goal.id || index} variant="glass" className="p-6" hover>
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="text-lg font-semibold text-surface-900">{goal.title}</h3>
                   <Badge variant={goal.status === 'Completed' ? 'success' : goal.status === 'In Progress' ? 'primary' : 'neutral' as any}>
@@ -368,67 +369,81 @@ export const Dashboard: React.FC = () => {
 
 
 
-        {/* Dynamic Milestones */}
-        <Card className="p-6 mb-8">
-          <h3 className="text-xl font-semibold text-surface-900 mb-4">Milestones</h3>
-          <div className="space-y-4">
-            {dynamicMilestones.length > 0 ? (
-              dynamicMilestones.map((milestone) => {
-                const isNextMilestone = !milestone.completed && dynamicMilestones.filter(m => !m.completed).indexOf(milestone) === 0;
+        {/* Next Milestone */}
+        <Card variant="secondary" className="p-6 mb-8">
+          <h3 className="text-xl font-semibold text-secondary-800 mb-4">Next Milestone</h3>
+          {nextMilestone?.nextMilestone ? (
+            <div className="space-y-4">
+              <div className="flex items-center">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 ${
+                  nextMilestone.nextMilestone.completed ? 'bg-secondary-500' : 'bg-primary-500 animate-pulse'
+                }`}>
+                  {nextMilestone.nextMilestone.completed ? (
+                    <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  ) : nextMilestone.nextMilestone.isGoal ? (
+                    <div className="text-white text-lg">🎯</div>
+                  ) : (
+                    <div className="w-4 h-4 bg-white rounded-full"></div>
+                  )}
+                </div>
                 
-                return (
-                  <div key={milestone.id} className="flex items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
-                      milestone.completed ? 'bg-secondary-500' : 
-                      isNextMilestone ? 'bg-primary-500 animate-pulse' : 'bg-surface-300'
-                    }`}>
-                      {milestone.completed ? (
-                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      ) : milestone.isGoal ? (
-                        <div className="text-white text-xs font-bold">🎯</div>
-                      ) : (
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="font-semibold text-surface-900 text-lg">
+                      ${nextMilestone.nextMilestone.amount.toLocaleString()}
+                      {nextMilestone.nextMilestone.isGoal && (
+                        <span className="ml-2 text-xs bg-primary-100 text-primary-800 px-2 py-1 rounded-full">FINAL GOAL</span>
                       )}
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <div className="font-medium text-surface-900">
-                          ${milestone.amount.toLocaleString()}
-                          {milestone.isGoal && <span className="ml-2 text-xs bg-primary-100 text-primary-800 px-2 py-1 rounded-full">GOAL</span>}
-                        </div>
-                        <div className="text-xs text-surface-500">
-                          {milestone.progress.toFixed(0)}%
-                        </div>
-                      </div>
-                      <div className="text-sm text-surface-600">{milestone.title}</div>
-                      <div className={`text-xs ${
-                        milestone.completed ? 'text-secondary-600' : 
-                        isNextMilestone ? 'text-primary-600' : 'text-surface-500'
-                      }`}>
-                        {milestone.completed ? 'Completed ✓' : 
-                         isNextMilestone ? 'Next Milestone' : 'Future Goal'}
-                      </div>
-                      {!milestone.completed && milestone.progress > 0 && (
-                        <div className="mt-1 w-full bg-surface-200 rounded-full h-1">
-                          <div 
-                            className="bg-primary-500 h-1 rounded-full transition-all duration-300"
-                            style={{ width: `${Math.min(milestone.progress, 100)}%` }}
-                          ></div>
-                        </div>
-                      )}
+                    <div className="text-sm font-medium text-primary-600">
+                      {nextMilestone.progressToNext.toFixed(1)}%
                     </div>
                   </div>
-                );
-              })
-            ) : (
-              <div className="text-center py-8 text-surface-500">
-                <div className="text-4xl mb-2">🎯</div>
-                <p>Complete your profile to see personalized milestones</p>
+                  <div className="text-surface-600 mb-2">{nextMilestone.nextMilestone.title}</div>
+                  <div className="text-sm text-surface-500 mb-3">{nextMilestone.nextMilestone.description}</div>
+                  
+                  {!nextMilestone.nextMilestone.completed && (
+                    <div className="w-full bg-surface-200 rounded-full h-3">
+                      <div 
+                        className="bg-gradient-to-r from-primary-500 to-secondary-500 h-3 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(nextMilestone.progressToNext, 100)}%` }}
+                      ></div>
+                    </div>
+                  )}
+                  
+                  {nextMilestone.nextMilestone.completed && (
+                    <div className="text-sm font-medium text-secondary-600 mt-2">
+                      🎉 Congratulations! All milestones completed!
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
+              
+              {!nextMilestone.nextMilestone.completed && (
+                <div className="bg-surface-50 rounded-lg p-4 mt-4">
+                  <div className="text-sm text-surface-600">
+                    <div className="flex justify-between items-center">
+                      <span>Current Net Worth:</span>
+                      <span className="font-medium">${currentAmount.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center mt-1">
+                      <span>Amount Needed:</span>
+                      <span className="font-medium text-primary-600">
+                        ${Math.max(0, nextMilestone.nextMilestone.amount - currentAmount).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-surface-500">
+              <div className="text-4xl mb-2">🎯</div>
+              <p>Complete your profile to see your next milestone</p>
+            </div>
+          )}
         </Card>
 
 
@@ -487,11 +502,10 @@ export const Dashboard: React.FC = () => {
             )}
             
             <div className="grid grid-cols-2 gap-4">
-              <Input
+              <DatePicker
                 label="Target Date (Optional)"
-                type="date"
                 value={goalForm.targetDate}
-                onChange={(e) => setGoalForm({ ...goalForm, targetDate: e.target.value })}
+                onChange={(date) => setGoalForm({ ...goalForm, targetDate: date })}
               />
               <Select
                 label="Status"
@@ -523,13 +537,22 @@ export const Dashboard: React.FC = () => {
             </Button>
             <Button 
               onClick={handleSaveGoal} 
-              disabled={saving || !goalForm.title || !goalForm.type}
+              disabled={saving || !goalForm.title || !goalForm.type || !isFormChanged(originalGoalForm, goalForm)}
+              variant={isFormChanged(originalGoalForm, goalForm) ? 'primary' : 'outline'}
             >
               {saving ? 'Saving...' : 'Add Goal'}
             </Button>
           </div>
         </Modal>
       )}
+
+      {/* Unsaved Changes Prompt */}
+      <UnsavedChangesPrompt
+        isOpen={showPrompt}
+        onConfirm={confirmNavigation}
+        onCancel={cancelNavigation}
+        message="You have unsaved changes to your goal. Are you sure you want to leave without saving?"
+      />
     </div>
   );
 }; 

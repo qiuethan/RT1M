@@ -7,6 +7,7 @@ import {
   Asset,
   Debt
 } from '../services/firestore';
+import { isFormChanged } from '../utils/unsavedChanges';
 
 export interface UseFinancialsReturn {
   // State
@@ -15,6 +16,9 @@ export interface UseFinancialsReturn {
   financialInfo: FinancialInfo;
   assets: Asset[];
   debts: Debt[];
+  
+  // Change detection
+  hasFinancialInfoChanged: boolean;
   
   // Actions
   setFinancialInfo: (info: FinancialInfo) => void;
@@ -45,6 +49,15 @@ export const useFinancials = (): UseFinancialsReturn => {
   });
   const [assets, setAssets] = useState<Asset[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
+  
+  // Original data for change detection
+  const [originalFinancialInfo, setOriginalFinancialInfo] = useState<FinancialInfo>({
+    annualIncome: 0,
+    annualExpenses: 0,
+    totalAssets: 0,
+    totalDebts: 0,
+    currentSavings: 0
+  });
 
   // Load financial data on component mount
   useEffect(() => {
@@ -62,13 +75,18 @@ export const useFinancials = (): UseFinancialsReturn => {
           console.log('Setting assets:', financials.assets);
           console.log('Setting debts:', financials.debts);
           
-          setFinancialInfo(financials.financialInfo || {
+          const defaultFinancialInfo = {
             annualIncome: 0,
             annualExpenses: 0,
             totalAssets: 0,
             totalDebts: 0,
             currentSavings: 0
-          });
+          };
+          
+          const loadedFinancialInfo = financials.financialInfo || defaultFinancialInfo;
+          
+          setFinancialInfo(loadedFinancialInfo);
+          setOriginalFinancialInfo(loadedFinancialInfo);
           setAssets(financials.assets || []);
           setDebts(financials.debts || []);
         } else {
@@ -103,6 +121,7 @@ export const useFinancials = (): UseFinancialsReturn => {
       console.log('Saving financial info:', financialInfo);
       const result = await updateUserFinancialsSection('financialInfo', financialInfo);
       console.log('Financial info save result:', result);
+      setOriginalFinancialInfo(financialInfo);
       alert('Financial information saved successfully!');
     } catch (error) {
       console.error('Error saving financial info:', error);
@@ -190,6 +209,9 @@ export const useFinancials = (): UseFinancialsReturn => {
     return ((calculateCashFlow() / financialInfo.annualIncome) * 100);
   };
 
+  // Change detection
+  const hasFinancialInfoChanged = isFormChanged(originalFinancialInfo, financialInfo);
+
   return {
     // State
     loading,
@@ -197,6 +219,9 @@ export const useFinancials = (): UseFinancialsReturn => {
     financialInfo,
     assets,
     debts,
+    
+    // Change detection
+    hasFinancialInfoChanged,
     
     // Actions
     setFinancialInfo,

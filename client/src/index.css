@@ -112,17 +112,17 @@
   }
 
   .card-premium {
-    @apply card-modern shadow-colored border-primary-100/50;
+    @apply card-modern shadow-medium border-primary-100/50;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(59, 130, 246, 0.02) 100%);
   }
 
   /* Button enhancements */
   .btn-primary {
-    @apply bg-gradient-to-r from-primary-500 to-primary-600 text-white font-medium px-6 py-3 rounded-xl shadow-colored transition-all duration-300 hover:from-primary-600 hover:to-primary-700 hover:shadow-colored-lg hover:scale-105 active:scale-95;
+    @apply bg-gradient-to-r from-primary-500 to-primary-600 text-white font-medium px-6 py-3 rounded-xl shadow-medium transition-all duration-300 hover:from-primary-600 hover:to-primary-700 hover:shadow-large hover:scale-105 active:scale-95;
   }
 
   .btn-secondary {
-    @apply bg-gradient-to-r from-secondary-500 to-secondary-600 text-white font-medium px-6 py-3 rounded-xl shadow-colored transition-all duration-300 hover:from-secondary-600 hover:to-secondary-700 hover:shadow-colored-lg hover:scale-105 active:scale-95;
+    @apply bg-gradient-to-r from-secondary-500 to-secondary-600 text-white font-medium px-6 py-3 rounded-xl shadow-medium transition-all duration-300 hover:from-secondary-600 hover:to-secondary-700 hover:shadow-large hover:scale-105 active:scale-95;
   }
 
   .btn-ghost {
@@ -241,6 +241,10 @@
 
   .animation-delay-6000 {
     animation-delay: 6s;
+  }
+
+  .animation-delay-150 {
+    animation-delay: 150ms;
   }
 
   @keyframes blob {

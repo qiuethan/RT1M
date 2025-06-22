@@ -998,3 +998,12 @@ export const updateUserSkillsSection = onCall(async (request) => {
       ${request.data.section || "unknown section"}`);
   }
 });
+
+// AI Integration Functions
+export {
+  updateUserDataFromAI,
+  mergeFinancialDataFromAI,
+  updateSkillsFromAI,
+  getAIConversationContext,
+  logAIConversation,
+} from "./handlers/ai_integration.js";

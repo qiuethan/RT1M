@@ -15,6 +15,7 @@ import {
   getCashFlowColor,
   removeItemFromArray
 } from '../utils/financial';
+import { useUnsavedChanges, UnsavedChangesPrompt } from '../utils/unsavedChanges';
 
 export default function FinancialsRefactored() {
   // Custom hooks for financial data management
@@ -24,6 +25,7 @@ export default function FinancialsRefactored() {
     financialInfo,
     assets,
     debts,
+    hasFinancialInfoChanged,
     setFinancialInfo,
     saveFinancialInfo,
     saveAssetWithTotals,
@@ -36,6 +38,12 @@ export default function FinancialsRefactored() {
   // Custom hooks for modal management
   const assetModal = useAssetModal();
   const debtModal = useDebtModal();
+
+  // Unsaved changes protection
+  const { showPrompt, confirmNavigation, cancelNavigation } = useUnsavedChanges(
+    hasFinancialInfoChanged,
+    'You have unsaved changes to your financial information. Are you sure you want to leave without saving?'
+  );
 
   // Asset management handlers
   const handleDeleteAsset = async (assetId: string) => {
@@ -51,17 +59,20 @@ export default function FinancialsRefactored() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-surface-50 via-secondary-50/20 to-accent-50/30 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-surface-600">Loading your financial data...</p>
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-secondary-200 border-t-secondary-600 mx-auto mb-4"></div>
+            <div className="absolute inset-0 rounded-full h-16 w-16 border-4 border-transparent border-r-accent-400 animate-spin animation-delay-150 mx-auto"></div>
+          </div>
+          <p className="text-surface-700 font-medium">Loading your financial data...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-surface-50">
+    <div className="min-h-screen bg-gradient-to-br from-surface-50 via-secondary-50/20 to-accent-50/30">
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
@@ -74,32 +85,52 @@ export default function FinancialsRefactored() {
         <div className="space-y-6">
           {/* Financial Overview Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <Card className="p-6 text-center">
-              <div className="text-2xl font-bold text-green-600 mb-2">
+            <Card variant="secondary" className="text-center group hover:scale-105" hover>
+              <div className="w-12 h-12 bg-gradient-to-br from-secondary-500 to-secondary-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-medium">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                </svg>
+              </div>
+              <div className="text-2xl font-bold text-secondary-700 mb-2">
                 {formatCurrency(financialInfo.annualIncome || 0)}
               </div>
-              <div className="text-sm text-surface-600">Annual Income</div>
+              <div className="text-sm text-secondary-600 font-medium">Annual Income</div>
             </Card>
             
-            <Card className="p-6 text-center">
+            <Card variant="accent" className="text-center group hover:scale-105" hover>
+              <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-medium">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
               <div className="text-2xl font-bold text-red-600 mb-2">
                 {formatCurrency(financialInfo.annualExpenses || 0)}
               </div>
-              <div className="text-sm text-surface-600">Annual Expenses</div>
+              <div className="text-sm text-red-600 font-medium">Annual Expenses</div>
             </Card>
             
-            <Card className="p-6 text-center">
-              <div className="text-2xl font-bold text-blue-600 mb-2">
+            <Card variant="primary" className="text-center group hover:scale-105" hover>
+              <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-medium">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <div className="text-2xl font-bold text-primary-700 mb-2">
                 {formatCurrency(financialInfo.totalAssets || 0)}
               </div>
-              <div className="text-sm text-surface-600">Total Assets</div>
+              <div className="text-sm text-primary-600 font-medium">Total Assets</div>
             </Card>
             
-            <Card className="p-6 text-center">
+            <Card variant="glass" className="text-center group hover:scale-105" hover>
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-medium">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
               <div className={`text-2xl font-bold mb-2 ${getNetWorthColor(calculateNetWorth())}`}>
                 {formatCurrency(calculateNetWorth())}
               </div>
-              <div className="text-sm text-surface-600">Net Worth</div>
+              <div className="text-sm text-purple-600 font-medium">Net Worth</div>
             </Card>
           </div>
 
@@ -138,7 +169,8 @@ export default function FinancialsRefactored() {
               <h2 className="text-xl font-semibold text-surface-900">Income & Expenses</h2>
               <Button 
                 onClick={saveFinancialInfo}
-                disabled={savingSection === 'info'}
+                disabled={savingSection === 'info' || !hasFinancialInfoChanged}
+                variant={hasFinancialInfoChanged ? 'primary' : 'outline'}
                 size="sm"
               >
                 {savingSection === 'info' ? 'Saving...' : 'Save Changes'}
@@ -150,7 +182,7 @@ export default function FinancialsRefactored() {
                 <Input
                   label="Annual Income"
                   type="number"
-                  value={financialInfo.annualIncome === 0 ? '' : financialInfo.annualIncome.toString()}
+                  value={financialInfo.annualIncome.toString()}
                   onChange={(e) => setFinancialInfo({...financialInfo, annualIncome: parseFloat(e.target.value) || 0})}
                   placeholder="75000"
                 />
@@ -158,7 +190,7 @@ export default function FinancialsRefactored() {
                 <Input
                   label="Annual Expenses"
                   type="number"
-                  value={financialInfo.annualExpenses === 0 ? '' : financialInfo.annualExpenses.toString()}
+                  value={financialInfo.annualExpenses.toString()}
                   onChange={(e) => setFinancialInfo({...financialInfo, annualExpenses: parseFloat(e.target.value) || 0})}
                   placeholder="45000"
                 />
@@ -167,7 +199,7 @@ export default function FinancialsRefactored() {
               <Input
                 label="Current Savings"
                 type="number"
-                value={financialInfo.currentSavings === 0 ? '' : financialInfo.currentSavings.toString()}
+                value={financialInfo.currentSavings.toString()}
                 onChange={(e) => setFinancialInfo({...financialInfo, currentSavings: parseFloat(e.target.value) || 0})}
                 placeholder="25000"
               />
@@ -340,7 +372,7 @@ export default function FinancialsRefactored() {
             <Input
               label="Current Value ($)"
               type="number"
-              value={assetModal.assetForm.value.toString()}
+              value={assetModal.assetForm.value === 0 ? '' : assetModal.assetForm.value.toString()}
               onChange={(e) => assetModal.updateForm({value: parseFloat(e.target.value) || 0})}
               placeholder="500000"
             />
@@ -390,7 +422,7 @@ export default function FinancialsRefactored() {
             <Input
               label="Current Balance ($)"
               type="number"
-              value={debtModal.debtForm.balance.toString()}
+              value={debtModal.debtForm.balance === 0 ? '' : debtModal.debtForm.balance.toString()}
               onChange={(e) => debtModal.updateForm({balance: parseFloat(e.target.value) || 0})}
               placeholder="5000"
             />
@@ -398,7 +430,7 @@ export default function FinancialsRefactored() {
             <Input
               label="Interest Rate (% APR)"
               type="number"
-              value={debtModal.debtForm.interestRate?.toString() || ''}
+              value={debtModal.debtForm.interestRate === 0 ? '' : (debtModal.debtForm.interestRate?.toString() || '')}
               onChange={(e) => debtModal.updateForm({interestRate: parseFloat(e.target.value) || 0})}
               placeholder="18.5"
             />
@@ -428,6 +460,14 @@ export default function FinancialsRefactored() {
       {/* Footer and Chatbot */}
       <Footer />
       <MiniChatbot />
+
+      {/* Unsaved Changes Prompt */}
+      <UnsavedChangesPrompt
+        isOpen={showPrompt}
+        onConfirm={confirmNavigation}
+        onCancel={cancelNavigation}
+        message="You have unsaved changes to your financial information. Are you sure you want to leave without saving?"
+      />
     </div>
   );
 } 

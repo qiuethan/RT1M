@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useOnboardingProtection } from '../hooks/useOnboardingProtection';
@@ -10,9 +10,23 @@ export const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const { needsOnboarding } = useOnboardingProtection();
   const [userName, setUserName] = useState<string>('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   
   // Determine if navigation should be disabled during onboarding
   const isOnboarding = Boolean(needsOnboarding);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Fetch user profile to get the proper name
   useEffect(() => {
@@ -53,14 +67,14 @@ export const Navbar: React.FC = () => {
       <div className="container-modern">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-                <Link
+          <Link
             to={currentUser ? "/dashboard" : "/"} 
             className="flex items-center space-x-3 interactive-subtle group"
-                >
+          >
             <div className="transform transition-transform duration-300 group-hover:scale-110">
               <Logo size="sm" />
             </div>
-                </Link>
+          </Link>
 
           {/* Navigation Links */}
           {currentUser && (
@@ -93,26 +107,22 @@ export const Navbar: React.FC = () => {
                 </svg>
                 <span>Financials</span>
               </NavLink>
-
-              <NavLink to="/profile" className="flex items-center space-x-2" disabled={isOnboarding}>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                <span>Profile</span>
-              </NavLink>
-              </div>
-            )}
+            </div>
+          )}
           
           {/* User Actions */}
           <div className="flex items-center space-x-3">
             {currentUser ? (
-              <div className="flex items-center space-x-3">
-                {/* User Info */}
-                <div className="hidden sm:flex items-center space-x-3 px-4 py-2 rounded-xl bg-gradient-to-r from-primary-50/80 to-secondary-50/80 backdrop-blur-sm border border-primary-200/50 shadow-sm">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white text-sm font-medium shadow-colored">
+              <div className="relative" ref={dropdownRef}>
+                {/* User Info with Dropdown */}
+                <button
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="flex items-center space-x-3 px-4 py-2 rounded-xl bg-gradient-to-r from-primary-50/80 to-secondary-50/80 backdrop-blur-sm border border-primary-200/50 shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                >
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white text-sm font-medium shadow-medium">
                     {currentUser.email?.charAt(0).toUpperCase()}
                   </div>
-                  <div className="text-sm">
+                  <div className="hidden sm:block text-sm text-left">
                     <div className="font-medium text-surface-800 truncate max-w-32">
                       {userName || currentUser.displayName || currentUser.email?.split('@')[0]}
                     </div>
@@ -120,26 +130,59 @@ export const Navbar: React.FC = () => {
                       Member
                     </div>
                   </div>
-                </div>
-
-                {/* Logout Button */}
-                <Button
-                  onClick={handleLogout}
-                  variant="outline"
-                  size="sm"
-                  className="hover:text-error-600 hover:border-error-200"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  <svg 
+                    className={`w-4 h-4 text-surface-500 transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
-                  <span className="hidden sm:inline">Logout</span>
-                </Button>
+                </button>
+
+                {/* Dropdown Menu */}
+                {showDropdown && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-surface-200 py-2 z-50">
+                    <div className="px-4 py-2 border-b border-surface-100">
+                      <div className="text-sm font-medium text-surface-900">
+                        {userName || currentUser.displayName || 'User'}
+                      </div>
+                      <div className="text-xs text-surface-500">
+                        {currentUser.email}
+                      </div>
+                    </div>
+                    
+                    <Link
+                      to="/profile"
+                      onClick={() => setShowDropdown(false)}
+                      className="flex items-center space-x-3 px-4 py-2 text-sm text-surface-700 hover:bg-surface-50 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      <span>Profile Settings</span>
+                    </Link>
+                    
+                    <button
+                      onClick={() => {
+                        setShowDropdown(false);
+                        handleLogout();
+                      }}
+                      className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-error-600 hover:bg-error-50 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex items-center space-x-3">
                 <Link to="/login">
                   <Button variant="outline" size="sm">
-                  Login
+                    Login
                   </Button>
                 </Link>
                 <Link to="/signup">

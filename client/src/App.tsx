@@ -12,6 +12,8 @@ import Chatbot from './pages/Chatbot';
 import Goals from './pages/Goals';
 import Financials from './pages/Financials';
 import Onboarding from './pages/Onboarding';
+import TermsOfService from './pages/TermsOfService';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 function App() {
   return (
@@ -61,6 +63,8 @@ function App() {
                 <Route path="/" element={<HomeRoute />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
+                <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route 
                   path="/onboarding" 
                   element={

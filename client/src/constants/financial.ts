@@ -8,7 +8,7 @@ export const ASSET_TYPE_OPTIONS = [
   { value: 'crypto', label: 'Cryptocurrency' },
   { value: 'business', label: 'Business Investment' },
   { value: 'other', label: 'Other' }
-] as const;
+];
 
 export const DEBT_TYPE_OPTIONS = [
   { value: 'mortgage', label: 'Mortgage' },
@@ -18,7 +18,7 @@ export const DEBT_TYPE_OPTIONS = [
   { value: 'personal-loan', label: 'Personal Loan' },
   { value: 'business-loan', label: 'Business Loan' },
   { value: 'other', label: 'Other' }
-] as const;
+];
 
 // Financial Goal Constants
 export const TIMEFRAME_OPTIONS = [

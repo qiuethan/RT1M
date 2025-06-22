@@ -11,10 +11,7 @@ import {
   saveUserSkills,
   getUserSkills
 } from '../services/firestore';
-import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
-import Select from '../components/ui/Select';
-import Card from '../components/ui/Card';
+import { Button, Input, Select, Card, DatePicker } from '../components/ui';
 
 interface OnboardingStep {
   title: string;
@@ -457,11 +454,10 @@ const Onboarding: React.FC = () => {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
+                <DatePicker
                   label="Date of Birth"
-                  type="date"
                   value={formData.birthday}
-                  onChange={(e) => handleInputChange('birthday', e.target.value)}
+                  onChange={(date) => handleInputChange('birthday', date)}
                 />
                 <Select
                   label="Country"

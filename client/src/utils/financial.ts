@@ -75,18 +75,77 @@ export const generateDynamicMilestones = (
   return milestones;
 };
 
+// Dynamic Milestone Generation - Next Milestone Focus
+export const generateNextMilestone = (
+  currentAmount: number,
+  targetAmount: number
+): { nextMilestone: DynamicMilestone | null; progressToNext: number } => {
+  const milestonePercentages = [0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1.0];
+  
+  // Find the next uncompleted milestone
+  for (const percentage of milestonePercentages) {
+    const milestoneAmount = Math.round(targetAmount * percentage);
+    
+    if (currentAmount < milestoneAmount) {
+      const isGoal = percentage === 1.0;
+      const title = isGoal ? "Final Goal - RT1M Achieved!" : `${Math.round(percentage * 100)}% Milestone`;
+      const description = isGoal 
+        ? "You've reached your ultimate financial goal!" 
+        : `Reach ${Math.round(percentage * 100)}% of your financial goal`;
+      
+      // Calculate progress from current milestone to next milestone
+      let progressToNext = 0;
+      if (currentAmount > 0) {
+        // Find the previous milestone
+        const previousPercentage = milestonePercentages[milestonePercentages.indexOf(percentage) - 1] || 0;
+        const previousAmount = Math.round(targetAmount * previousPercentage);
+        const progressRange = milestoneAmount - previousAmount;
+        const currentProgress = currentAmount - previousAmount;
+        progressToNext = progressRange > 0 ? Math.max(0, Math.min(100, (currentProgress / progressRange) * 100)) : 0;
+      }
+      
+      return {
+        nextMilestone: {
+          id: `milestone-${percentage}`,
+          amount: milestoneAmount,
+          title,
+          description,
+          completed: false,
+          progress: progressToNext,
+          isGoal
+        },
+        progressToNext
+      };
+    }
+  }
+  
+  // All milestones completed
+  return {
+    nextMilestone: {
+      id: 'milestone-completed',
+      amount: targetAmount,
+      title: "🎉 All Milestones Completed!",
+      description: "Congratulations! You've achieved your RT1M goal!",
+      completed: true,
+      progress: 100,
+      isGoal: true
+    },
+    progressToNext: 100
+  };
+};
+
 // Formatting Utilities
-export const formatCurrency = (amount: number): string => {
+export const formatCurrency = (amount: number, currency = 'USD'): string => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);
 };
 
-export const formatPercentage = (value: number, decimals: number = 1): string => {
-  return `${value.toFixed(decimals)}%`;
+export const formatPercentage = (value: number): string => {
+  return `${value.toFixed(1)}%`;
 };
 
 export const formatNumber = (value: number): string => {
@@ -163,4 +222,14 @@ export const formatDate = (date: Date | string): string => {
     month: 'short',
     day: 'numeric'
   });
+};
+
+export const calculateMonthlyTarget = (
+  targetAmount: number, 
+  currentAmount: number, 
+  yearsRemaining: number
+): number => {
+  const remaining = targetAmount - currentAmount;
+  if (yearsRemaining <= 0) return 0;
+  return remaining / (yearsRemaining * 12);
 }; 

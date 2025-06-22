@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Card, Button, Badge, Modal, Input, Select } from '../components/ui';
+import { Card, Button, Badge, Modal, Input, Select, DatePicker } from '../components/ui';
 import Footer from '../components/Footer';
 import { MiniChatbot } from '../components/MiniChatbot';
 import { 
@@ -15,6 +15,7 @@ import {
   UserGoals,
   IntermediateGoal
 } from '../services/firestore';
+import { isFormChanged, useUnsavedChanges, UnsavedChangesPrompt } from '../utils/unsavedChanges';
 
 export default function Goals() {
   const { currentUser } = useAuth();
@@ -37,6 +38,16 @@ export default function Goals() {
     description: '',
     category: ''
   });
+  
+  // Original form for change detection
+  const [originalGoalForm, setOriginalGoalForm] = useState(goalForm);
+
+  // Unsaved changes protection (only when modal is open and has changes)
+  const hasUnsavedGoalChanges = showModal && isFormChanged(originalGoalForm, goalForm);
+  const { showPrompt, confirmNavigation, cancelNavigation } = useUnsavedChanges(
+    hasUnsavedGoalChanges,
+    'You have unsaved changes to your goal. Are you sure you want to leave without saving?'
+  );
 
   // Load all data on component mount
   useEffect(() => {
@@ -69,9 +80,9 @@ export default function Goals() {
 
   const openAddModal = () => {
     setEditingGoal(null);
-    setGoalForm({
+    const newForm = {
       title: '',
-      type: 'financial',
+      type: 'financial' as 'financial' | 'skill' | 'behavior' | 'lifestyle' | 'networking' | 'project',
       targetAmount: '',
       currentAmount: '',
       progress: '',
@@ -79,13 +90,15 @@ export default function Goals() {
       status: 'Not Started',
       description: '',
       category: ''
-    });
+    };
+    setGoalForm(newForm);
+    setOriginalGoalForm(newForm);
     setShowModal(true);
   };
 
   const openEditModal = (goal: IntermediateGoal) => {
     setEditingGoal(goal);
-    setGoalForm({
+    const editForm = {
       title: goal.title,
       type: goal.type,
       targetAmount: goal.targetAmount?.toString() || '',
@@ -95,7 +108,9 @@ export default function Goals() {
       status: goal.status,
       description: goal.description || '',
       category: goal.category || ''
-    });
+    };
+    setGoalForm(editForm);
+    setOriginalGoalForm(editForm);
     setShowModal(true);
   };
 
@@ -254,10 +269,13 @@ export default function Goals() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-surface-50 via-accent-50/20 to-primary-50/30 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-surface-600">Loading your goals...</p>
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-accent-200 border-t-accent-600 mx-auto mb-4"></div>
+            <div className="absolute inset-0 rounded-full h-16 w-16 border-4 border-transparent border-r-primary-400 animate-spin animation-delay-150 mx-auto"></div>
+          </div>
+          <p className="text-surface-700 font-medium">Loading your goals...</p>
         </div>
       </div>
     );
@@ -268,7 +286,7 @@ export default function Goals() {
   const status = getMainGoalStatus();
 
   return (
-    <div className="min-h-screen bg-surface-50">
+    <div className="min-h-screen bg-gradient-to-br from-surface-50 via-accent-50/20 to-primary-50/30">
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
@@ -299,37 +317,57 @@ export default function Goals() {
 
         {/* Goal Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="p-6 text-center">
-            <div className="text-2xl font-bold text-primary-600 mb-2">
+          <Card variant="primary" className="text-center group hover:scale-105" hover>
+            <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-medium">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+              </svg>
+            </div>
+            <div className="text-2xl font-bold text-primary-700 mb-2">
               {goals?.intermediateGoals?.length || 0}
             </div>
-            <div className="text-sm text-surface-600">Total Goals</div>
+            <div className="text-sm text-primary-600 font-medium">Total Goals</div>
           </Card>
           
-          <Card className="p-6 text-center">
-            <div className="text-2xl font-bold text-green-600 mb-2">
+          <Card variant="secondary" className="text-center group hover:scale-105" hover>
+            <div className="w-12 h-12 bg-gradient-to-br from-secondary-500 to-secondary-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-medium">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="text-2xl font-bold text-secondary-700 mb-2">
               {goals?.intermediateGoals?.filter(g => g.status === 'Completed').length || 0}
             </div>
-            <div className="text-sm text-surface-600">Completed</div>
+            <div className="text-sm text-secondary-600 font-medium">Completed</div>
           </Card>
           
-          <Card className="p-6 text-center">
-            <div className="text-2xl font-bold text-yellow-600 mb-2">
+          <Card variant="accent" className="text-center group hover:scale-105" hover>
+            <div className="w-12 h-12 bg-gradient-to-br from-accent-500 to-accent-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-medium">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+            </div>
+            <div className="text-2xl font-bold text-accent-700 mb-2">
               {goals?.intermediateGoals?.filter(g => g.status === 'In Progress').length || 0}
             </div>
-            <div className="text-sm text-surface-600">In Progress</div>
+            <div className="text-sm text-accent-600 font-medium">In Progress</div>
           </Card>
           
-          <Card className="p-6 text-center">
-            <div className="text-2xl font-bold text-surface-600 mb-2">
+          <Card variant="glass" className="text-center group hover:scale-105" hover>
+            <div className="w-12 h-12 bg-gradient-to-br from-surface-400 to-surface-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-medium">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+            </div>
+            <div className="text-2xl font-bold text-surface-700 mb-2">
               {goals?.intermediateGoals?.filter(g => g.status === 'Not Started').length || 0}
             </div>
-            <div className="text-sm text-surface-600">Not Started</div>
+            <div className="text-sm text-surface-600 font-medium">Not Started</div>
           </Card>
         </div>
 
         {/* Main Financial Goal */}
-        <Card className="p-8 mb-8">
+        <Card variant="gradient" className="p-8 mb-8">
           <div className="flex justify-between items-start mb-6">
             <div>
               <h2 className="text-2xl font-bold text-surface-900 mb-2">
@@ -383,20 +421,14 @@ export default function Goals() {
 
         {/* All Goals */}
         <div>
-          <div className="flex justify-between items-center mb-6">
+          <div className="mb-6">
             <h3 className="text-xl font-semibold text-surface-900">All Goals</h3>
-            <Button onClick={openAddModal} size="sm">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Add Goal
-            </Button>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Existing Goals */}
             {goals?.intermediateGoals?.map((goal, index) => (
-              <Card key={goal.id || index} className="p-6">
+              <Card key={goal.id || index} variant="glass" className="p-6" hover>
                 <div className="mb-4">
                   {/* Header with icon and title */}
                   <div className="flex items-start gap-3 mb-3">
@@ -553,11 +585,10 @@ export default function Goals() {
               />
             )}
             
-            <Input
+            <DatePicker
               label="Target Date (Optional)"
-              type="date"
               value={goalForm.targetDate}
-              onChange={(e) => setGoalForm({...goalForm, targetDate: e.target.value})}
+              onChange={(date) => setGoalForm({...goalForm, targetDate: date})}
             />
             
             <Select
@@ -592,7 +623,12 @@ export default function Goals() {
                 <Button variant="outline" onClick={() => setShowModal(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleSaveGoal} loading={saving}>
+                <Button 
+                  onClick={handleSaveGoal} 
+                  loading={saving}
+                  disabled={saving || !isFormChanged(originalGoalForm, goalForm)}
+                  variant={isFormChanged(originalGoalForm, goalForm) ? 'primary' : 'outline'}
+                >
                   {editingGoal ? 'Update Goal' : 'Add Goal'}
                 </Button>
               </div>
@@ -601,6 +637,14 @@ export default function Goals() {
         </Modal>
 
         <MiniChatbot />
+
+        {/* Unsaved Changes Prompt */}
+        <UnsavedChangesPrompt
+          isOpen={showPrompt}
+          onConfirm={confirmNavigation}
+          onCancel={cancelNavigation}
+          message="You have unsaved changes to your goal. Are you sure you want to leave without saving?"
+        />
       </div>
       <Footer />
     </div>
