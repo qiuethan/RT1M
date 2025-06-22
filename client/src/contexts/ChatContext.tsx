@@ -36,7 +36,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [userName, setUserName] = useState<string>('');
-  const [isMiniChatbotOpen, setIsMiniChatbotOpen] = useState(false);
+  const [isMiniChatbotOpen, setIsMiniChatbotOpen] = useState(true);
 
   // Load user's name and set initial message
   useEffect(() => {
