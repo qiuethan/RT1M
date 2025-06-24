@@ -4,14 +4,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { 
   saveUserProfile, 
   getUserProfile, 
-  saveUserFinancials, 
   saveUserIntermediateGoals,
-  getUserFinancials,
   getUserIntermediateGoals,
   saveUserSkills,
   getUserSkills
 } from '../services/firestore';
-import { Button, Input, Select, Card, DatePicker } from '../components/ui';
+import { Button, Input, Select, Card, DatePicker, LoadingSpinner } from '../components/ui';
 
 interface OnboardingStep {
   title: string;
@@ -22,10 +20,6 @@ const onboardingSteps: OnboardingStep[] = [
   {
     title: "Basic Information",
     description: "Let's start with your personal details"
-  },
-  {
-    title: "Financial Overview", 
-    description: "Help us understand your current financial situation"
   },
   {
     title: "RT1M Goal",
@@ -126,12 +120,7 @@ const Onboarding: React.FC = () => {
     country: '',
     employmentStatus: '',
     
-    // Financial Info
-    annualIncome: '',
-    annualExpenses: '',
-    totalAssets: '',
-    totalDebts: '',
-    currentSavings: '',
+
     
     // Financial Goal
     targetAmount: '1000000',
@@ -165,10 +154,9 @@ const Onboarding: React.FC = () => {
       // Load existing data if available
       Promise.all([
         getUserProfile(),
-        getUserFinancials(),
         getUserIntermediateGoals(),
         getUserSkills()
-      ]).then(([profile, financials, goals, skills]) => {
+      ]).then(([profile, goals, skills]) => {
         if (profile) {
           setFormData(prev => ({
             ...prev,
@@ -196,16 +184,7 @@ const Onboarding: React.FC = () => {
           }));
         }
         
-        if (financials) {
-          setFormData(prev => ({
-            ...prev,
-            annualIncome: financials.financialInfo?.annualIncome?.toString() || '',
-            annualExpenses: financials.financialInfo?.annualExpenses?.toString() || '',
-            totalAssets: financials.financialInfo?.totalAssets?.toString() || '',
-            totalDebts: financials.financialInfo?.totalDebts?.toString() || '',
-            currentSavings: financials.financialInfo?.currentSavings?.toString() || ''
-          }));
-        }
+
       });
     }
   }, [currentUser]);
@@ -220,24 +199,7 @@ const Onboarding: React.FC = () => {
         if (!formData.country) newErrors.country = 'Country is required';
         if (!formData.employmentStatus) newErrors.employmentStatus = 'Employment status is required';
         break;
-      case 1: // Financial Overview
-        if (!formData.annualIncome || parseFloat(formData.annualIncome) < 0) {
-          newErrors.annualIncome = 'Annual income must be 0 or greater';
-        }
-        if (!formData.annualExpenses || parseFloat(formData.annualExpenses) < 0) {
-          newErrors.annualExpenses = 'Annual expenses must be 0 or greater';
-        }
-        if (formData.totalAssets && parseFloat(formData.totalAssets) < 0) {
-          newErrors.totalAssets = 'Total assets cannot be negative';
-        }
-        if (formData.totalDebts && parseFloat(formData.totalDebts) < 0) {
-          newErrors.totalDebts = 'Total debts cannot be negative';
-        }
-        if (formData.currentSavings && parseFloat(formData.currentSavings) < 0) {
-          newErrors.currentSavings = 'Current savings cannot be negative';
-        }
-        break;
-      case 2: // RT1M Goal
+      case 1: // RT1M Goal
         if (!formData.targetAmount || parseFloat(formData.targetAmount) <= 0) {
           newErrors.targetAmount = 'Target amount must be greater than 0';
         }
@@ -248,9 +210,9 @@ const Onboarding: React.FC = () => {
         if (!formData.riskTolerance) newErrors.riskTolerance = 'Risk tolerance is required';
         if (!formData.primaryStrategy) newErrors.primaryStrategy = 'Primary strategy is required';
         break;
-      case 3: // Education & Experience - optional
+      case 2: // Education & Experience - optional
         break;
-      case 4: // Skills & Interests - optional
+      case 3: // Skills & Interests - optional
         break;
     }
 
@@ -282,33 +244,22 @@ const Onboarding: React.FC = () => {
       // Prepare profile data (basic info, education, experience, financial goal - NO skills)
       const profileData = {
         basicInfo: {
-          name: formData.name,
+          name: formData.name || null,
           email: formData.email,
-          birthday: formData.birthday,
-          location: formData.location,
-          occupation: formData.occupation,
-          country: formData.country,
-          employmentStatus: formData.employmentStatus
+          birthday: formData.birthday || null,
+          location: formData.location || null,
+          occupation: formData.occupation || null,
+          country: formData.country || null,
+          employmentStatus: formData.employmentStatus || null
         },
         educationHistory: formData.education.filter(edu => edu.school || edu.field || edu.graduationYear),
         experience: formData.experience.filter(exp => exp.company || exp.position),
         financialGoal: {
           targetAmount: parseFloat(formData.targetAmount),
           targetYear: parseInt(formData.targetYear),
-          timeframe: formData.timeframe,
-          riskTolerance: formData.riskTolerance,
-          primaryStrategy: formData.primaryStrategy
-        }
-      };
-
-      // Prepare financials data (only financial info)
-      const financialsData = {
-        financialInfo: {
-          annualIncome: parseFloat(formData.annualIncome) || 0,
-          annualExpenses: parseFloat(formData.annualExpenses) || 0,
-          totalAssets: parseFloat(formData.totalAssets) || 0,
-          totalDebts: parseFloat(formData.totalDebts) || 0,
-          currentSavings: parseFloat(formData.currentSavings) || 0
+          timeframe: formData.timeframe || null,
+          riskTolerance: formData.riskTolerance || null,
+          primaryStrategy: formData.primaryStrategy || null
         }
       };
 
@@ -325,15 +276,15 @@ const Onboarding: React.FC = () => {
         }
       };
 
-      // Save all data in parallel
+      // Save all data in parallel (no financial data since we removed that step)
       await Promise.all([
         saveUserProfile(profileData),
-        saveUserFinancials(financialsData),
         saveUserIntermediateGoals(goalsData),
         saveUserSkills(skillsData)
       ]);
 
-      navigate('/dashboard');
+      // Navigate to dashboard and trigger tour
+      navigate('/dashboard?startTour=true');
     } catch (error) {
       console.error('Error completing onboarding:', error);
     } finally {
@@ -352,17 +303,7 @@ const Onboarding: React.FC = () => {
     }
   };
 
-  const calculateNetWorth = () => {
-    const assets = parseFloat(formData.totalAssets) || 0;
-    const debts = parseFloat(formData.totalDebts) || 0;
-    return assets - debts;
-  };
 
-  const calculateCashFlow = () => {
-    const income = parseFloat(formData.annualIncome) || 0;
-    const expenses = parseFloat(formData.annualExpenses) || 0;
-    return income - expenses;
-  };
 
   const toggleSkill = (skill: string) => {
     setFormData(prev => ({
@@ -383,7 +324,15 @@ const Onboarding: React.FC = () => {
   };
 
   if (!currentUser) {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-surface-50 via-primary-50/20 to-secondary-50/30 flex items-center justify-center">
+        <LoadingSpinner 
+          size="xl" 
+          variant="primary" 
+          text="Loading onboarding..." 
+        />
+      </div>
+    );
   }
 
   return (
@@ -457,7 +406,7 @@ const Onboarding: React.FC = () => {
                 <DatePicker
                   label="Date of Birth"
                   value={formData.birthday}
-                  onChange={(date) => handleInputChange('birthday', date)}
+                  onChange={(date) => handleInputChange('birthday', date || '')}
                 />
                 <Select
                   label="Country"
@@ -496,96 +445,6 @@ const Onboarding: React.FC = () => {
           )}
 
           {currentStep === 1 && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Annual Income"
-                  type="number"
-                  value={formData.annualIncome}
-                  onChange={(e) => handleInputChange('annualIncome', e.target.value)}
-                  placeholder="75000"
-                  error={errors.annualIncome}
-                  required
-                />
-                <Input
-                  label="Annual Expenses"
-                  type="number"
-                  value={formData.annualExpenses}
-                  onChange={(e) => handleInputChange('annualExpenses', e.target.value)}
-                  placeholder="45000"
-                  error={errors.annualExpenses}
-                  required
-                />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Input
-                  label="Total Assets"
-                  type="number"
-                  value={formData.totalAssets}
-                  onChange={(e) => handleInputChange('totalAssets', e.target.value)}
-                  placeholder="250000"
-                  error={errors.totalAssets}
-                />
-                <Input
-                  label="Total Debts"
-                  type="number"
-                  value={formData.totalDebts}
-                  onChange={(e) => handleInputChange('totalDebts', e.target.value)}
-                  placeholder="150000"
-                  error={errors.totalDebts}
-                />
-                <Input
-                  label="Current Savings"
-                  type="number"
-                  value={formData.currentSavings}
-                  onChange={(e) => handleInputChange('currentSavings', e.target.value)}
-                  placeholder="25000"
-                  error={errors.currentSavings}
-                />
-              </div>
-
-              {/* Financial Summary */}
-              {(formData.annualIncome || formData.annualExpenses || formData.totalAssets || formData.totalDebts) && (
-                <div className="space-y-4">
-                  {/* Cash Flow Summary */}
-                  <div className="p-4 bg-gradient-to-r from-primary-50 to-accent-50 rounded-lg border">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-surface-700">Annual Cash Flow:</span>
-                      <span className={`font-semibold ${
-                        calculateCashFlow() >= 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {calculateCashFlow() >= 0 ? '+' : ''}${calculateCashFlow().toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {/* Net Worth Display */}
-                  <div className="p-6 bg-gradient-to-r from-secondary-50 via-surface-50 to-primary-50 rounded-xl border-2 border-surface-200">
-                    <div className="text-center">
-                      <div className="text-sm font-medium text-surface-600 mb-2">Your Current Net Worth</div>
-                      <div className={`text-3xl font-bold mb-2 ${
-                        calculateNetWorth() >= 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        ${calculateNetWorth().toLocaleString()}
-                      </div>
-                      <div className="text-sm text-surface-500 space-y-1">
-                        <div>Assets: ${(parseFloat(formData.totalAssets) || 0).toLocaleString()}</div>
-                        <div>Debts: ${(parseFloat(formData.totalDebts) || 0).toLocaleString()}</div>
-                        {formData.currentSavings && parseFloat(formData.currentSavings) > 0 && (
-                          <div className="pt-2 border-t border-surface-200">
-                            Liquid Savings: ${parseFloat(formData.currentSavings).toLocaleString()}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {currentStep === 2 && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
@@ -654,7 +513,7 @@ const Onboarding: React.FC = () => {
             </div>
           )}
 
-          {currentStep === 3 && (
+          {currentStep === 2 && (
             <div className="space-y-8">
               <div className="text-center text-gray-600 mb-6">
                 <p className="text-sm">This information is optional but helps us create more personalized recommendations.</p>
@@ -812,7 +671,7 @@ const Onboarding: React.FC = () => {
             </div>
           )}
 
-          {currentStep === 4 && (
+          {currentStep === 3 && (
             <div className="space-y-8">
               {/* Skills Section */}
               <div>

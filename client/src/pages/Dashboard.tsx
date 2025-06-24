@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Card, Button, Badge, Modal, Input, Select, DatePicker } from '../components/ui';
+import { Card, Button, Badge, Modal, Input, Select, DatePicker, LoadingSpinner } from '../components/ui';
 import Footer from '../components/Footer';
 import { MiniChatbot } from '../components/MiniChatbot';
 import { 
@@ -15,9 +15,12 @@ import {
 } from '../services/firestore';
 import { generateNextMilestone } from '../utils/financial';
 import { isFormChanged, useUnsavedChanges, UnsavedChangesPrompt } from '../utils/unsavedChanges';
+import { useLocation } from 'react-router-dom';
 
 export const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
+
+  const location = useLocation();
   const [userName, setUserName] = useState<string>('');
   const [stats, setStats] = useState<UserStats | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -47,6 +50,8 @@ export const Dashboard: React.FC = () => {
     hasUnsavedGoalChanges,
     'You have unsaved changes to your goal. Are you sure you want to leave without saving?'
   );
+
+
 
   // Load dashboard data
   useEffect(() => {
@@ -174,13 +179,11 @@ export const Dashboard: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-surface-50 via-primary-50/20 to-secondary-50/30 flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary-200 border-t-primary-600 mx-auto mb-4"></div>
-            <div className="absolute inset-0 rounded-full h-16 w-16 border-4 border-transparent border-r-secondary-400 animate-spin animation-delay-150 mx-auto"></div>
-          </div>
-          <p className="text-surface-700 font-medium">Loading your dashboard...</p>
-        </div>
+        <LoadingSpinner 
+          size="xl" 
+          variant="primary" 
+          text="Loading your dashboard..." 
+        />
       </div>
     );
   }
@@ -290,6 +293,8 @@ export const Dashboard: React.FC = () => {
                 </svg>
                 AI Assistant
               </Button>
+              
+
             </div>
           </Card>
         </div>
@@ -366,8 +371,6 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
         </div>
-
-
 
         {/* Next Milestone */}
         <Card variant="secondary" className="p-6 mb-8">
@@ -446,7 +449,6 @@ export const Dashboard: React.FC = () => {
           )}
         </Card>
 
-
       </div>
       <Footer />
       
@@ -505,7 +507,7 @@ export const Dashboard: React.FC = () => {
               <DatePicker
                 label="Target Date (Optional)"
                 value={goalForm.targetDate}
-                onChange={(date) => setGoalForm({ ...goalForm, targetDate: date })}
+                onChange={(date) => setGoalForm({ ...goalForm, targetDate: date || '' })}
               />
               <Select
                 label="Status"
@@ -553,6 +555,8 @@ export const Dashboard: React.FC = () => {
         onCancel={cancelNavigation}
         message="You have unsaved changes to your goal. Are you sure you want to leave without saving?"
       />
+
+
     </div>
   );
 }; 

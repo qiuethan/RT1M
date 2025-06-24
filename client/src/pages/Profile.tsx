@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Card, Button, Input, Select, Badge, DatePicker } from '../components/ui';
+import { Card, Button, Input, Select, Badge, DatePicker, LoadingSpinner } from '../components/ui';
 import Footer from '../components/Footer';
 import { MiniChatbot } from '../components/MiniChatbot';
 import { 
@@ -15,6 +15,7 @@ import {
   FinancialGoal
 } from '../services/firestore';
 import { isFormChanged, useUnsavedChanges, UnsavedChangesPrompt } from '../utils/unsavedChanges';
+import { formatStringForDisplay, parseStringInput } from '../utils/formatters';
 
 export default function Profile() {
   const { currentUser } = useAuth();
@@ -34,13 +35,13 @@ export default function Profile() {
 
   // Profile sections
   const [basicInfo, setBasicInfo] = useState<BasicInfo>({
-    name: '',
+    name: null,
     email: '',
-    birthday: '',
-    location: '',
-    occupation: '',
-    country: '',
-    employmentStatus: 'Employed'
+    birthday: null,
+    location: null,
+    occupation: null,
+    country: null,
+    employmentStatus: null
   });
 
   const [educationHistory, setEducationHistory] = useState<EducationEntry[]>([]);
@@ -53,9 +54,9 @@ export default function Profile() {
   const [financialGoal, setFinancialGoal] = useState<FinancialGoal>({
     targetAmount: 1000000,
     targetYear: new Date().getFullYear() + 20,
-    timeframe: '',
-    riskTolerance: '',
-    primaryStrategy: ''
+    timeframe: null,
+    riskTolerance: null,
+    primaryStrategy: null
   });
 
   // Custom skill and interest input states
@@ -168,21 +169,21 @@ export default function Profile() {
         ]);
         
         const defaultBasicInfo = {
-          name: currentUser.displayName || '',
+          name: currentUser.displayName || null,
           email: currentUser.email || '',
-          birthday: '',
-          location: '',
-          occupation: '',
-          country: '',
-          employmentStatus: 'Employed'
+          birthday: null,
+          location: null,
+          occupation: null,
+          country: null,
+          employmentStatus: null
         };
 
         const defaultFinancialGoal = {
           targetAmount: 1000000,
           targetYear: new Date().getFullYear() + 20,
-          timeframe: '',
-          riskTolerance: '',
-          primaryStrategy: ''
+          timeframe: null,
+          riskTolerance: null,
+          primaryStrategy: null
         };
 
         const defaultSkillsAndInterests = {
@@ -417,10 +418,11 @@ export default function Profile() {
   if (loading) {
     return (
       <div className="min-h-screen bg-surface-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-surface-600">Loading your profile...</p>
-        </div>
+        <LoadingSpinner 
+          size="xl" 
+          variant="primary" 
+          text="Loading your profile..." 
+        />
       </div>
     );
   }

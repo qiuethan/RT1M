@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Card, Button, Badge, Modal, Input, Select, DatePicker } from '../components/ui';
+import { Card, Button, Badge, Modal, Input, Select, DatePicker, LoadingSpinner } from '../components/ui';
 import Footer from '../components/Footer';
 import { MiniChatbot } from '../components/MiniChatbot';
 import { 
@@ -270,13 +270,11 @@ export default function Goals() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-surface-50 via-accent-50/20 to-primary-50/30 flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-accent-200 border-t-accent-600 mx-auto mb-4"></div>
-            <div className="absolute inset-0 rounded-full h-16 w-16 border-4 border-transparent border-r-primary-400 animate-spin animation-delay-150 mx-auto"></div>
-          </div>
-          <p className="text-surface-700 font-medium">Loading your goals...</p>
-        </div>
+        <LoadingSpinner 
+          size="xl" 
+          variant="accent" 
+          text="Loading your goals..." 
+        />
       </div>
     );
   }

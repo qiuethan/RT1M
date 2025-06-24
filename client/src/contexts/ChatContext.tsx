@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { getUserProfile } from '../services/firestore';
+import { getUserProfile, sendChatMessage, generateFinancialPlan } from '../services/firestore';
 
 export interface ChatMessage {
   id: string;
@@ -19,6 +19,10 @@ interface ChatContextType {
   isMiniChatbotOpen: boolean;
   setIsMiniChatbotOpen: (open: boolean) => void;
   toggleMiniChatbot: () => void;
+  sendMessage: (message: string) => Promise<void>;
+  generatePlan: (goalId?: string, goalData?: any) => Promise<any>;
+  isReadyForPlan: boolean;
+  setIsReadyForPlan: (ready: boolean) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -37,6 +41,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isTyping, setIsTyping] = useState(false);
   const [userName, setUserName] = useState<string>('');
   const [isMiniChatbotOpen, setIsMiniChatbotOpen] = useState(true);
+  const [isReadyForPlan, setIsReadyForPlan] = useState(false);
 
   // Load user's name and set initial message
   useEffect(() => {
@@ -102,6 +107,68 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsMiniChatbotOpen(prev => !prev);
   };
 
+  const sendMessage = async (message: string) => {
+    try {
+      setIsTyping(true);
+      const response = await sendChatMessage(message, `session_${currentUser?.uid}`);
+      
+      if (response.success) {
+        addMessage({
+          text: response.message,
+          sender: 'bot'
+        });
+        
+        // Update readiness for plan generation
+        if (response.isReadyForPlan !== undefined) {
+          setIsReadyForPlan(response.isReadyForPlan);
+        }
+      } else {
+        addMessage({
+          text: "I'm sorry, I'm having trouble responding right now. Please try again later.",
+          sender: 'bot'
+        });
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      addMessage({
+        text: "I'm sorry I had trouble understanding that. Could you please try rephrasing your message?",
+        sender: 'bot'
+      });
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  const generatePlan = async (goalId?: string, goalData?: any) => {
+    try {
+      setIsTyping(true);
+      const response = await generateFinancialPlan(goalId, goalData);
+      
+      if (response.success && response.plan) {
+        addMessage({
+          text: `Great! I've created a comprehensive financial plan for you: "${response.plan.title}". The plan includes ${response.plan.steps?.length || 0} actionable steps and ${response.plan.milestones?.length || 0} milestones to track your progress. You can view and manage your plans in your dashboard.`,
+          sender: 'bot'
+        });
+        return response.plan;
+      } else {
+        addMessage({
+          text: "I had trouble creating your plan. Please make sure you have some goals set up and try again.",
+          sender: 'bot'
+        });
+        return null;
+      }
+    } catch (error) {
+      console.error('Error generating plan:', error);
+      addMessage({
+        text: "I'm sorry, I couldn't generate a plan right now. Please try again later.",
+        sender: 'bot'
+      });
+      return null;
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
   return (
     <ChatContext.Provider value={{
       messages,
@@ -112,7 +179,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       userName,
       isMiniChatbotOpen,
       setIsMiniChatbotOpen,
-      toggleMiniChatbot
+      toggleMiniChatbot,
+      sendMessage,
+      generatePlan,
+      isReadyForPlan,
+      setIsReadyForPlan
     }}>
       {children}
     </ChatContext.Provider>

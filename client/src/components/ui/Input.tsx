@@ -4,7 +4,7 @@ interface InputProps {
   label?: string;
   type?: string;
   placeholder?: string;
-  value?: string | number;
+  value?: string | number | null;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   error?: string;
@@ -45,7 +45,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(({
         ref={ref}
         type={type}
         placeholder={placeholder}
-        value={value}
+        value={value ?? ''}
         onChange={onChange}
         onKeyDown={onKeyDown}
         required={required}

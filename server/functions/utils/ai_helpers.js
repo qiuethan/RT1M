@@ -1,358 +1,283 @@
+/**
+ * AI Helper Functions for RT1M
+ * Handles AI data processing, validation, and database updates
+ */
+
+import admin from "firebase-admin";
 import {logger} from "firebase-functions";
 
 /**
- * Transform AI extracted data to match Firebase schema
+ * Generate unique ID
  */
-export function transformAIDataToFirebaseSchema(aiData) {
-  const transformed = {};
-
-  // Transform personal info
-  if (aiData.personalInfo) {
-    transformed.personalInfo = {};
-    
-    // Map common AI field names to Firebase schema
-    const personalFieldMap = {
-      name: "name",
-      age: "age", // Note: we might want to convert this to birthday
-      email: "email",
-      location: "location",
-      job: "occupation",
-      occupation: "occupation",
-      employment: "employmentStatus",
-      employmentStatus: "employmentStatus",
-      country: "country",
-    };
-
-    Object.entries(aiData.personalInfo).forEach(([key, value]) => {
-      const mappedKey = personalFieldMap[key] || key;
-      if (value !== null && value !== undefined && value !== "") {
-        transformed.personalInfo[mappedKey] = value;
-      }
-    });
-  }
-
-  // Transform financial info
-  if (aiData.financialInfo) {
-    transformed.financialInfo = {};
-    
-    // Map AI financial fields to Firebase schema
-    const financialFieldMap = {
-      income: "annualIncome",
-      annualIncome: "annualIncome",
-      salary: "annualIncome",
-      expenses: "annualExpenses",
-      annualExpenses: "annualExpenses",
-      spending: "annualExpenses",
-      savings: "currentSavings",
-      currentSavings: "currentSavings",
-      assets: "totalAssets",
-      totalAssets: "totalAssets",
-      debts: "totalDebts",
-      totalDebts: "totalDebts",
-      debt: "totalDebts",
-    };
-
-    Object.entries(aiData.financialInfo).forEach(([key, value]) => {
-      const mappedKey = financialFieldMap[key] || key;
-      const numericValue = parseFloat(value);
-      
-      if (!isNaN(numericValue) && numericValue >= 0) {
-        transformed.financialInfo[mappedKey] = numericValue;
-      }
-    });
-  }
-
-  // Transform goals
-  if (aiData.goals && Array.isArray(aiData.goals)) {
-    transformed.goals = aiData.goals.map(goal => transformAIGoalToFirebaseSchema(goal));
-  }
-
-  return transformed;
-}
+const generateId = () => {
+  return admin.firestore().collection("temp").doc().id;
+};
 
 /**
- * Transform AI goal to Firebase goal schema
+ * Sanitize and validate financial data
  */
-export function transformAIGoalToFirebaseSchema(aiGoal) {
-  const transformed = {
-    title: aiGoal.title || "",
-    type: mapAIGoalCategoryToType(aiGoal.category),
-    status: mapAIGoalStatusToFirebaseStatus(aiGoal.status),
-    description: aiGoal.description || "",
-  };
-
-  // Handle goal data
-  if (aiGoal.data) {
-    // Financial goals
-    if (aiGoal.data.target || aiGoal.data.targetAmount) {
-      const targetAmount = parseFloat(aiGoal.data.target || aiGoal.data.targetAmount);
-      if (!isNaN(targetAmount)) {
-        transformed.targetAmount = targetAmount;
-      }
-    }
-
-    if (aiGoal.data.current || aiGoal.data.currentAmount) {
-      const currentAmount = parseFloat(aiGoal.data.current || aiGoal.data.currentAmount);
-      if (!isNaN(currentAmount)) {
-        transformed.currentAmount = currentAmount;
-      }
-    }
-
-    // Deadline/target date
-    if (aiGoal.data.deadline || aiGoal.data.targetDate) {
-      const targetDate = aiGoal.data.deadline || aiGoal.data.targetDate;
-      if (isValidDate(targetDate)) {
-        transformed.targetDate = targetDate;
-      }
-    }
-
-    // Progress for non-financial goals
-    if (aiGoal.data.progress !== undefined) {
-      const progress = parseFloat(aiGoal.data.progress);
-      if (!isNaN(progress) && progress >= 0 && progress <= 100) {
-        transformed.progress = progress;
-      }
-    }
-  }
-
-  return transformed;
-}
-
-/**
- * Map AI goal categories to Firebase goal types
- */
-function mapAIGoalCategoryToType(category) {
-  const categoryMap = {
-    financial: "financial",
-    money: "financial",
-    savings: "financial",
-    investment: "financial",
-    debt: "financial",
-    skill: "skill",
-    skills: "skill",
-    learning: "skill",
-    education: "skill",
-    behavior: "behavior",
-    habit: "behavior",
-    lifestyle: "lifestyle",
-    health: "lifestyle",
-    fitness: "lifestyle",
-    networking: "networking",
-    network: "networking",
-    social: "networking",
-    project: "project",
-    work: "project",
-    career: "project",
-  };
-
-  return categoryMap[category?.toLowerCase()] || "financial";
-}
-
-/**
- * Map AI goal status to Firebase status
- */
-function mapAIGoalStatusToFirebaseStatus(status) {
-  const statusMap = {
-    active: "In Progress",
-    "in progress": "In Progress",
-    started: "In Progress",
-    ongoing: "In Progress",
-    completed: "Completed",
-    done: "Completed",
-    finished: "Completed",
-    achieved: "Completed",
-    "not started": "Not Started",
-    new: "Not Started",
-    planned: "Not Started",
-  };
-
-  return statusMap[status?.toLowerCase()] || "Not Started";
-}
-
-/**
- * Validate if a string is a valid date
- */
-function isValidDate(dateString) {
-  if (!dateString) return false;
+const sanitizeFinancialData = (data) => {
+  if (!data || typeof data !== "object") return null;
   
-  const date = new Date(dateString);
-  return date instanceof Date && !isNaN(date);
-}
+  const sanitized = {};
+  const numericFields = ["annualIncome", "annualExpenses", "currentSavings", "totalAssets", "totalDebts"];
+  
+  numericFields.forEach(field => {
+    if (data[field] !== undefined && data[field] !== null) {
+      const value = parseFloat(data[field]);
+      if (!isNaN(value) && value >= 0) {
+        sanitized[field] = value;
+      }
+    }
+  });
+  
+  return Object.keys(sanitized).length > 0 ? sanitized : null;
+};
 
 /**
- * Calculate confidence score for AI extracted data
+ * Sanitize and validate assets array
  */
-export function calculateDataConfidence(aiData, existingData = {}) {
+const sanitizeAssets = (assets) => {
+  if (!Array.isArray(assets)) return null;
+  
+  const validTypes = ["real-estate", "stocks", "bonds", "savings", "retirement", "crypto", "business", "other"];
+  
+  const sanitized = assets.map(asset => {
+    if (!asset || typeof asset !== "object") return null;
+    
+    const sanitizedAsset = {
+      id: asset.id || generateId(),
+      name: String(asset.name || "").trim(),
+      type: validTypes.includes(asset.type) ? asset.type : "other",
+      value: parseFloat(asset.value) || 0
+    };
+    
+    if (asset.description) {
+      sanitizedAsset.description = String(asset.description).trim().substring(0, 200);
+    }
+    
+    return sanitizedAsset.name && sanitizedAsset.value >= 0 ? sanitizedAsset : null;
+  }).filter(Boolean);
+  
+  return sanitized.length > 0 ? sanitized : null;
+};
+
+/**
+ * Sanitize and validate debts array
+ */
+const sanitizeDebts = (debts) => {
+  if (!Array.isArray(debts)) return null;
+  
+  const validTypes = ["mortgage", "credit-card", "student-loan", "car-loan", "personal-loan", "business-loan", "other"];
+  
+  const sanitized = debts.map(debt => {
+    if (!debt || typeof debt !== "object") return null;
+    
+    const sanitizedDebt = {
+      id: debt.id || generateId(),
+      name: String(debt.name || "").trim(),
+      type: validTypes.includes(debt.type) ? debt.type : "other",
+      balance: parseFloat(debt.balance) || 0
+    };
+    
+    if (debt.interestRate !== undefined && debt.interestRate !== null) {
+      const rate = parseFloat(debt.interestRate);
+      if (!isNaN(rate) && rate >= 0) {
+        sanitizedDebt.interestRate = rate;
+      }
+    }
+    
+    if (debt.description) {
+      sanitizedDebt.description = String(debt.description).trim().substring(0, 200);
+    }
+    
+    return sanitizedDebt.name && sanitizedDebt.balance >= 0 ? sanitizedDebt : null;
+  }).filter(Boolean);
+  
+  return sanitized.length > 0 ? sanitized : null;
+};
+
+/**
+ * Sanitize and validate goals array
+ */
+const sanitizeGoals = (goals) => {
+  if (!Array.isArray(goals)) return null;
+  
+  const validTypes = ["financial", "skill", "behavior", "lifestyle", "networking", "project"];
+  const validStatuses = ["Not Started", "In Progress", "Completed"];
+  
+  const sanitized = goals.map(goal => {
+    if (!goal || typeof goal !== "object") return null;
+    
+    const sanitizedGoal = {
+      id: goal.id || generateId(),
+      title: String(goal.title || "").trim(),
+      type: validTypes.includes(goal.type) ? goal.type : "project",
+      status: validStatuses.includes(goal.status) ? goal.status : "Not Started"
+    };
+    
+    if (goal.description) {
+      sanitizedGoal.description = String(goal.description).trim().substring(0, 500);
+    }
+    
+    if (goal.targetAmount !== undefined && goal.targetAmount !== null) {
+      const amount = parseFloat(goal.targetAmount);
+      if (!isNaN(amount) && amount >= 0) {
+        sanitizedGoal.targetAmount = amount;
+      }
+    }
+    
+    if (goal.currentAmount !== undefined && goal.currentAmount !== null) {
+      const amount = parseFloat(goal.currentAmount);
+      if (!isNaN(amount) && amount >= 0) {
+        sanitizedGoal.currentAmount = amount;
+      }
+    }
+    
+    if (goal.targetDate) {
+      const dateStr = String(goal.targetDate).trim();
+      if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        sanitizedGoal.targetDate = dateStr;
+      }
+    }
+    
+    if (goal.progress !== undefined && goal.progress !== null) {
+      const progress = parseFloat(goal.progress);
+      if (!isNaN(progress) && progress >= 0 && progress <= 100) {
+        sanitizedGoal.progress = progress;
+      }
+    }
+    
+    return sanitizedGoal.title ? sanitizedGoal : null;
+  }).filter(Boolean);
+  
+  return sanitized.length > 0 ? sanitized : null;
+};
+
+/**
+ * Sanitize and validate skills object
+ */
+const sanitizeSkills = (skills) => {
+  if (!skills || typeof skills !== "object") return null;
+  
+  const sanitized = {};
+  
+  if (Array.isArray(skills.skills)) {
+    const cleanSkills = skills.skills
+      .map(skill => String(skill || "").trim())
+      .filter(skill => skill.length > 0 && skill.length <= 50)
+      .slice(0, 20); // Max 20 skills
+    
+    if (cleanSkills.length > 0) {
+      sanitized.skills = [...new Set(cleanSkills)]; // Remove duplicates
+    }
+  }
+  
+  if (Array.isArray(skills.interests)) {
+    const cleanInterests = skills.interests
+      .map(interest => String(interest || "").trim())
+      .filter(interest => interest.length > 0 && interest.length <= 50)
+      .slice(0, 20); // Max 20 interests
+    
+    if (cleanInterests.length > 0) {
+      sanitized.interests = [...new Set(cleanInterests)]; // Remove duplicates
+    }
+  }
+  
+  return Object.keys(sanitized).length > 0 ? sanitized : null;
+};
+
+/**
+ * Calculate confidence score for extracted data
+ */
+const calculateConfidence = (data) => {
   let score = 0;
   let factors = 0;
-
-  // Personal info confidence
-  if (aiData.personalInfo) {
-    factors++;
-    const personalFields = Object.keys(aiData.personalInfo).length;
-    score += Math.min(personalFields / 5, 1) * 0.3; // Max 30% from personal info
-  }
-
+  
   // Financial info confidence
-  if (aiData.financialInfo) {
+  if (data.financialInfo) {
+    const fields = Object.keys(data.financialInfo);
+    score += Math.min(fields.length * 15, 60); // Max 60 points
     factors++;
-    const financialFields = Object.keys(aiData.financialInfo).length;
-    const hasSpecificNumbers = Object.values(aiData.financialInfo).some(val => 
-      typeof val === 'number' && val > 0
-    );
-    
-    let financialScore = Math.min(financialFields / 4, 1) * 0.4; // Max 40% from financial
-    if (hasSpecificNumbers) financialScore *= 1.2; // Boost for specific numbers
-    
-    score += Math.min(financialScore, 0.4);
   }
-
+  
+  // Assets confidence
+  if (data.assets && data.assets.length > 0) {
+    score += Math.min(data.assets.length * 10, 30); // Max 30 points
+    factors++;
+  }
+  
+  // Debts confidence
+  if (data.debts && data.debts.length > 0) {
+    score += Math.min(data.debts.length * 10, 30); // Max 30 points
+    factors++;
+  }
+  
   // Goals confidence
-  if (aiData.goals && Array.isArray(aiData.goals)) {
+  if (data.goals && data.goals.length > 0) {
+    score += Math.min(data.goals.length * 8, 25); // Max 25 points
     factors++;
-    const goalQuality = aiData.goals.reduce((acc, goal) => {
-      let goalScore = 0;
-      if (goal.title) goalScore += 0.3;
-      if (goal.category) goalScore += 0.2;
-      if (goal.data?.target || goal.data?.targetAmount) goalScore += 0.3;
-      if (goal.data?.deadline) goalScore += 0.2;
-      return acc + Math.min(goalScore, 1);
-    }, 0);
-    
-    score += Math.min(goalQuality / aiData.goals.length, 1) * 0.3; // Max 30% from goals
   }
-
-  // Penalize if no factors found
-  if (factors === 0) return 0;
-
-  // Boost confidence if data is consistent with existing data
-  if (existingData && Object.keys(existingData).length > 0) {
-    const consistencyBoost = checkDataConsistency(aiData, existingData);
-    score *= (1 + consistencyBoost * 0.2); // Up to 20% boost for consistency
+  
+  // Skills confidence
+  if (data.skills) {
+    const totalSkills = (data.skills.skills?.length || 0) + (data.skills.interests?.length || 0);
+    score += Math.min(totalSkills * 2, 15); // Max 15 points
+    factors++;
   }
-
-  return Math.min(Math.max(score, 0), 1); // Clamp between 0 and 1
-}
+  
+  return factors > 0 ? Math.min(Math.round(score), 100) : 0;
+};
 
 /**
- * Check consistency between AI data and existing user data
+ * Process and sanitize AI extracted data
  */
-function checkDataConsistency(aiData, existingData) {
-  let consistencyScore = 0;
-  let checks = 0;
-
-  // Check personal info consistency
-  if (aiData.personalInfo && existingData.personalInfo) {
-    const commonFields = Object.keys(aiData.personalInfo).filter(key => 
-      existingData.personalInfo[key]
-    );
-    
-    commonFields.forEach(field => {
-      checks++;
-      const aiValue = aiData.personalInfo[field]?.toString().toLowerCase();
-      const existingValue = existingData.personalInfo[field]?.toString().toLowerCase();
-      
-      if (aiValue === existingValue || aiValue?.includes(existingValue) || existingValue?.includes(aiValue)) {
-        consistencyScore++;
-      }
-    });
+export const processAIData = (extractedData) => {
+  const processed = {};
+  
+  // Process each data type with proper sanitization
+  if (extractedData.financialInfo) {
+    const sanitized = sanitizeFinancialData(extractedData.financialInfo);
+    if (sanitized) processed.financialInfo = sanitized;
   }
-
-  // Check financial info consistency (allow for reasonable variance)
-  if (aiData.financialInfo && existingData.financialInfo) {
-    Object.keys(aiData.financialInfo).forEach(field => {
-      if (existingData.financialInfo[field] && existingData.financialInfo[field] > 0) {
-        checks++;
-        const aiValue = aiData.financialInfo[field];
-        const existingValue = existingData.financialInfo[field];
-        const variance = Math.abs(aiValue - existingValue) / existingValue;
-        
-        // Consider consistent if within 20% variance
-        if (variance <= 0.2) {
-          consistencyScore++;
-        }
-      }
-    });
+  
+  if (extractedData.assets) {
+    const sanitized = sanitizeAssets(extractedData.assets);
+    if (sanitized) processed.assets = sanitized;
   }
-
-  return checks > 0 ? consistencyScore / checks : 0;
-}
-
-/**
- * Sanitize and validate AI extracted data
- */
-export function sanitizeAIData(aiData) {
-  const sanitized = {};
-
-  // Sanitize personal info
-  if (aiData.personalInfo) {
-    sanitized.personalInfo = {};
-    
-    Object.entries(aiData.personalInfo).forEach(([key, value]) => {
-      if (typeof value === 'string') {
-        // Remove potentially harmful content, trim whitespace
-        const cleanValue = value.trim().replace(/[<>]/g, '');
-        if (cleanValue.length > 0 && cleanValue.length <= 100) {
-          sanitized.personalInfo[key] = cleanValue;
-        }
-      } else if (typeof value === 'number' && !isNaN(value)) {
-        sanitized.personalInfo[key] = value;
-      }
-    });
+  
+  if (extractedData.debts) {
+    const sanitized = sanitizeDebts(extractedData.debts);
+    if (sanitized) processed.debts = sanitized;
   }
-
-  // Sanitize financial info
-  if (aiData.financialInfo) {
-    sanitized.financialInfo = {};
-    
-    Object.entries(aiData.financialInfo).forEach(([key, value]) => {
-      const numValue = parseFloat(value);
-      if (!isNaN(numValue) && numValue >= 0 && numValue <= 10000000) { // Reasonable upper limit
-        sanitized.financialInfo[key] = numValue;
-      }
-    });
+  
+  if (extractedData.goals) {
+    const sanitized = sanitizeGoals(extractedData.goals);
+    if (sanitized) processed.goals = sanitized;
   }
-
-  // Sanitize goals
-  if (aiData.goals && Array.isArray(aiData.goals)) {
-    sanitized.goals = aiData.goals
-      .filter(goal => goal.title && typeof goal.title === 'string')
-      .map(goal => ({
-        title: goal.title.trim().substring(0, 200), // Limit title length
-        category: goal.category?.trim().substring(0, 50),
-        status: goal.status?.trim().substring(0, 50),
-        description: goal.description?.trim().substring(0, 500),
-        data: goal.data && typeof goal.data === 'object' ? goal.data : undefined,
-      }))
-      .slice(0, 10); // Limit to 10 goals max
+  
+  if (extractedData.skills) {
+    const sanitized = sanitizeSkills(extractedData.skills);
+    if (sanitized) processed.skills = sanitized;
   }
-
-  return sanitized;
-}
-
-/**
- * Generate AI update metadata
- */
-export function generateAIMetadata(source, confidence, sessionId) {
+  
+  // Calculate confidence score
+  const confidence = calculateConfidence(processed);
+  
   return {
-    aiGenerated: true,
-    aiSource: source,
-    aiConfidence: confidence,
-    aiSessionId: sessionId,
-    aiTimestamp: new Date().toISOString(),
-    aiVersion: "1.0", // For tracking AI model versions
+    data: processed,
+    confidence,
+    hasData: Object.keys(processed).length > 0
   };
-}
+};
 
-/**
- * Log AI data processing for debugging and analytics
- */
-export function logAIDataProcessing(uid, operation, data, result) {
-  logger.info(`AI Data Processing: ${operation}`, {
-    uid,
-    operation,
-    inputDataTypes: Object.keys(data || {}),
-    resultSuccess: result?.success || false,
-    timestamp: new Date().toISOString(),
-  });
-} 
+// Export all functions using ES6 syntax
+export {
+  sanitizeFinancialData,
+  sanitizeAssets,
+  sanitizeDebts,
+  sanitizeGoals,
+  sanitizeSkills,
+  calculateConfidence,
+  generateId
+}; 

@@ -54,13 +54,13 @@ export const createUserProfile = onCall(async (request) => {
 
       // Basic Information
       basicInfo: {
-        name: "",
+        name: null,
         email: email,
-        birthday: "",
-        location: "",
-        occupation: "",
-        country: "",
-        employmentStatus: "Employed",
+        birthday: null,
+        location: null,
+        occupation: null,
+        country: null,
+        employmentStatus: null,
       },
 
       // Education History
@@ -78,9 +78,9 @@ export const createUserProfile = onCall(async (request) => {
       financialGoal: {
         targetAmount: 1000000,
         targetYear: currentYear + 20,
-        timeframe: "",
-        riskTolerance: "",
-        primaryStrategy: "",
+        timeframe: null,
+        riskTolerance: null,
+        primaryStrategy: null,
       },
 
       // Metadata
@@ -94,24 +94,18 @@ export const createUserProfile = onCall(async (request) => {
 
       // Financial Information
       financialInfo: {
-        annualIncome: 0,
-        annualExpenses: 0,
-        totalAssets: 0,
-        totalDebts: 0,
-        currentSavings: 0,
+        annualIncome: null,
+        annualExpenses: null,
+        totalAssets: null,
+        totalDebts: null,
+        currentSavings: null,
       },
 
-      // Asset Objects
-      assets: [
-        // Example: { name: "Primary Home", type: "real-estate",
-        // value: 500000, description: "" }
-      ],
+      // Asset Objects (null = not entered, [] = no assets)
+      assets: null,
 
-      // Debt Objects
-      debts: [
-        // Example: { name: "Mortgage", type: "mortgage",
-        // balance: 300000, interestRate: 3.5, description: "" }
-      ],
+      // Debt Objects (null = not entered, [] = no debts)
+      debts: null,
 
       // Metadata
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -122,12 +116,8 @@ export const createUserProfile = onCall(async (request) => {
     const userGoals = {
       userId: uid,
 
-      // Intermediate Goals
-      intermediateGoals: [
-        // Example: { title: "Emergency Fund", targetAmount: 10000,
-        // targetDate: "2025-12-31", status: "In Progress",
-        // currentAmount: 2500 }
-      ],
+      // Intermediate Goals (null = not entered, [] = no goals)
+      intermediateGoals: null,
 
       // Metadata
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -214,10 +204,11 @@ export const getUserStats = onCall(async (request) => {
     logger.info(`getUserStats - Assets found: ${assets.length}`, assets);
     logger.info(`getUserStats - Debts found: ${debts.length}`, debts);
 
-    const totalAssetsFromList = assets.reduce((sum, asset) =>
-      sum + (asset.value || 0), 0);
-    const totalDebtsFromList = debts.reduce((sum, debt) =>
-      sum + (debt.balance || 0), 0);
+    // Only calculate if we have actual arrays (not null)
+    const totalAssetsFromList = Array.isArray(assets) ? 
+      assets.reduce((sum, asset) => sum + (asset.value || 0), 0) : 0;
+    const totalDebtsFromList = Array.isArray(debts) ? 
+      debts.reduce((sum, debt) => sum + (debt.balance || 0), 0) : 0;
 
     logger.info(`getUserStats - Total assets: ${totalAssetsFromList}, 
       Total debts: ${totalDebtsFromList}`);
@@ -999,11 +990,110 @@ export const updateUserSkillsSection = onCall(async (request) => {
   }
 });
 
-// AI Integration Functions
+// Update tour completion status
+export const updateTourCompletion = onCall(async (request) => {
+  try {
+    if (!request.auth) {
+      throw new Error("Authentication required");
+    }
+
+    const uid = request.auth.uid;
+    const {tourName, completed = true} = request.data;
+    const db = admin.firestore();
+
+    if (!tourName) {
+      throw new Error("Tour name is required");
+    }
+
+    const profileRef = db.collection("users").doc(uid)
+        .collection("profile").doc("data");
+
+    // Get existing profile data
+    const existingDoc = await profileRef.get();
+    if (!existingDoc.exists) {
+      throw new Error("User profile not found");
+    }
+
+    const existingData = existingDoc.data();
+    const tourCompletions = existingData.tourCompletions || {};
+
+    // Update tour completion status
+    tourCompletions[tourName] = {
+      completed,
+      completedAt: completed ? admin.firestore.FieldValue.serverTimestamp() : null,
+    };
+
+    await profileRef.update({
+      tourCompletions,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    logger.info(`Updated tour completion for ${tourName} (${completed}) for UID: ${uid}`);
+    return {
+      success: true, 
+      message: `Tour ${tourName} completion status updated`,
+      tourCompletions,
+    };
+  } catch (error) {
+    logger.error("Error updating tour completion:", error);
+    throw new Error("Failed to update tour completion");
+  }
+});
+
+// Get tour completion status
+export const getTourCompletions = onCall(async (request) => {
+  try {
+    if (!request.auth) {
+      throw new Error("Authentication required");
+    }
+
+    const uid = request.auth.uid;
+    const db = admin.firestore();
+
+    const profileDoc = await db.collection("users").doc(uid)
+        .collection("profile").doc("data").get();
+
+    if (!profileDoc.exists) {
+      return {tourCompletions: {}};
+    }
+
+    const profileData = profileDoc.data();
+    return {
+      tourCompletions: profileData.tourCompletions || {},
+    };
+  } catch (error) {
+    logger.error("Error getting tour completions:", error);
+    throw new Error("Failed to get tour completions");
+  }
+});
+
+// AI Integration Functions - Modular Imports
+// Context & Data Management
+export {
+  getAIConversationContext,
+} from "./handlers/ai_context.js";
+
+// Data Updates
 export {
   updateUserDataFromAI,
   mergeFinancialDataFromAI,
   updateSkillsFromAI,
-  getAIConversationContext,
+} from "./handlers/ai_data_updates.js";
+
+// Chat Handling
+export {
+  handleChatMessage,
+} from "./handlers/ai_chat.js";
+
+// Plan Generation
+export {
+  generateFinancialPlan,
+  getUserPlans,
+  updatePlanStep,
+  updatePlanMilestone,
+} from "./handlers/ai_plans.js";
+
+// Utilities & Logging
+export {
   logAIConversation,
-} from "./handlers/ai_integration.js";
+} from "./handlers/ai_utils.js";

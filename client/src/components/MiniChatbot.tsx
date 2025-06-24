@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from './ui';
+import { Button, LoadingSpinner } from './ui';
 import { useChatContext } from '../contexts/ChatContext';
 
 export const MiniChatbot: React.FC = () => {
   const navigate = useNavigate();
-  const { messages, addMessage, isTyping, setIsTyping, isMiniChatbotOpen, toggleMiniChatbot } = useChatContext();
+  const { messages, addMessage, isTyping, setIsTyping, isMiniChatbotOpen, toggleMiniChatbot, sendMessage, generatePlan } = useChatContext();
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -36,17 +36,11 @@ export const MiniChatbot: React.FC = () => {
       sender: 'user'
     });
 
+    const messageText = inputValue;
     setInputValue('');
-    setIsTyping(true);
 
-    // Simulate bot response (replace with actual AI integration later)
-    setTimeout(() => {
-      addMessage({
-        text: "Thanks for your message! I'm still learning and will be able to provide personalized financial advice soon. For more detailed conversations, visit the full Chatbot page!",
-        sender: 'bot'
-      });
-      setIsTyping(false);
-    }, 1000);
+    // Send message to AI
+    await sendMessage(messageText);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -140,13 +134,13 @@ export const MiniChatbot: React.FC = () => {
         {isTyping && (
           <div className="flex justify-start">
             <div className="bg-surface-100 border border-surface-200 text-surface-900 max-w-xs px-3 py-2 rounded-lg">
-              <div className="flex items-center space-x-1">
-                <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-surface-400 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-surface-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-2 h-2 bg-surface-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                </div>
-                <span className="text-xs text-surface-500 ml-2">AI is typing...</span>
+              <div className="flex items-center space-x-3">
+                <LoadingSpinner 
+                  size="sm" 
+                  variant="neutral" 
+                  showText={false}
+                />
+                <span className="text-xs text-surface-500">AI is typing...</span>
               </div>
             </div>
           </div>
@@ -159,19 +153,12 @@ export const MiniChatbot: React.FC = () => {
       {messages.length <= 2 && (
         <div className="px-3 py-2 border-t border-surface-100">
           <button
-            onClick={() => {
+            onClick={async () => {
               addMessage({
                 text: "Make me a plan",
                 sender: 'user'
               });
-              setIsTyping(true);
-              setTimeout(() => {
-                addMessage({
-                  text: "I'd love to help you create a personalized financial plan! To get started, I'll need to analyze your profile data. Please visit the full Chatbot page for a comprehensive planning session where I can create a detailed roadmap to your RT1M goal!",
-                  sender: 'bot'
-                });
-                setIsTyping(false);
-              }, 1000);
+              await generatePlan();
             }}
             className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-gradient-to-r from-accent-400 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white rounded-lg font-medium text-sm transition-all duration-200 shadow-sm hover:shadow-md"
           >

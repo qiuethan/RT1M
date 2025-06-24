@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Button, Input, Select, Modal } from '../components/ui';
+import { Card, Button, Input, Select, Modal, LoadingSpinner } from '../components/ui';
 import Footer from '../components/Footer';
 import { MiniChatbot } from '../components/MiniChatbot';
 import { Asset, Debt } from '../services/firestore';
@@ -15,6 +15,13 @@ import {
   getCashFlowColor,
   removeItemFromArray
 } from '../utils/financial';
+import { 
+  formatNumberForDisplay, 
+  parseNumberInput,
+  formatCurrencyWithContext,
+  formatArrayForDisplay,
+  getArrayStatus 
+} from '../utils/formatters';
 import { useUnsavedChanges, UnsavedChangesPrompt } from '../utils/unsavedChanges';
 
 export default function FinancialsRefactored() {
@@ -47,26 +54,26 @@ export default function FinancialsRefactored() {
 
   // Asset management handlers
   const handleDeleteAsset = async (assetId: string) => {
-    const updatedAssets = removeItemFromArray(assets, assetId);
+    const assetsArray = formatArrayForDisplay(assets);
+    const updatedAssets = removeItemFromArray(assetsArray, assetId);
     await saveAssetWithTotals(updatedAssets);
   };
 
   // Debt management handlers
   const handleDeleteDebt = async (debtId: string) => {
-    const updatedDebts = removeItemFromArray(debts, debtId);
+    const debtsArray = formatArrayForDisplay(debts);
+    const updatedDebts = removeItemFromArray(debtsArray, debtId);
     await saveDebtWithTotals(updatedDebts);
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-surface-50 via-secondary-50/20 to-accent-50/30 flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-secondary-200 border-t-secondary-600 mx-auto mb-4"></div>
-            <div className="absolute inset-0 rounded-full h-16 w-16 border-4 border-transparent border-r-accent-400 animate-spin animation-delay-150 mx-auto"></div>
-          </div>
-          <p className="text-surface-700 font-medium">Loading your financial data...</p>
-        </div>
+        <LoadingSpinner 
+          size="xl" 
+          variant="secondary" 
+          text="Loading your financial data..." 
+        />
       </div>
     );
   }
@@ -182,16 +189,16 @@ export default function FinancialsRefactored() {
                 <Input
                   label="Annual Income"
                   type="number"
-                  value={financialInfo.annualIncome.toString()}
-                  onChange={(e) => setFinancialInfo({...financialInfo, annualIncome: parseFloat(e.target.value) || 0})}
+                  value={formatNumberForDisplay(financialInfo.annualIncome)}
+                  onChange={(e) => setFinancialInfo({...financialInfo, annualIncome: parseNumberInput(e.target.value)})}
                   placeholder="75000"
                 />
                 
                 <Input
                   label="Annual Expenses"
                   type="number"
-                  value={financialInfo.annualExpenses.toString()}
-                  onChange={(e) => setFinancialInfo({...financialInfo, annualExpenses: parseFloat(e.target.value) || 0})}
+                  value={formatNumberForDisplay(financialInfo.annualExpenses)}
+                  onChange={(e) => setFinancialInfo({...financialInfo, annualExpenses: parseNumberInput(e.target.value)})}
                   placeholder="45000"
                 />
               </div>
@@ -199,8 +206,8 @@ export default function FinancialsRefactored() {
               <Input
                 label="Current Savings"
                 type="number"
-                value={financialInfo.currentSavings.toString()}
-                onChange={(e) => setFinancialInfo({...financialInfo, currentSavings: parseFloat(e.target.value) || 0})}
+                value={formatNumberForDisplay(financialInfo.currentSavings)}
+                onChange={(e) => setFinancialInfo({...financialInfo, currentSavings: parseNumberInput(e.target.value)})}
                 placeholder="25000"
               />
             </div>
@@ -210,7 +217,7 @@ export default function FinancialsRefactored() {
           <Card className="p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-surface-900">
-                Assets ({assets.length}) - {formatCurrency(financialInfo.totalAssets || 0)}
+                Assets ({formatArrayForDisplay(assets).length}) - {formatCurrency(financialInfo.totalAssets || 0)}
               </h2>
               <Button 
                 onClick={() => assetModal.openModal()}
@@ -225,61 +232,79 @@ export default function FinancialsRefactored() {
             </div>
             
             <div className="space-y-4">
-              {assets.length === 0 ? (
-                <div className="text-center py-8 text-surface-500">
-                  <svg className="w-12 h-12 mx-auto mb-4 text-surface-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                  </svg>
-                  <p className="text-sm">No assets added yet. Add your first asset above!</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {assets.map((asset) => (
-                    <div key={asset.id} className="flex items-center space-x-4 p-4 border border-surface-200 rounded-lg bg-surface-50">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-surface-900">{asset.name}</h4>
-                        <div className="flex items-center mt-1">
-                          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
-                            {ASSET_TYPE_OPTIONS.find(opt => opt.value === asset.type)?.label}
-                          </span>
-                          {asset.description && (
-                            <span className="text-sm text-surface-600 ml-3">{asset.description}</span>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <span className="text-lg font-semibold text-green-600">
-                        {formatCurrency(asset.value)}
-                      </span>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => assetModal.openModal(asset)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteAsset(asset.id!)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          Delete
-                        </Button>
-                      </div>
+              {(() => {
+                const assetsArray = formatArrayForDisplay(assets);
+                const arrayStatus = getArrayStatus(assets);
+                
+                if (arrayStatus === 'not-entered') {
+                  return (
+                    <div className="text-center py-8 text-surface-500">
+                      <svg className="w-12 h-12 mx-auto mb-4 text-surface-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                      </svg>
+                      <p className="text-sm">Asset information not entered yet. Add your first asset above!</p>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                  );
+                } else if (arrayStatus === 'empty') {
+                  return (
+                    <div className="text-center py-8 text-surface-500">
+                      <svg className="w-12 h-12 mx-auto mb-4 text-surface-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                      </svg>
+                      <p className="text-sm">You confirmed you have no assets. Add one if this changes!</p>
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div className="space-y-3">
+                        {assetsArray.map((asset) => (
+                          <div key={asset.id} className="flex items-center space-x-4 p-4 border border-surface-200 rounded-lg bg-surface-50">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-surface-900">{asset.name}</h4>
+                              <div className="flex items-center mt-1">
+                                <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                                  {ASSET_TYPE_OPTIONS.find(opt => opt.value === asset.type)?.label}
+                                </span>
+                                {asset.description && (
+                                  <span className="text-sm text-surface-600 ml-3">{asset.description}</span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <span className="text-lg font-semibold text-green-600">
+                              {formatCurrency(asset.value)}
+                            </span>
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => assetModal.openModal(asset)}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteAsset(asset.id!)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                Delete
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                })()}
+              </div>
           </Card>
 
           {/* Debts */}
           <Card className="p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-surface-900">
-                Debts ({debts.length}) - {formatCurrency(financialInfo.totalDebts || 0)}
+                Debts ({formatArrayForDisplay(debts).length}) - {formatCurrency(financialInfo.totalDebts || 0)}
               </h2>
               <Button 
                 onClick={() => debtModal.openModal()}
@@ -294,57 +319,75 @@ export default function FinancialsRefactored() {
             </div>
             
             <div className="space-y-4">
-              {debts.length === 0 ? (
-                <div className="text-center py-8 text-surface-500">
-                  <svg className="w-12 h-12 mx-auto mb-4 text-surface-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                  </svg>
-                  <p className="text-sm">No debts added yet. Add your first debt above!</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {debts.map((debt) => (
-                    <div key={debt.id} className="flex items-center space-x-4 p-4 border border-surface-200 rounded-lg bg-surface-50">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-surface-900">{debt.name}</h4>
-                        <div className="flex items-center mt-1">
-                          <span className="text-xs px-2 py-1 bg-red-100 text-red-800 rounded-full">
-                            {DEBT_TYPE_OPTIONS.find(opt => opt.value === debt.type)?.label}
-                          </span>
-                          {debt.interestRate && (
-                            <span className="text-sm text-surface-600 ml-3">{debt.interestRate}% APR</span>
-                          )}
-                          {debt.description && (
-                            <span className="text-sm text-surface-600 ml-3">{debt.description}</span>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <span className="text-lg font-semibold text-red-600">
-                        {formatCurrency(debt.balance)}
-                      </span>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => debtModal.openModal(debt)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteDebt(debt.id!)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          Delete
-                        </Button>
-                      </div>
+              {(() => {
+                const debtsArray = formatArrayForDisplay(debts);
+                const arrayStatus = getArrayStatus(debts);
+                
+                if (arrayStatus === 'not-entered') {
+                  return (
+                    <div className="text-center py-8 text-surface-500">
+                      <svg className="w-12 h-12 mx-auto mb-4 text-surface-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                      </svg>
+                      <p className="text-sm">Debt information not entered yet. Add your first debt above!</p>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                  );
+                } else if (arrayStatus === 'empty') {
+                  return (
+                    <div className="text-center py-8 text-surface-500">
+                      <svg className="w-12 h-12 mx-auto mb-4 text-surface-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                      </svg>
+                      <p className="text-sm">You confirmed you have no debts. Great job!</p>
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div className="space-y-3">
+                                              {debtsArray.map((debt) => (
+                          <div key={debt.id} className="flex items-center space-x-4 p-4 border border-surface-200 rounded-lg bg-surface-50">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-surface-900">{debt.name}</h4>
+                              <div className="flex items-center mt-1">
+                                <span className="text-xs px-2 py-1 bg-red-100 text-red-800 rounded-full">
+                                  {DEBT_TYPE_OPTIONS.find(opt => opt.value === debt.type)?.label}
+                                </span>
+                                {debt.interestRate && (
+                                  <span className="text-sm text-surface-600 ml-3">{debt.interestRate}% APR</span>
+                                )}
+                                {debt.description && (
+                                  <span className="text-sm text-surface-600 ml-3">{debt.description}</span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <span className="text-lg font-semibold text-red-600">
+                              {formatCurrency(debt.balance)}
+                            </span>
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => debtModal.openModal(debt)}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteDebt(debt.id!)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                Delete
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                })()}
+              </div>
           </Card>
         </div>
 
@@ -389,7 +432,7 @@ export default function FinancialsRefactored() {
                 Cancel
               </Button>
               <Button 
-                onClick={() => assetModal.handleSave(assets, saveAssetWithTotals)}
+                onClick={() => assetModal.handleSave(formatArrayForDisplay(assets), saveAssetWithTotals)}
                 disabled={!assetModal.isFormValid}
               >
                 {assetModal.editingAsset ? 'Update Asset' : 'Add Asset'}
@@ -447,7 +490,7 @@ export default function FinancialsRefactored() {
                 Cancel
               </Button>
               <Button 
-                onClick={() => debtModal.handleSave(debts, saveDebtWithTotals)}
+                onClick={() => debtModal.handleSave(formatArrayForDisplay(debts), saveDebtWithTotals)}
                 disabled={!debtModal.isFormValid}
               >
                 {debtModal.editingDebt ? 'Update Debt' : 'Add Debt'}

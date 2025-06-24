@@ -7,7 +7,7 @@ interface Option {
 
 interface SelectProps {
   label?: string;
-  value?: string;
+  value?: string | null;
   onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   options: Option[];
   error?: string;
@@ -47,7 +47,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(({
       )}
       <select
         ref={ref}
-        value={value}
+        value={value ?? ''}
         onChange={onChange}
         required={required}
         disabled={disabled}

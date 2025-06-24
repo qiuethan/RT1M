@@ -243,16 +243,18 @@ export const Navbar: React.FC = () => {
   );
 };
 
-const NavLink: React.FC<{ to: string; children: React.ReactNode; className?: string; disabled?: boolean }> = ({
+const NavLink: React.FC<{ to: string; children: React.ReactNode; className?: string; disabled?: boolean; [key: string]: any }> = ({
   to,
   children,
   className = "",
-  disabled = false
+  disabled = false,
+  ...props
 }) => {
   if (disabled) {
     return (
       <div
         className={`px-4 py-2 text-sm font-medium text-surface-400 bg-surface-100/50 backdrop-blur-sm border border-surface-200/30 rounded-xl shadow-soft cursor-not-allowed opacity-60 ${className}`}
+        {...props}
       >
         {children}
       </div>
@@ -263,6 +265,7 @@ const NavLink: React.FC<{ to: string; children: React.ReactNode; className?: str
     <Link
       to={to}
       className={`px-4 py-2 text-sm font-medium text-surface-600 bg-surface-50/80 backdrop-blur-sm border border-surface-200/50 rounded-xl shadow-soft transition-all duration-300 hover:bg-primary-50 hover:text-primary-700 hover:border-primary-200 hover:shadow-medium hover:scale-105 active:scale-95 ${className}`}
+      {...props}
     >
       {children}
     </Link>

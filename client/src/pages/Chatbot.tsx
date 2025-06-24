@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { Button } from '../components/ui';
+import { Button, LoadingSpinner } from '../components/ui';
 import Footer from '../components/Footer';
 import { useChatContext } from '../contexts/ChatContext';
 
 export default function Chatbot() {
-  const { messages, addMessage, isTyping, setIsTyping, userName, clearMessages } = useChatContext();
+  const { messages, addMessage, isTyping, setIsTyping, userName, clearMessages, sendMessage, generatePlan, isReadyForPlan } = useChatContext();
   const [inputValue, setInputValue] = useState('');
   const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -40,17 +40,11 @@ export default function Chatbot() {
       sender: 'user'
     });
 
+    const messageText = inputValue;
     setInputValue('');
-    setIsTyping(true);
 
-    // Simulate bot response (replace with actual AI integration later)
-    setTimeout(() => {
-      addMessage({
-        text: "Thanks for your message! I'm still learning and will be able to provide personalized financial advice soon. In the meantime, feel free to explore your goals and track your progress!",
-        sender: 'bot'
-      });
-      setIsTyping(false);
-    }, 1000);
+    // Send message to AI
+    await sendMessage(messageText);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -145,13 +139,13 @@ export default function Chatbot() {
               {isTyping && (
                 <div className="flex justify-start">
                   <div className="bg-surface-100 border border-surface-200 text-surface-900 max-w-sm lg:max-w-2xl px-4 py-2 rounded-lg">
-                    <div className="flex items-center space-x-1">
-                      <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-surface-400 rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-surface-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                        <div className="w-2 h-2 bg-surface-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                      </div>
-                      <span className="text-xs text-surface-500 ml-2">AI is typing...</span>
+                    <div className="flex items-center space-x-3">
+                      <LoadingSpinner 
+                        size="sm" 
+                        variant="neutral" 
+                        showText={false}
+                      />
+                      <span className="text-xs text-surface-500">AI is typing...</span>
                     </div>
                   </div>
                 </div>
@@ -180,19 +174,12 @@ export default function Chatbot() {
                 <div>
                   <p className="text-sm text-surface-600 mb-3 font-medium">⭐ Our most powerful feature:</p>
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       addMessage({
                         text: "Make me a plan",
                         sender: 'user'
                       });
-                      setIsTyping(true);
-                      setTimeout(() => {
-                        addMessage({
-                          text: `Great choice, ${userName}! I'll create a comprehensive financial plan tailored specifically for you. Let me analyze your profile and goals to build a step-by-step roadmap to your RT1M target. This will include investment strategies, savings milestones, and actionable steps you can take starting today!`,
-                          sender: 'bot'
-                        });
-                        setIsTyping(false);
-                      }, 1500);
+                      await generatePlan();
                     }}
                     className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-gradient-to-r from-accent-400 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                   >

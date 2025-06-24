@@ -3,13 +3,13 @@ import { functions } from '../config/firebase';
 
 // Basic Information Interface
 export interface BasicInfo {
-  name: string;
+  name: string | null;
   email: string;
-  birthday: string;
-  location: string;
-  occupation: string;
-  country: string;
-  employmentStatus: string;
+  birthday: string | null;
+  location: string | null;
+  occupation: string | null;
+  country: string | null;
+  employmentStatus: string | null;
 }
 
 // Asset Interface
@@ -33,20 +33,20 @@ export interface Debt {
 
 // Financial Information Interface
 export interface FinancialInfo {
-  annualIncome: number;
-  annualExpenses: number;
-  totalAssets: number;
-  totalDebts: number;
-  currentSavings: number;
+  annualIncome: number | null;
+  annualExpenses: number | null;
+  totalAssets: number | null;
+  totalDebts: number | null;
+  currentSavings: number | null;
 }
 
 // Financial Goal Interface
 export interface FinancialGoal {
   targetAmount: number;
   targetYear: number;
-  timeframe?: string;
-  riskTolerance?: string;
-  primaryStrategy?: string;
+  timeframe?: string | null;
+  riskTolerance?: string | null;
+  primaryStrategy?: string | null;
 }
 
 // Intermediate Goal Interface
@@ -171,8 +171,8 @@ export interface UserFinancials {
   id?: string;
   userId: string;
   financialInfo: FinancialInfo;
-  assets: Asset[];
-  debts: Debt[];
+  assets: Asset[] | null; // null = not entered, [] = no assets
+  debts: Debt[] | null;   // null = not entered, [] = no debts
   createdAt: Date;
   updatedAt: Date;
 }
@@ -181,7 +181,7 @@ export interface UserFinancials {
 export interface UserGoals {
   id?: string;
   userId: string;
-  intermediateGoals: IntermediateGoal[];
+  intermediateGoals: IntermediateGoal[] | null; // null = not entered, [] = no goals
   createdAt: Date;
   updatedAt: Date;
 }
@@ -190,6 +190,31 @@ export interface UserGoals {
 export interface UserStats {
   financialInfo: FinancialInfo | null;
   netWorth: number;
+}
+
+// Chat Interfaces
+export interface ChatMessage {
+  text: string;
+  sender: 'user' | 'bot';
+}
+
+export interface ChatResponse {
+  success: boolean;
+  message: string;
+  extractedData?: {
+    personalInfo?: any;
+    financialInfo?: any;
+    goals?: any[];
+  };
+  updatedSections?: any;
+  isReadyForPlan?: boolean;
+  sessionId?: string;
+}
+
+export interface PlanGenerationResponse {
+  success: boolean;
+  message: string;
+  plan?: Plan;
 }
 
 // Goal Interface
@@ -432,6 +457,28 @@ export const deletePlan = async (planId: string) => {
 };
 
 // Generate dynamic milestones based on user's financial goal and intermediate goals
+// Chat and AI Functions
+export const sendChatMessage = async (message: string, sessionId?: string): Promise<ChatResponse> => {
+  const handleChatMessage = httpsCallable(functions, 'handleChatMessage');
+  return await handleFunctionCall(handleChatMessage, { message, sessionId });
+};
+
+export const generateFinancialPlan = async (goalId?: string, goalData?: any): Promise<PlanGenerationResponse> => {
+  const generatePlan = httpsCallable(functions, 'generateFinancialPlan');
+  return await handleFunctionCall(generatePlan, { goalId, goalData });
+};
+
+// Tour completion functions
+export const updateTourCompletion = async (tourName: string, completed: boolean = true) => {
+  const updateTourCompletionFn = httpsCallable(functions, 'updateTourCompletion');
+  return await handleFunctionCall(updateTourCompletionFn, { tourName, completed });
+};
+
+export const getTourCompletions = async () => {
+  const getTourCompletionsFn = httpsCallable(functions, 'getTourCompletions');
+  return await handleFunctionCall(getTourCompletionsFn);
+};
+
 export const generateDynamicMilestones = (
   currentAmount: number,
   targetAmount: number,

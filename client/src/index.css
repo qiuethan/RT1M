@@ -261,4 +261,33 @@
       transform: translate(0px, 0px) scale(1);
     }
   }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(1.02);
+    }
+  }
+
+  /* Tour specific styles */
+  .tour-highlight {
+    animation: pulse 2s infinite;
+  }
+
+  /* Ensure tour tooltips are always on top */
+  .tour-tooltip {
+    z-index: 10000 !important;
+  }
+
+  .tour-backdrop {
+    z-index: 9998 !important;
+  }
+
+  .tour-highlight-element {
+    z-index: 9999 !important;
+  }
 } 

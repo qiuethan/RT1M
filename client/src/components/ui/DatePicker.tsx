@@ -3,8 +3,8 @@ import { createPortal } from 'react-dom';
 
 interface DatePickerProps {
   label?: string;
-  value?: string;
-  onChange?: (date: string) => void;
+  value?: string | null;
+  onChange?: (date: string | null) => void;
   error?: string;
   required?: boolean;
   disabled?: boolean;

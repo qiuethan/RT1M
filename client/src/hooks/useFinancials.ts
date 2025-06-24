@@ -14,16 +14,16 @@ export interface UseFinancialsReturn {
   loading: boolean;
   savingSection: string | null;
   financialInfo: FinancialInfo;
-  assets: Asset[];
-  debts: Debt[];
+  assets: Asset[] | null;
+  debts: Debt[] | null;
   
   // Change detection
   hasFinancialInfoChanged: boolean;
   
   // Actions
   setFinancialInfo: (info: FinancialInfo) => void;
-  setAssets: (assets: Asset[]) => void;
-  setDebts: (debts: Debt[]) => void;
+  setAssets: (assets: Asset[] | null) => void;
+  setDebts: (debts: Debt[] | null) => void;
   saveFinancialInfo: () => Promise<void>;
   saveAssetWithTotals: (updatedAssets: Asset[]) => Promise<void>;
   saveDebtWithTotals: (updatedDebts: Debt[]) => Promise<void>;
@@ -41,22 +41,22 @@ export const useFinancials = (): UseFinancialsReturn => {
   const [loading, setLoading] = useState(true);
   const [savingSection, setSavingSection] = useState<string | null>(null);
   const [financialInfo, setFinancialInfo] = useState<FinancialInfo>({
-    annualIncome: 0,
-    annualExpenses: 0,
-    totalAssets: 0,
-    totalDebts: 0,
-    currentSavings: 0
+    annualIncome: null,
+    annualExpenses: null,
+    totalAssets: null,
+    totalDebts: null,
+    currentSavings: null
   });
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [debts, setDebts] = useState<Debt[]>([]);
+  const [assets, setAssets] = useState<Asset[] | null>(null);
+  const [debts, setDebts] = useState<Debt[] | null>(null);
   
   // Original data for change detection
   const [originalFinancialInfo, setOriginalFinancialInfo] = useState<FinancialInfo>({
-    annualIncome: 0,
-    annualExpenses: 0,
-    totalAssets: 0,
-    totalDebts: 0,
-    currentSavings: 0
+    annualIncome: null,
+    annualExpenses: null,
+    totalAssets: null,
+    totalDebts: null,
+    currentSavings: null
   });
 
   // Load financial data on component mount
@@ -76,19 +76,19 @@ export const useFinancials = (): UseFinancialsReturn => {
           console.log('Setting debts:', financials.debts);
           
           const defaultFinancialInfo = {
-            annualIncome: 0,
-            annualExpenses: 0,
-            totalAssets: 0,
-            totalDebts: 0,
-            currentSavings: 0
+            annualIncome: null,
+            annualExpenses: null,
+            totalAssets: null,
+            totalDebts: null,
+            currentSavings: null
           };
           
           const loadedFinancialInfo = financials.financialInfo || defaultFinancialInfo;
           
           setFinancialInfo(loadedFinancialInfo);
           setOriginalFinancialInfo(loadedFinancialInfo);
-          setAssets(financials.assets || []);
-          setDebts(financials.debts || []);
+          setAssets(financials.assets || null);
+          setDebts(financials.debts || null);
         } else {
           console.log('No financials data found');
         }
@@ -104,8 +104,8 @@ export const useFinancials = (): UseFinancialsReturn => {
 
   // Calculate totals from individual assets and debts
   useEffect(() => {
-    const totalAssetValue = assets.reduce((sum, asset) => sum + asset.value, 0);
-    const totalDebtBalance = debts.reduce((sum, debt) => sum + debt.balance, 0);
+    const totalAssetValue = assets ? assets.reduce((sum, asset) => sum + asset.value, 0) : 0;
+    const totalDebtBalance = debts ? debts.reduce((sum, debt) => sum + debt.balance, 0) : 0;
     
     setFinancialInfo(prev => ({
       ...prev,
