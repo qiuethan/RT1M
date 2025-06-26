@@ -96,8 +96,7 @@ export const createUserProfile = onCall(async (request) => {
       financialInfo: {
         annualIncome: null,
         annualExpenses: null,
-        totalAssets: null,
-        totalDebts: null,
+
         currentSavings: null,
       },
 
@@ -205,9 +204,9 @@ export const getUserStats = onCall(async (request) => {
     logger.info(`getUserStats - Debts found: ${debts.length}`, debts);
 
     // Only calculate if we have actual arrays (not null)
-    const totalAssetsFromList = Array.isArray(assets) ? 
+    const totalAssetsFromList = Array.isArray(assets) ?
       assets.reduce((sum, asset) => sum + (asset.value || 0), 0) : 0;
-    const totalDebtsFromList = Array.isArray(debts) ? 
+    const totalDebtsFromList = Array.isArray(debts) ?
       debts.reduce((sum, debt) => sum + (debt.balance || 0), 0) : 0;
 
     logger.info(`getUserStats - Total assets: ${totalAssetsFromList}, 
@@ -584,8 +583,7 @@ export const getUserFinancials = onCall(async (request) => {
       financialInfo: financialsData.financialInfo || {
         annualIncome: 0,
         annualExpenses: 0,
-        totalAssets: 0,
-        totalDebts: 0,
+
         currentSavings: 0,
       },
       assets: financialsData.assets || [],
@@ -1030,7 +1028,7 @@ export const updateTourCompletion = onCall(async (request) => {
 
     logger.info(`Updated tour completion for ${tourName} (${completed}) for UID: ${uid}`);
     return {
-      success: true, 
+      success: true,
       message: `Tour ${tourName} completion status updated`,
       tourCompletions,
     };
@@ -1084,6 +1082,12 @@ export {
 export {
   handleChatMessage,
 } from "./handlers/ai_chat.js";
+
+// Smart Chat Handling (Token-Optimized)
+export {
+  handleSmartChatMessage,
+  getSmartChatStats,
+} from "./handlers/ai_smart_chat.js";
 
 // Plan Generation
 export {

@@ -43,8 +43,6 @@ export const useFinancials = (): UseFinancialsReturn => {
   const [financialInfo, setFinancialInfo] = useState<FinancialInfo>({
     annualIncome: null,
     annualExpenses: null,
-    totalAssets: null,
-    totalDebts: null,
     currentSavings: null
   });
   const [assets, setAssets] = useState<Asset[] | null>(null);
@@ -54,8 +52,6 @@ export const useFinancials = (): UseFinancialsReturn => {
   const [originalFinancialInfo, setOriginalFinancialInfo] = useState<FinancialInfo>({
     annualIncome: null,
     annualExpenses: null,
-    totalAssets: null,
-    totalDebts: null,
     currentSavings: null
   });
 
@@ -78,8 +74,6 @@ export const useFinancials = (): UseFinancialsReturn => {
           const defaultFinancialInfo = {
             annualIncome: null,
             annualExpenses: null,
-            totalAssets: null,
-            totalDebts: null,
             currentSavings: null
           };
           
@@ -102,17 +96,7 @@ export const useFinancials = (): UseFinancialsReturn => {
     loadFinancials();
   }, [currentUser]);
 
-  // Calculate totals from individual assets and debts
-  useEffect(() => {
-    const totalAssetValue = assets ? assets.reduce((sum, asset) => sum + asset.value, 0) : 0;
-    const totalDebtBalance = debts ? debts.reduce((sum, debt) => sum + debt.balance, 0) : 0;
-    
-    setFinancialInfo(prev => ({
-      ...prev,
-      totalAssets: totalAssetValue,
-      totalDebts: totalDebtBalance
-    }));
-  }, [assets, debts]);
+  // No longer need to track totals in financialInfo - calculate on demand
 
   // Actions
   const saveFinancialInfo = async () => {
@@ -134,27 +118,14 @@ export const useFinancials = (): UseFinancialsReturn => {
   const saveAssetWithTotals = async (updatedAssets: Asset[]) => {
     setSavingSection('assets');
     try {
-      // Calculate new totals
-      const newTotalAssets = updatedAssets.reduce((sum, asset) => sum + asset.value, 0);
-      const updatedFinancialInfo = {
-        ...financialInfo,
-        totalAssets: newTotalAssets
-      };
-
       console.log('Saving assets:', updatedAssets);
-      console.log('Saving updated financial info:', updatedFinancialInfo);
       
-      // Save assets
+      // Save assets (no need to save totals separately)
       const assetsResult = await updateUserFinancialsSection('assets', updatedAssets);
       console.log('Assets save result:', assetsResult);
       
-      // Save updated financial info
-      const infoResult = await updateUserFinancialsSection('financialInfo', updatedFinancialInfo);
-      console.log('Financial info save result:', infoResult);
-      
       // Update local state
       setAssets(updatedAssets);
-      setFinancialInfo(updatedFinancialInfo);
     } catch (error) {
       console.error('Error saving assets:', error);
       alert('Failed to save assets. Please try again.');
@@ -166,27 +137,14 @@ export const useFinancials = (): UseFinancialsReturn => {
   const saveDebtWithTotals = async (updatedDebts: Debt[]) => {
     setSavingSection('debts');
     try {
-      // Calculate new totals
-      const newTotalDebts = updatedDebts.reduce((sum, debt) => sum + debt.balance, 0);
-      const updatedFinancialInfo = {
-        ...financialInfo,
-        totalDebts: newTotalDebts
-      };
-
       console.log('Saving debts:', updatedDebts);
-      console.log('Saving updated financial info:', updatedFinancialInfo);
       
-      // Save debts
+      // Save debts (no need to save totals separately)
       const debtsResult = await updateUserFinancialsSection('debts', updatedDebts);
       console.log('Debts save result:', debtsResult);
       
-      // Save updated financial info
-      const infoResult = await updateUserFinancialsSection('financialInfo', updatedFinancialInfo);
-      console.log('Financial info save result:', infoResult);
-      
       // Update local state
       setDebts(updatedDebts);
-      setFinancialInfo(updatedFinancialInfo);
     } catch (error) {
       console.error('Error saving debts:', error);
       alert('Failed to save debts. Please try again.');
@@ -197,7 +155,9 @@ export const useFinancials = (): UseFinancialsReturn => {
 
   // Calculations
   const calculateNetWorth = () => {
-    return (financialInfo.totalAssets || 0) - (financialInfo.totalDebts || 0);
+    const totalAssets = assets ? assets.reduce((sum, asset) => sum + asset.value, 0) : 0;
+    const totalDebts = debts ? debts.reduce((sum, debt) => sum + debt.balance, 0) : 0;
+    return totalAssets - totalDebts;
   };
 
   const calculateCashFlow = () => {

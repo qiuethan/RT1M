@@ -79,8 +79,6 @@ export const SAVINGS_RATE_THRESHOLDS = {
 export const DEFAULT_FINANCIAL_INFO = {
   annualIncome: 0,
   annualExpenses: 0,
-  totalAssets: 0,
-  totalDebts: 0,
   currentSavings: 0
 } as const;
 

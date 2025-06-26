@@ -27,8 +27,6 @@ export const getUserFinancials = onCall(async (request) => {
           financialInfo: {
             annualIncome: 0,
             annualExpenses: 0,
-            totalAssets: 0,
-            totalDebts: 0,
             currentSavings: 0,
           },
           assets: [],
@@ -44,8 +42,6 @@ export const getUserFinancials = onCall(async (request) => {
         financialInfo: financialsData.financialInfo || {
           annualIncome: 0,
           annualExpenses: 0,
-          totalAssets: 0,
-          totalDebts: 0,
           currentSavings: 0,
         },
         assets: financialsData.assets || [],

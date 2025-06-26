@@ -43,10 +43,19 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isMiniChatbotOpen, setIsMiniChatbotOpen] = useState(true);
   const [isReadyForPlan, setIsReadyForPlan] = useState(false);
 
-  // Load user's name and set initial message
+  // Load user's name and set initial message - Clear state on logout
   useEffect(() => {
     const loadUserData = async () => {
-      if (!currentUser) return;
+      if (!currentUser) {
+        // User logged out - clear all chat state
+        console.log('User logged out, clearing chat state');
+        setMessages([]);
+        setUserName('');
+        setIsTyping(false);
+        setIsReadyForPlan(false);
+        setIsMiniChatbotOpen(true);
+        return;
+      }
       
       try {
         const profile = await getUserProfile();
@@ -54,34 +63,32 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const firstName = name.split(' ')[0];
         setUserName(firstName);
         
-        // Set personalized initial message if no messages exist
-        if (messages.length === 0) {
-          const initialMessage: ChatMessage = {
-            id: '1',
-            text: `Hi ${firstName}! I'm your AI financial advisor. How can I help you today?`,
-            sender: 'bot',
-            timestamp: new Date()
-          };
-          setMessages([initialMessage]);
-        }
+        // Set personalized initial message for new user session
+        const initialMessage: ChatMessage = {
+          id: '1',
+          text: `Hi ${firstName}! I'm your AI financial advisor. How can I help you today?`,
+          sender: 'bot',
+          timestamp: new Date()
+        };
+        setMessages([initialMessage]);
+        
+        console.log(`Chat initialized for user: ${firstName}`);
       } catch (error) {
         console.error('Error loading user data:', error);
         setUserName('there');
         // Fallback to generic message
-        if (messages.length === 0) {
-          const fallbackMessage: ChatMessage = {
-            id: '1',
-            text: "Hi! I'm your AI financial advisor. How can I help you today?",
-            sender: 'bot',
-            timestamp: new Date()
-          };
-          setMessages([fallbackMessage]);
-        }
+        const fallbackMessage: ChatMessage = {
+          id: '1',
+          text: "Hi! I'm your AI financial advisor. How can I help you today?",
+          sender: 'bot',
+          timestamp: new Date()
+        };
+        setMessages([fallbackMessage]);
       }
     };
 
     loadUserData();
-  }, [currentUser, messages.length]);
+  }, [currentUser]); // Removed messages.length dependency to avoid infinite loops
 
   const addMessage = (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
     const newMessage: ChatMessage = {
@@ -110,17 +117,19 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const sendMessage = async (message: string) => {
     try {
       setIsTyping(true);
+      
+      // Server now loads conversation history from Firestore automatically
       const response = await sendChatMessage(message, `session_${currentUser?.uid}`);
       
       if (response.success) {
         addMessage({
-          text: response.message,
+          text: response.data?.message || response.message || "I'm having trouble responding right now.",
           sender: 'bot'
         });
         
-        // Update readiness for plan generation
-        if (response.isReadyForPlan !== undefined) {
-          setIsReadyForPlan(response.isReadyForPlan);
+        // Update readiness for plan generation  
+        if (response.isReadyForPlan !== undefined || response.data?.isReadyForPlan !== undefined) {
+          setIsReadyForPlan(response.isReadyForPlan || response.data?.isReadyForPlan || false);
         }
       } else {
         addMessage({

@@ -2,8 +2,10 @@ import { FinancialInfo, Asset, Debt, IntermediateGoal, DynamicMilestone } from '
 import { MILESTONE_PERCENTAGES, SAVINGS_RATE_THRESHOLDS } from '../constants/financial';
 
 // Financial Calculations
-export const calculateNetWorth = (financialInfo: FinancialInfo): number => {
-  return (financialInfo.totalAssets || 0) - (financialInfo.totalDebts || 0);
+export const calculateNetWorth = (assets: Asset[], debts: Debt[]): number => {
+  const totalAssets = calculateTotalAssets(assets);
+  const totalDebts = calculateTotalDebts(debts);
+  return totalAssets - totalDebts;
 };
 
 export const calculateCashFlow = (financialInfo: FinancialInfo): number => {
@@ -142,6 +144,16 @@ export const formatCurrency = (amount: number, currency = 'USD'): string => {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);
+};
+
+export const formatCurrencyOrEmpty = (amount: number | null, currency = 'USD'): string => {
+  if (amount === null || amount === undefined) return 'Not Entered';
+  return formatCurrency(amount, currency);
+};
+
+export const formatNumberOrEmpty = (value: number | null): string => {
+  if (value === null || value === undefined) return 'Not Entered';
+  return value.toLocaleString();
 };
 
 export const formatPercentage = (value: number): string => {

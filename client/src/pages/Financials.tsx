@@ -13,7 +13,9 @@ import {
   getSavingsRateColor, 
   getNetWorthColor, 
   getCashFlowColor,
-  removeItemFromArray
+  removeItemFromArray,
+  calculateTotalAssets,
+  calculateTotalDebts
 } from '../utils/financial';
 import { 
   formatNumberForDisplay, 
@@ -123,7 +125,7 @@ export default function FinancialsRefactored() {
                 </svg>
               </div>
               <div className="text-2xl font-bold text-primary-700 mb-2">
-                {formatCurrency(financialInfo.totalAssets || 0)}
+                {formatCurrency(calculateTotalAssets(assets || []))}
               </div>
               <div className="text-sm text-primary-600 font-medium">Total Assets</div>
             </Card>
@@ -217,7 +219,7 @@ export default function FinancialsRefactored() {
           <Card className="p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-surface-900">
-                Assets ({formatArrayForDisplay(assets).length}) - {formatCurrency(financialInfo.totalAssets || 0)}
+                Assets ({formatArrayForDisplay(assets).length}) - {formatCurrency(calculateTotalAssets(assets || []))}
               </h2>
               <Button 
                 onClick={() => assetModal.openModal()}
@@ -304,7 +306,7 @@ export default function FinancialsRefactored() {
           <Card className="p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-surface-900">
-                Debts ({formatArrayForDisplay(debts).length}) - {formatCurrency(financialInfo.totalDebts || 0)}
+                Debts ({formatArrayForDisplay(debts).length}) - {formatCurrency(calculateTotalDebts(debts || []))}
               </h2>
               <Button 
                 onClick={() => debtModal.openModal()}

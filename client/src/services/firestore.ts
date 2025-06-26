@@ -35,8 +35,6 @@ export interface Debt {
 export interface FinancialInfo {
   annualIncome: number | null;
   annualExpenses: number | null;
-  totalAssets: number | null;
-  totalDebts: number | null;
   currentSavings: number | null;
 }
 
@@ -171,8 +169,8 @@ export interface UserFinancials {
   id?: string;
   userId: string;
   financialInfo: FinancialInfo;
-  assets: Asset[] | null; // null = not entered, [] = no assets
-  debts: Debt[] | null;   // null = not entered, [] = no debts
+  assets: Asset[] | null; // null = not entered, [] = no assets (AI always returns [])
+  debts: Debt[] | null;   // null = not entered, [] = no debts (AI always returns [])
   createdAt: Date;
   updatedAt: Date;
 }
@@ -200,7 +198,20 @@ export interface ChatMessage {
 
 export interface ChatResponse {
   success: boolean;
-  message: string;
+  message?: string; // Legacy support for old chat
+  data?: {
+    message: string;
+    financialInfo?: any;
+    assets?: any[]; // Always array (never null from AI)
+    debts?: any[];  // Always array (never null from AI)
+    goals?: any[];
+    skills?: any;
+    usedUserData?: boolean;
+    tokensSaved?: number;
+    routingDecision?: any;
+    responseSource?: string;
+    isReadyForPlan?: boolean;
+  };
   extractedData?: {
     personalInfo?: any;
     financialInfo?: any;
@@ -459,8 +470,8 @@ export const deletePlan = async (planId: string) => {
 // Generate dynamic milestones based on user's financial goal and intermediate goals
 // Chat and AI Functions
 export const sendChatMessage = async (message: string, sessionId?: string): Promise<ChatResponse> => {
-  const handleChatMessage = httpsCallable(functions, 'handleChatMessage');
-  return await handleFunctionCall(handleChatMessage, { message, sessionId });
+  const handleSmartChatMessage = httpsCallable(functions, 'handleSmartChatMessage');
+  return await handleFunctionCall(handleSmartChatMessage, { message, sessionId });
 };
 
 export const generateFinancialPlan = async (goalId?: string, goalData?: any): Promise<PlanGenerationResponse> => {

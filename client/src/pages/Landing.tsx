@@ -247,7 +247,7 @@ export default function Landing() {
               <Button variant="secondary" size="xl" className="w-full sm:w-auto">
                 Get Started Free
               </Button>
-            </Link>3
+            </Link>
           </div>
         </div>
       </section>

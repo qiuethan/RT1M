@@ -71,9 +71,19 @@ export const generateId = (): string => {
  */
 export const formatNumberForDisplay = (value: number | null): string => {
   if (value === null || value === undefined) {
-    return '0';
+    return '';
   }
   return value.toString();
+};
+
+/**
+ * Format number with placeholder when null
+ */
+export const formatNumberWithPlaceholder = (value: number | null, placeholder: string = 'Not Entered'): string => {
+  if (value === null || value === undefined) {
+    return placeholder;
+  }
+  return value.toLocaleString();
 };
 
 /**
