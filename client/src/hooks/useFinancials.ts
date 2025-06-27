@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useChatContext } from '../contexts/ChatContext';
 import { 
   getUserFinancials,
   updateUserFinancialsSection,
@@ -32,10 +33,14 @@ export interface UseFinancialsReturn {
   calculateNetWorth: () => number;
   calculateCashFlow: () => number;
   calculateSavingsRate: () => number;
+  
+  // Data refresh
+  refreshData: () => Promise<void>;
 }
 
 export const useFinancials = (): UseFinancialsReturn => {
   const { currentUser } = useAuth();
+  const { registerDataRefreshCallback, unregisterDataRefreshCallback } = useChatContext();
   
   // State
   const [loading, setLoading] = useState(true);
@@ -54,6 +59,35 @@ export const useFinancials = (): UseFinancialsReturn => {
     annualExpenses: null,
     currentSavings: null
   });
+
+  // Refresh data function
+  const refreshData = useCallback(async () => {
+    if (!currentUser) return;
+    
+    try {
+      console.log('Refreshing financials data due to AI update');
+      const financials = await getUserFinancials();
+      
+      if (financials) {
+        const defaultFinancialInfo = {
+          annualIncome: null,
+          annualExpenses: null,
+          currentSavings: null
+        };
+        
+        const loadedFinancialInfo = financials.financialInfo || defaultFinancialInfo;
+        
+        setFinancialInfo(loadedFinancialInfo);
+        setOriginalFinancialInfo(loadedFinancialInfo);
+        setAssets(financials.assets || null);
+        setDebts(financials.debts || null);
+        
+        console.log('Financials refreshed successfully');
+      }
+    } catch (error) {
+      console.error('Error refreshing financials:', error);
+    }
+  }, [currentUser]);
 
   // Load financial data on component mount
   useEffect(() => {
@@ -95,6 +129,15 @@ export const useFinancials = (): UseFinancialsReturn => {
 
     loadFinancials();
   }, [currentUser]);
+
+  // Register for data refresh callbacks from chat
+  useEffect(() => {
+    registerDataRefreshCallback(refreshData);
+    
+    return () => {
+      unregisterDataRefreshCallback(refreshData);
+    };
+  }, [refreshData, registerDataRefreshCallback, unregisterDataRefreshCallback]);
 
   // No longer need to track totals in financialInfo - calculate on demand
 
@@ -195,5 +238,8 @@ export const useFinancials = (): UseFinancialsReturn => {
     calculateNetWorth,
     calculateCashFlow,
     calculateSavingsRate,
+    
+    // Data refresh
+    refreshData,
   };
 }; 

@@ -7,4 +7,6 @@ export { default as Modal } from './Modal';
 export { default as Logo } from './Logo';
 export { default as DatePicker } from './DatePicker';
 export { default as LoadingSpinner } from './LoadingSpinner';
+export { ToastContainer, useToast } from './Toast';
+export type { Toast } from './Toast';
  

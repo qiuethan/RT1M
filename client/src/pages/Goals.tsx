@@ -4,29 +4,30 @@ import { Card, Button, Badge, Modal, Input, Select, DatePicker, LoadingSpinner }
 import Footer from '../components/Footer';
 import { MiniChatbot } from '../components/MiniChatbot';
 import { 
-  getUserProfile, 
-  getUserStats,
-  getUserIntermediateGoals,
-  addIntermediateGoal,
-  updateIntermediateGoal,
-  deleteIntermediateGoal,
-  UserProfile,
-  UserStats,
-  UserGoals,
   IntermediateGoal
 } from '../services/firestore';
 import { isFormChanged, useUnsavedChanges, UnsavedChangesPrompt } from '../utils/unsavedChanges';
+import { useGoals } from '../hooks/useGoals';
 
 export default function Goals() {
   const { currentUser } = useAuth();
+  const { 
+    loading, 
+    saving, 
+    profile, 
+    stats, 
+    goals, 
+    addGoal, 
+    updateGoal, 
+    deleteGoal,
+    calculateMainGoalProgress,
+    calculateYearsRemaining,
+    calculateMonthlyTarget,
+    getMainGoalStatus
+  } = useGoals();
   const [userName, setUserName] = useState<string>('');
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [stats, setStats] = useState<UserStats | null>(null);
-  const [goals, setGoals] = useState<UserGoals | null>(null);
-  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingGoal, setEditingGoal] = useState<IntermediateGoal | null>(null);
-  const [saving, setSaving] = useState(false);
   const [goalForm, setGoalForm] = useState({
     title: '',
     type: 'financial' as 'financial' | 'skill' | 'behavior' | 'lifestyle' | 'networking' | 'project',
@@ -49,34 +50,13 @@ export default function Goals() {
     'You have unsaved changes to your goal. Are you sure you want to leave without saving?'
   );
 
-  // Load all data on component mount
+  // Set user name when profile loads
   useEffect(() => {
-    const loadData = async () => {
-      if (!currentUser) return;
-      
-      try {
-        setLoading(true);
-        const [profileData, statsData, goalsData] = await Promise.all([
-          getUserProfile(),
-          getUserStats(),
-          getUserIntermediateGoals()
-        ]);
-        setProfile(profileData);
-        setStats(statsData);
-        setGoals(goalsData);
-        
-        // Set user name for personalization
-        const name = profileData?.basicInfo?.name || currentUser.displayName || currentUser.email?.split('@')[0] || '';
-        setUserName(name.split(' ')[0]); // Use first name only
-      } catch (error) {
-        console.error('Error loading data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, [currentUser]);
+    if (profile && currentUser) {
+      const name = profile.basicInfo?.name || currentUser.displayName || currentUser.email?.split('@')[0] || '';
+      setUserName(name.split(' ')[0]); // Use first name only
+    }
+  }, [profile, currentUser]);
 
   const openAddModal = () => {
     setEditingGoal(null);
@@ -118,8 +98,6 @@ export default function Goals() {
     if (!goalForm.title || !goalForm.type) return;
 
     try {
-      setSaving(true);
-      
       const newGoal: IntermediateGoal = {
         id: editingGoal?.id || Date.now().toString(),
         title: goalForm.title,
@@ -133,67 +111,26 @@ export default function Goals() {
         category: goalForm.category || undefined
       };
 
-      if (editingGoal) {
-        await updateIntermediateGoal(editingGoal.id!, newGoal);
+      if (editingGoal && editingGoal.id) {
+        await updateGoal(editingGoal.id, newGoal);
       } else {
-        await addIntermediateGoal(newGoal);
+        await addGoal(newGoal);
       }
 
-      // Reload goals data
-      const updatedGoals = await getUserIntermediateGoals();
-      setGoals(updatedGoals);
       setShowModal(false);
       
     } catch (error) {
       console.error('Error saving goal:', error);
-    } finally {
-      setSaving(false);
     }
   };
 
   const handleDeleteGoal = async (goalId: string) => {
     try {
-      setSaving(true);
-      
-      await deleteIntermediateGoal(goalId);
-      
-      // Reload goals data
-      const updatedGoals = await getUserIntermediateGoals();
-      setGoals(updatedGoals);
+      await deleteGoal(goalId);
       setShowModal(false);
-      
     } catch (error) {
       console.error('Error deleting goal:', error);
-    } finally {
-      setSaving(false);
     }
-  };
-
-  const calculateMainGoalProgress = () => {
-    if (!profile?.financialGoal?.targetAmount || !stats?.netWorth) return 0;
-    return Math.min((stats.netWorth / profile.financialGoal.targetAmount) * 100, 100);
-  };
-
-  const calculateYearsRemaining = () => {
-    if (!profile?.financialGoal?.targetYear) return 0;
-    return Math.max(profile.financialGoal.targetYear - new Date().getFullYear(), 0);
-  };
-
-  const calculateMonthlyTarget = () => {
-    if (!profile?.financialGoal?.targetAmount || !stats?.netWorth) return 0;
-    const remaining = profile.financialGoal.targetAmount - stats.netWorth;
-    const yearsRemaining = calculateYearsRemaining();
-    if (yearsRemaining <= 0) return 0;
-    return remaining / (yearsRemaining * 12);
-  };
-
-  const getMainGoalStatus = () => {
-    const progress = calculateMainGoalProgress();
-    if (progress >= 100) return 'Achieved';
-    if (progress >= 75) return 'On Track';
-    if (progress >= 50) return 'Making Progress';
-    if (progress >= 25) return 'Getting Started';
-    return 'Just Starting';
   };
 
   const getStatusColor = (status: string) => {
@@ -586,7 +523,7 @@ export default function Goals() {
             <DatePicker
               label="Target Date (Optional)"
               value={goalForm.targetDate}
-              onChange={(date) => setGoalForm({...goalForm, targetDate: date})}
+              onChange={(date) => setGoalForm({...goalForm, targetDate: date || ''})}
             />
             
             <Select
@@ -608,7 +545,7 @@ export default function Goals() {
             />
             
             <div className="flex justify-between pt-4">
-              {editingGoal && (
+              {editingGoal && editingGoal.id && (
                 <Button 
                   variant="outline" 
                   onClick={() => handleDeleteGoal(editingGoal.id!)}

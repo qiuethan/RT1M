@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useChatContext } from '../contexts/ChatContext';
 import { Card, Button, Badge, Modal, Input, Select, DatePicker, LoadingSpinner } from '../components/ui';
 import Footer from '../components/Footer';
 import { MiniChatbot } from '../components/MiniChatbot';
@@ -19,6 +20,7 @@ import { useLocation } from 'react-router-dom';
 
 export const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
+  const { registerDataRefreshCallback, unregisterDataRefreshCallback } = useChatContext();
 
   const location = useLocation();
   const [userName, setUserName] = useState<string>('');
@@ -118,6 +120,49 @@ export const Dashboard: React.FC = () => {
 
     loadDashboardData();
   }, [currentUser]);
+
+  // Register for data refresh callbacks from chat
+  useEffect(() => {
+    const refreshData = async () => {
+      if (!currentUser) return;
+      
+      try {
+        console.log('Dashboard - Refreshing data due to AI update');
+        const [userStats, userProfile, userGoals] = await Promise.all([
+          getUserStats(),
+          getUserProfile(),
+          getUserIntermediateGoals()
+        ]);
+        
+        setStats(userStats);
+        setProfile(userProfile);
+        setGoals(userGoals);
+
+        // Set user name for personalization
+        if (userProfile?.basicInfo?.name) {
+          setUserName(userProfile.basicInfo.name.split(' ')[0]);
+        }
+
+        // Generate next milestone
+        if (userStats && userProfile) {
+          const currentAmount = userStats.netWorth || 0;
+          const targetAmount = userProfile.financialGoal?.targetAmount || 1000000;
+          const milestone = generateNextMilestone(currentAmount, targetAmount);
+          setNextMilestone(milestone);
+        }
+        
+        console.log('Dashboard - Data refreshed successfully');
+      } catch (error) {
+        console.error('Dashboard - Error refreshing data:', error);
+      }
+    };
+
+    registerDataRefreshCallback(refreshData);
+    
+    return () => {
+      unregisterDataRefreshCallback(refreshData);
+    };
+  }, [currentUser, registerDataRefreshCallback, unregisterDataRefreshCallback]);
 
   const openAddModal = () => {
     const newForm = {

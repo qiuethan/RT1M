@@ -191,8 +191,9 @@ const runAssistant = async (client, assistantId, message, context = {}, userId =
       if (assistantMessage.content[0].type === 'text') {
         const textContent = assistantMessage.content[0].text.value;
         
-        // Try to parse as JSON first
+        // Try to parse as JSON first - handle cases where JSON has extra text
         try {
+          // First try direct parsing
           response = JSON.parse(textContent);
           logger.info(`✅ ASSISTANT: JSON response parsed`, {
             userId,
@@ -201,14 +202,39 @@ const runAssistant = async (client, assistantId, message, context = {}, userId =
             hasResponse: !!response
           });
         } catch (parseError) {
-          // If not JSON, treat as plain text
-          response = { message: textContent };
-          logger.info(`📝 ASSISTANT: Text response`, {
-            userId,
-            assistantId: assistantId.substring(0, 10),
-            duration: `${duration}ms`,
-            responseLength: textContent.length
-          });
+          // Try to extract JSON from mixed content
+          const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            try {
+              response = JSON.parse(jsonMatch[0]);
+              logger.info(`✅ ASSISTANT: JSON extracted from mixed content`, {
+                userId,
+                assistantId: assistantId.substring(0, 10),
+                duration: `${duration}ms`,
+                originalLength: textContent.length,
+                extractedLength: jsonMatch[0].length
+              });
+            } catch (extractError) {
+              // If JSON extraction fails, treat as plain text
+              response = { message: textContent };
+              logger.warn(`⚠️ ASSISTANT: JSON extraction failed, using as text`, {
+                userId,
+                assistantId: assistantId.substring(0, 10),
+                parseError: parseError.message,
+                extractError: extractError.message,
+                contentPreview: textContent.substring(0, 200)
+              });
+            }
+          } else {
+            // No JSON found, treat as plain text
+            response = { message: textContent };
+            logger.info(`📝 ASSISTANT: Text response (no JSON found)`, {
+              userId,
+              assistantId: assistantId.substring(0, 10),
+              duration: `${duration}ms`,
+              responseLength: textContent.length
+            });
+          }
         }
       }
       
@@ -330,10 +356,55 @@ export const getPersonalizedAdviceWithAssistant = async (client, message, userCo
       throw new Error("CONTEXT_ASSISTANT_ID not configured");
     }
     
-    // Prepare full context for personalized assistant
+    // Prepare full context for personalized assistant - include detailed existing data for duplicate prevention
     const fullContext = {
       ...userContext,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      // Include full details of existing data (limited to prevent context overload)
+      existingData: {
+        // Show up to 10 most recent goals with full details
+        goals: (userContext.currentGoals || []).slice(0, 10).map(g => ({
+          id: g.id,
+          title: g.title,
+          type: g.type,
+          targetAmount: g.targetAmount,
+          currentAmount: g.currentAmount,
+          progress: g.progress,
+          targetDate: g.targetDate,
+          status: g.status,
+          description: g.description
+        })),
+        // Show up to 10 most valuable assets with full details
+        assets: (userContext.assets || []).slice(0, 10).map(a => ({
+          id: a.id,
+          name: a.name,
+          type: a.type,
+          value: a.value,
+          description: a.description
+        })),
+        // Show up to 10 largest debts with full details
+        debts: (userContext.debts || []).slice(0, 10).map(d => ({
+          id: d.id,
+          name: d.name,
+          type: d.type,
+          balance: d.balance,
+          interestRate: d.interestRate,
+          description: d.description
+        })),
+        // Show complete financial info
+        financialInfo: userContext.financialInfo || {},
+        // Include counts if we're limiting data
+        counts: {
+          totalGoals: (userContext.currentGoals || []).length,
+          totalAssets: (userContext.assets || []).length,
+          totalDebts: (userContext.debts || []).length,
+          showingAllData: {
+            goals: (userContext.currentGoals || []).length <= 10,
+            assets: (userContext.assets || []).length <= 10,
+            debts: (userContext.debts || []).length <= 10
+          }
+        }
+      }
     };
     
     const response = await runAssistant(
@@ -668,88 +739,148 @@ const updateUserDataViaAssistant = async (userId, assistantResponse) => {
       });
     }
 
-    // Update assets
+    // Update assets - preserve null vs [] distinction with 10-item limit
     if (assistantResponse.assets && assistantResponse.assets.length > 0) {
       const financialsRef = db.collection("users").doc(userId).collection("financials").doc("data");
       
-      // Get existing data to merge assets
+      // Get existing data to merge assets - preserve null vs [] distinction
       const existingFinancials = await financialsRef.get();
-      const currentAssets = existingFinancials.exists ? existingFinancials.data()?.assets || [] : [];
+      const currentAssets = existingFinancials.exists ? existingFinancials.data()?.assets : null;
+      const currentAssetsArray = currentAssets === null ? [] : currentAssets;
       
-      // Add new assets (with IDs for tracking)
-      const newAssets = assistantResponse.assets.map(asset => ({
-        ...asset,
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        createdAt: admin.firestore.FieldValue.serverTimestamp()
-      }));
+      // Check if adding new assets would exceed limit
+      const availableSlots = Math.max(0, 10 - currentAssetsArray.length);
+      const assetsToAdd = assistantResponse.assets.slice(0, availableSlots);
       
-      const mergedAssets = [...currentAssets, ...newAssets];
-      
-      batch.update(financialsRef, {
-        assets: mergedAssets,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-      updateCount++;
-      
-      logger.info("🏦 ASSISTANT UPDATE: Assets prepared", {
-        userId,
-        newAssetsCount: newAssets.length,
-        totalAssetsCount: mergedAssets.length
-      });
+      if (assetsToAdd.length > 0) {
+        // Add new assets (with IDs for tracking) - use Date instead of FieldValue for arrays
+        const now = new Date();
+        const newAssets = assetsToAdd.map(asset => ({
+          ...asset,
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          createdAt: now.toISOString(),
+          addedViaAI: true
+        }));
+        
+        // Merge with existing assets: null becomes [], [] stays [], [items] gets merged
+        const mergedAssets = currentAssets === null ? newAssets : [...currentAssets, ...newAssets];
+        
+        batch.update(financialsRef, {
+          assets: mergedAssets,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        updateCount++;
+        
+        logger.info("🏦 ASSISTANT UPDATE: Assets prepared", {
+          userId,
+          previousState: currentAssets === null ? 'null (not-entered)' : `array (${currentAssets.length} items)`,
+          newAssetsCount: newAssets.length,
+          totalAssetsCount: mergedAssets.length,
+          assetsRequested: assistantResponse.assets.length,
+          assetsSkipped: assistantResponse.assets.length - assetsToAdd.length,
+          limitEnforced: assetsToAdd.length < assistantResponse.assets.length
+        });
+      } else {
+        logger.warn("🚫 ASSISTANT UPDATE: Assets limit reached", {
+          userId,
+          currentAssetsCount: currentAssetsArray.length,
+          requestedAssetsCount: assistantResponse.assets.length,
+          limit: 10
+        });
+      }
     }
 
-    // Update debts
+    // Update debts - preserve null vs [] distinction with 10-item limit
     if (assistantResponse.debts && assistantResponse.debts.length > 0) {
       const financialsRef = db.collection("users").doc(userId).collection("financials").doc("data");
       
-      // Get existing data to merge debts
+      // Get existing data to merge debts - preserve null vs [] distinction
       const existingFinancials = await financialsRef.get();
-      const currentDebts = existingFinancials.exists ? existingFinancials.data()?.debts || [] : [];
+      const currentDebts = existingFinancials.exists ? existingFinancials.data()?.debts : null;
+      const currentDebtsArray = currentDebts === null ? [] : currentDebts;
       
-      // Add new debts (with IDs for tracking)
-      const newDebts = assistantResponse.debts.map(debt => ({
-        ...debt,
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        createdAt: admin.firestore.FieldValue.serverTimestamp()
-      }));
+      // Check if adding new debts would exceed limit
+      const availableSlots = Math.max(0, 10 - currentDebtsArray.length);
+      const debtsToAdd = assistantResponse.debts.slice(0, availableSlots);
       
-      const mergedDebts = [...currentDebts, ...newDebts];
-      
-      batch.update(financialsRef, {
-        debts: mergedDebts,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-      updateCount++;
-      
-      logger.info("💳 ASSISTANT UPDATE: Debts prepared", {
-        userId,
-        newDebtsCount: newDebts.length,
-        totalDebtsCount: mergedDebts.length
-      });
+      if (debtsToAdd.length > 0) {
+        // Add new debts (with IDs for tracking) - use Date instead of FieldValue for arrays
+        const now = new Date();
+        const newDebts = debtsToAdd.map(debt => ({
+          ...debt,
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          createdAt: now.toISOString(),
+          addedViaAI: true
+        }));
+        
+        // Merge with existing debts: null becomes [], [] stays [], [items] gets merged
+        const mergedDebts = currentDebts === null ? newDebts : [...currentDebts, ...newDebts];
+        
+        batch.update(financialsRef, {
+          debts: mergedDebts,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        updateCount++;
+        
+        logger.info("💳 ASSISTANT UPDATE: Debts prepared", {
+          userId,
+          previousState: currentDebts === null ? 'null (not-entered)' : `array (${currentDebts.length} items)`,
+          newDebtsCount: newDebts.length,
+          totalDebtsCount: mergedDebts.length,
+          debtsRequested: assistantResponse.debts.length,
+          debtsSkipped: assistantResponse.debts.length - debtsToAdd.length,
+          limitEnforced: debtsToAdd.length < assistantResponse.debts.length
+        });
+      } else {
+        logger.warn("🚫 ASSISTANT UPDATE: Debts limit reached", {
+          userId,
+          currentDebtsCount: currentDebtsArray.length,
+          requestedDebtsCount: assistantResponse.debts.length,
+          limit: 10
+        });
+      }
     }
 
-    // Update goals (intermediate goals)
+    // Update goals (intermediate goals) - preserve null vs [] distinction with 10-item limit
     if (assistantResponse.goals && assistantResponse.goals.length > 0) {
       const goalsRef = db.collection("users").doc(userId).collection("goals").doc("data");
       
-      // Get existing goals to merge
+      // Get existing goals to merge - preserve null vs [] distinction
       const existingGoals = await goalsRef.get();
-      const currentGoals = existingGoals.exists ? existingGoals.data()?.intermediateGoals || [] : [];
+      const currentGoals = existingGoals.exists ? existingGoals.data()?.intermediateGoals : null;
+      const currentGoalsArray = currentGoals === null ? [] : currentGoals;
       
-      // Merge new goals (they already have IDs from the assistant processing)
-      const mergedGoals = [...currentGoals, ...assistantResponse.goals];
+      // Check if adding new goals would exceed limit
+      const availableSlots = Math.max(0, 10 - currentGoalsArray.length);
+      const goalsToAdd = assistantResponse.goals.slice(0, availableSlots);
       
-      batch.update(goalsRef, {
-        intermediateGoals: mergedGoals,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-      updateCount++;
-      
-      logger.info("🎯 ASSISTANT UPDATE: Goals prepared", {
-        userId,
-        newGoalsCount: assistantResponse.goals.length,
-        totalGoalsCount: mergedGoals.length
-      });
+      if (goalsToAdd.length > 0) {
+        // Merge new goals: null becomes [], [] stays [], [items] gets merged
+        const mergedGoals = currentGoals === null ? goalsToAdd : [...currentGoals, ...goalsToAdd];
+        
+        batch.update(goalsRef, {
+          intermediateGoals: mergedGoals,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        updateCount++;
+        
+        logger.info("🎯 ASSISTANT UPDATE: Goals prepared", {
+          userId,
+          previousState: currentGoals === null ? 'null (not-entered)' : `array (${currentGoals.length} items)`,
+          newGoalsCount: goalsToAdd.length,
+          totalGoalsCount: mergedGoals.length,
+          goalsRequested: assistantResponse.goals.length,
+          goalsSkipped: assistantResponse.goals.length - goalsToAdd.length,
+          limitEnforced: goalsToAdd.length < assistantResponse.goals.length
+        });
+      } else {
+        logger.warn("🚫 ASSISTANT UPDATE: Goals limit reached", {
+          userId,
+          currentGoalsCount: currentGoalsArray.length,
+          requestedGoalsCount: assistantResponse.goals.length,
+          limit: 10
+        });
+      }
     }
 
     // Update skills
