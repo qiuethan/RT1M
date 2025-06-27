@@ -1065,25 +1065,8 @@ export const getTourCompletions = onCall(async (request) => {
   }
 });
 
-// AI Integration Functions - Modular Imports
-// Context & Data Management
-export {
-  getAIConversationContext,
-} from "./handlers/ai_context.js";
-
-// Data Updates
-export {
-  updateUserDataFromAI,
-  mergeFinancialDataFromAI,
-  updateSkillsFromAI,
-} from "./handlers/ai_data_updates.js";
-
-// Chat Handling
-export {
-  handleChatMessage,
-} from "./handlers/ai_chat.js";
-
-// Smart Chat Handling (Token-Optimized)
+// AI Integration Functions - Active Handlers Only
+// Smart Chat Handling (OpenAI Assistants)
 export {
   handleSmartChatMessage,
   getSmartChatStats,
