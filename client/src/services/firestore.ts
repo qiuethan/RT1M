@@ -241,20 +241,6 @@ export interface PlanGenerationResponse {
   plan?: Plan;
 }
 
-// Goal Interface
-export interface Goal {
-  id?: string;
-  userId: string;
-  title: string;
-  targetAmount?: number;
-  deadline: Date;
-  category: string;
-  status: 'Not Started' | 'In Progress' | 'Completed';
-  progress: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 // Cloud Function Callable Instances - Following bounceback pattern
 const createUserProfileFn = httpsCallable(functions, 'createUserProfile');
 const getUserStatsFn = httpsCallable(functions, 'getUserStats');
@@ -279,10 +265,7 @@ const getUserSkillsFn = httpsCallable(functions, 'getUserSkills');
 const saveUserSkillsFn = httpsCallable(functions, 'saveUserSkills');
 const updateUserSkillsSectionFn = httpsCallable(functions, 'updateUserSkillsSection');
 
-// Legacy goal functions (for individual goals)
-const addGoalFn = httpsCallable(functions, 'addGoal');
-const updateGoalFn = httpsCallable(functions, 'updateGoal');
-const deleteGoalFn = httpsCallable(functions, 'deleteGoal');
+
 
 const cleanupUserDataFn = httpsCallable(functions, 'cleanupUserData');
 
@@ -309,15 +292,7 @@ const handleFunctionCall = async (callableFn: any, data?: any): Promise<any> => 
   }
 };
 
-// Helper function to parse goals from ISO strings
-const parseGoal = (data: any): Goal => {
-  return {
-    ...data,
-    deadline: data.deadline ? new Date(data.deadline) : new Date(),
-    createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
-    updatedAt: data.updatedAt ? new Date(data.updatedAt) : new Date(),
-  };
-};
+
 
 // User Profile Management
 export const createUserProfile = async (): Promise<any> => {
@@ -429,33 +404,7 @@ export const updateUserSkillsSection = async (section: string, data: any) => {
   return await handleFunctionCall(updateUserSkillsSectionFn, { section, data });
 };
 
-// Goal Operations
-export const getUserGoals = async (): Promise<Goal[]> => {
-  const response: any = await handleFunctionCall(getUserGoalsFn);
-  return response.data ? response.data.map(parseGoal) : [];
-};
 
-export const addGoal = async (goalData: {
-  title: string;
-  targetAmount?: number;
-  deadline: string;
-  category?: string;
-}) => {
-  return await handleFunctionCall(addGoalFn, goalData);
-};
-
-export const updateGoal = async (goalId: string, updates: Partial<Goal>) => {
-  // Convert date to ISO string if provided
-  const updateData: any = { ...updates };
-  if (updates.deadline) {
-    updateData.deadline = updates.deadline.toISOString();
-  }
-  return await handleFunctionCall(updateGoalFn, { goalId, updates: updateData });
-};
-
-export const deleteGoal = async (goalId: string) => {
-  return await handleFunctionCall(deleteGoalFn, { goalId });
-};
 
 
 
