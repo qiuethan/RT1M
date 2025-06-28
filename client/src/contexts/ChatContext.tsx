@@ -131,10 +131,56 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     }
 
+    // Count operations for more specific feedback
+    let operationCount = 0;
+    const operationTypes: string[] = [];
+    
+    if (updatedData.operations) {
+      const ops = updatedData.operations;
+      if (ops.goalEdits?.length > 0) {
+        operationCount += ops.goalEdits.length;
+        operationTypes.push(`${ops.goalEdits.length} goal(s) updated`);
+      }
+      if (ops.goalDeletes?.length > 0) {
+        operationCount += ops.goalDeletes.length;
+        operationTypes.push(`${ops.goalDeletes.length} goal(s) deleted`);
+      }
+      if (ops.assetEdits?.length > 0) {
+        operationCount += ops.assetEdits.length;
+        operationTypes.push(`${ops.assetEdits.length} asset(s) updated`);
+      }
+      if (ops.assetDeletes?.length > 0) {
+        operationCount += ops.assetDeletes.length;
+        operationTypes.push(`${ops.assetDeletes.length} asset(s) deleted`);
+      }
+      if (ops.debtEdits?.length > 0) {
+        operationCount += ops.debtEdits.length;
+        operationTypes.push(`${ops.debtEdits.length} debt(s) updated`);
+      }
+      if (ops.debtDeletes?.length > 0) {
+        operationCount += ops.debtDeletes.length;
+        operationTypes.push(`${ops.debtDeletes.length} debt(s) deleted`);
+      }
+    }
+
     // Show success message for data updates
     if (dataRefreshCallbacks.length > 0) {
+      let successMessage = "✅ Your data has been updated and refreshed on this page!";
+      
+      if (operationTypes.length > 0) {
+        successMessage = `✅ Successfully processed: ${operationTypes.join(', ')}. Your page has been refreshed!`;
+      } else if (updatedData.assets?.length || updatedData.debts?.length || updatedData.goals?.length) {
+        const newItems: string[] = [];
+        if (updatedData.assets?.length) newItems.push(`${updatedData.assets.length} new asset(s)`);
+        if (updatedData.debts?.length) newItems.push(`${updatedData.debts.length} new debt(s)`);
+        if (updatedData.goals?.length) newItems.push(`${updatedData.goals.length} new goal(s)`);
+        if (newItems.length > 0) {
+          successMessage = `✅ Successfully added: ${newItems.join(', ')}. Your page has been refreshed!`;
+        }
+      }
+      
       addMessage({
-        text: "✅ Your data has been updated and refreshed on this page!",
+        text: successMessage,
         sender: 'bot'
       });
     }
@@ -193,7 +239,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           (response.data.debts && response.data.debts.length > 0) ||
           (response.data.goals && response.data.goals.length > 0) ||
           response.data.skills ||
-          response.data.operations // Include edit/delete operations
+          (response.data as any).operations // Include edit/delete operations
         )) {
           console.log('AI updated user data, triggering refresh');
           onDataUpdated(response.data);

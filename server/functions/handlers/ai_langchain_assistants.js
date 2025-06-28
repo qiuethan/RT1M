@@ -535,8 +535,8 @@ export const getPersonalizedAdviceWithAssistant = async (client, message, userCo
     // Handle edit/delete operations if specified
     if (response.operations) {
       goalsOperations = {
-        edits: response.operations.goalEdits || [],
-        deletes: response.operations.goalDeletes || [],
+        goalEdits: response.operations.goalEdits || [],
+        goalDeletes: response.operations.goalDeletes || [],
         assetEdits: response.operations.assetEdits || [],
         assetDeletes: response.operations.assetDeletes || [],
         debtEdits: response.operations.debtEdits || [],
@@ -727,6 +727,7 @@ export const assistantChatInvoke = async (inputText, userId, userContext = null,
         debts: personalizedResponse.debts,
         goals: personalizedResponse.goals,
         skills: personalizedResponse.skills,
+        operations: personalizedResponse.operations, // Include operations for frontend refresh
         usedUserData: true,
         tokensSaved,
         routingDecision,
@@ -1047,7 +1048,7 @@ const updateUserDataViaAssistant = async (userId, assistantResponse) => {
       const operations = assistantResponse.operations;
       
       // Handle goal edits and deletes
-      if ((operations.edits?.length > 0) || (operations.deletes?.length > 0)) {
+      if ((operations.goalEdits?.length > 0) || (operations.goalDeletes?.length > 0)) {
         const goalsRef = db.collection("users").doc(userId).collection("goals").doc("data");
         const existingGoals = await goalsRef.get();
         
@@ -1055,18 +1056,18 @@ const updateUserDataViaAssistant = async (userId, assistantResponse) => {
           let currentGoals = existingGoals.data()?.intermediateGoals || [];
           
           // Apply deletes
-          if (operations.deletes?.length > 0) {
-            currentGoals = currentGoals.filter(goal => !operations.deletes.includes(goal.id));
+          if (operations.goalDeletes?.length > 0) {
+            currentGoals = currentGoals.filter(goal => !operations.goalDeletes.includes(goal.id));
             logger.info("🗑️ ASSISTANT DELETE: Removed goals", {
               userId,
-              deletedIds: operations.deletes,
+              deletedIds: operations.goalDeletes,
               remainingGoals: currentGoals.length
             });
           }
           
           // Apply edits
-          if (operations.edits?.length > 0) {
-            operations.edits.forEach(edit => {
+          if (operations.goalEdits?.length > 0) {
+            operations.goalEdits.forEach(edit => {
               const goalIndex = currentGoals.findIndex(goal => goal.id === edit.id);
               if (goalIndex !== -1) {
                 currentGoals[goalIndex] = { ...currentGoals[goalIndex], ...edit.updates };
