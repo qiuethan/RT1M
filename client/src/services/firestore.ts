@@ -105,55 +105,6 @@ export interface UserSkills {
   updatedAt: Date;
 }
 
-// AI Plan Interface - designed for AI to save structured financial plans
-export interface Plan {
-  id?: string;
-  userId?: string;
-  title: string;
-  description: string;
-  timeframe: string; // e.g., "6 months", "2 years"
-  category: 'investment' | 'savings' | 'debt' | 'income' | 'budget' | 'mixed';
-  priority: 'high' | 'medium' | 'low';
-  steps: PlanStep[];
-  milestones: PlanMilestone[];
-  estimatedCost?: number;
-  expectedReturn?: number;
-  riskLevel: 'low' | 'medium' | 'high';
-  prerequisites?: string[];
-  resources?: PlanResource[];
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-
-export interface PlanStep {
-  id: string;
-  title: string;
-  description: string;
-  order: number;
-  timeframe: string;
-  completed: boolean;
-  dueDate?: string;
-  cost?: number;
-  resources?: string[];
-}
-
-export interface PlanMilestone {
-  id: string;
-  title: string;
-  description: string;
-  targetAmount?: number;
-  targetDate: string;
-  completed: boolean;
-  completedDate?: string;
-}
-
-export interface PlanResource {
-  type: 'link' | 'document' | 'tool' | 'contact';
-  title: string;
-  url?: string;
-  description?: string;
-}
-
 // Dynamic Milestone Interface
 export interface DynamicMilestone {
   id: string;
@@ -235,11 +186,7 @@ export interface ChatResponse {
   sessionId?: string;
 }
 
-export interface PlanGenerationResponse {
-  success: boolean;
-  message: string;
-  plan?: Plan;
-}
+
 
 // Cloud Function Callable Instances - Following bounceback pattern
 const createUserProfileFn = httpsCallable(functions, 'createUserProfile');
@@ -268,11 +215,6 @@ const updateUserSkillsSectionFn = httpsCallable(functions, 'updateUserSkillsSect
 
 
 const cleanupUserDataFn = httpsCallable(functions, 'cleanupUserData');
-
-const savePlanFn = httpsCallable(functions, 'savePlan');
-const getUserPlansFn = httpsCallable(functions, 'getUserPlans');
-const updatePlanFn = httpsCallable(functions, 'updatePlan');
-const deletePlanFn = httpsCallable(functions, 'deletePlan');
 
 // Helper function to handle Firebase Functions responses
 const handleFunctionCall = async (callableFn: any, data?: any): Promise<any> => {
@@ -408,26 +350,7 @@ export const updateUserSkillsSection = async (section: string, data: any) => {
 
 
 
-export const savePlan = async (planData: Partial<Plan>) => {
-  return await handleFunctionCall(savePlanFn, planData);
-};
 
-export const getUserPlans = async (): Promise<Plan[]> => {
-  const response: any = await handleFunctionCall(getUserPlansFn);
-  return response.data ? response.data.map((plan: any) => ({
-    ...plan,
-    createdAt: plan.createdAt ? new Date(plan.createdAt) : new Date(),
-    updatedAt: plan.updatedAt ? new Date(plan.updatedAt) : new Date(),
-  })) : [];
-};
-
-export const updatePlan = async (planId: string, updates: Partial<Plan>) => {
-  return await handleFunctionCall(updatePlanFn, { planId, updates });
-};
-
-export const deletePlan = async (planId: string) => {
-  return await handleFunctionCall(deletePlanFn, { planId });
-};
 
 // Generate dynamic milestones based on user's financial goal and intermediate goals
 // Chat and AI Functions
@@ -436,10 +359,7 @@ export const sendChatMessage = async (message: string, sessionId?: string): Prom
   return await handleFunctionCall(handleSmartChatMessage, { message, sessionId });
 };
 
-export const generateFinancialPlan = async (goalId?: string, goalData?: any): Promise<PlanGenerationResponse> => {
-  const generatePlan = httpsCallable(functions, 'generateFinancialPlan');
-  return await handleFunctionCall(generatePlan, { goalId, goalData });
-};
+
 
 // Tour completion functions
 export const updateTourCompletion = async (tourName: string, completed: boolean = true) => {

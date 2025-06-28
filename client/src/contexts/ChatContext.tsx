@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { getUserProfile, sendChatMessage, generateFinancialPlan } from '../services/firestore';
+import { getUserProfile, sendChatMessage } from '../services/firestore';
 
 export interface ChatMessage {
   id: string;
@@ -118,8 +118,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       warnings.push("You've reached the maximum of 10 debts. Remove some debts before adding new ones.");
     }
     
-    if (updatedData.goals && Array.isArray(updatedData.goals) && updatedData.goals.length >= 10) {
-      warnings.push("You've reached the maximum of 10 goals. Complete or remove some goals before adding new ones.");
+          if (updatedData.goals && Array.isArray(updatedData.goals) && updatedData.goals.length >= 15) {
+              warnings.push("You've reached the maximum of 15 goals. Complete or remove some goals before adding new ones.");
     }
 
     // Show warnings if any
@@ -232,6 +232,32 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           sender: 'bot'
         });
         
+        // Handle clarification questions
+        if ((response.data as any)?.needsClarification && (response.data as any)?.clarificationQuestions) {
+          const questionsText = (response.data as any).clarificationQuestions
+            .map((q: string, i: number) => `${i + 1}. ${q}`)
+            .join('\n\n');
+          
+          addMessage({
+            text: `${response.data?.message}\n\n${questionsText}`,
+            sender: 'bot'
+          });
+          return; // Don't add the main message again
+        }
+        
+        // Handle suggested goals from plan generation
+        if ((response.data as any)?.isGoalSuggestion && response.data?.goals && response.data.goals.length > 0) {
+          const goalsText = response.data.goals
+            .map((goal: any, i: number) => `${i + 1}. ${goal.title} (${goal.type})${goal.description ? ': ' + goal.description : ''}`)
+            .join('\n\n');
+          
+          addMessage({
+            text: `${response.data?.message}\n\n**Suggested Goals:**\n${goalsText}\n\nWould you like me to add any of these goals to your Goals page?`,
+            sender: 'bot'
+          });
+          return; // Don't add the main message again
+        }
+        
         // Check if AI updated any data and trigger refresh
         if (response.data && (
           response.data.financialInfo || 
@@ -267,27 +293,16 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const generatePlan = async (goalId?: string, goalData?: any) => {
+    // Route plan generation through new chat system instead of old direct function
     try {
-      setIsTyping(true);
-      const response = await generateFinancialPlan(goalId, goalData);
-      
-      if (response.success && response.plan) {
-        addMessage({
-          text: `Great! I've created a comprehensive financial plan for you: "${response.plan.title}". The plan includes ${response.plan.steps?.length || 0} actionable steps and ${response.plan.milestones?.length || 0} milestones to track your progress. You can view and manage your plans in your dashboard.`,
-          sender: 'bot'
-        });
-        
-        // Trigger data refresh for goals/plans
-        onDataUpdated({ goals: [] });
-        
-        return response.plan;
+      if (goalId || goalData) {
+        // Specific goal-based plan generation (legacy support)
+        await sendMessage(`Create a comprehensive plan to help me achieve my specific goal.`);
       } else {
-        addMessage({
-          text: "I had trouble creating your plan. Please make sure you have some goals set up and try again.",
-          sender: 'bot'
-        });
-        return null;
+        // General plan generation
+        await sendMessage(`I'd like you to create a comprehensive financial plan for me.`);
       }
+      return { success: true };
     } catch (error) {
       console.error('Error generating plan:', error);
       addMessage({
@@ -295,8 +310,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         sender: 'bot'
       });
       return null;
-    } finally {
-      setIsTyping(false);
     }
   };
 

@@ -7,11 +7,22 @@ import {OpenAI} from "openai";
 import {logger} from "firebase-functions";
 import {defineSecret} from "firebase-functions/params";
 import admin from "firebase-admin";
+import { onCall } from "firebase-functions/v2/https";
+import { validateAuth } from "../utils/auth.js";
 
 // Import necessary functions from existing modules
 import {loadBasicUserContext, loadConversationHistory} from "./ai_smart_chat.js";
 import {contextAssistantSchema} from "./ai_context_assistant_schema.js";
 import {processContextAssistantResponse} from "./ai_context_assistant_tools.js";
+import { planAssistantSchema } from "./ai_context_assistant_schema.js";
+import { 
+  getDocument,
+  saveDocument,
+  updateDocumentSection,
+  getUserGoalsRef,
+  getUserFinancialsRef,
+  getUserProfileRef
+} from "../utils/firestore.js";
 
 /**
  * Load comprehensive user context for AI processing
@@ -582,19 +593,73 @@ export const getPersonalizedAdviceWithAssistant = async (client, message, userCo
 };
 
 /**
- * Plan Assistant - Generate comprehensive financial plans
+ * NEW: Simple Plan Assistant - Generate goal suggestions only
  */
-export const generatePlanWithAssistant = async (client, message, userContext = {}, userId = null) => {
+export const generateGoalSuggestionsWithAssistant = async (client, message, userContext = {}, conversationHistory = [], userId = null) => {
   try {
     const planId = getAssistantId("plan_id");
     if (!planId) {
       throw new Error("PLAN_ASSISTANT_ID not configured");
     }
     
-    // Prepare full context for plan generation
+    // Prepare comprehensive context with ALL user data for thorough analysis
     const planContext = {
-      ...userContext,
-      requestType: "plan_generation",
+      conversationHistory: conversationHistory, // Full chat history for context
+      userProfile: {
+        basicInfo: userContext.basicInfo || {},
+        financialGoal: userContext.financialGoal || {},
+        educationHistory: userContext.educationHistory || [],
+        experience: userContext.experience || [],
+        skillsAndInterests: userContext.skillsAndInterests || { skills: [], interests: [] }
+      },
+      currentFinancials: {
+        netWorth: userContext.netWorth || 0,
+        financialInfo: userContext.financialInfo || {},
+        assets: userContext.assets || [],
+        debts: userContext.debts || [],
+        totalAssets: userContext.assets?.reduce((sum, asset) => sum + (asset.value || 0), 0) || 0,
+        totalDebts: userContext.debts?.reduce((sum, debt) => sum + (debt.balance || 0), 0) || 0,
+        cashFlow: (userContext.financialInfo?.annualIncome || 0) - (userContext.financialInfo?.annualExpenses || 0),
+        savingsRate: userContext.financialInfo?.annualIncome ? 
+          ((userContext.financialInfo.annualIncome - userContext.financialInfo.annualExpenses) / userContext.financialInfo.annualIncome * 100) : 0
+      },
+      existingGoals: {
+        count: userContext.currentGoals?.length || 0,
+        goals: userContext.currentGoals || [],
+        detailedAnalysis: userContext.currentGoals?.map(goal => ({
+          title: goal.title,
+          type: goal.type,
+          targetAmount: goal.targetAmount,
+          currentAmount: goal.currentAmount,
+          targetDate: goal.targetDate,
+          status: goal.status,
+          progress: goal.progress,
+          description: goal.description,
+          category: goal.category,
+          submilestones: goal.submilestones || []
+        })) || []
+      },
+      gaps: {
+        missingGoalTypes: ["financial", "skill", "behavior", "lifestyle", "networking", "project"]
+          .filter(type => !(userContext.currentGoals || []).some(goal => goal.type === type)),
+        needsEmergencyFund: !userContext.currentGoals?.some(goal => 
+          goal.title.toLowerCase().includes('emergency') || goal.title.toLowerCase().includes('fund')),
+        needsRetirementPlanning: !userContext.currentGoals?.some(goal => 
+          goal.title.toLowerCase().includes('retirement') || goal.title.toLowerCase().includes('401k') || goal.title.toLowerCase().includes('ira')),
+        hasHighInterestDebt: userContext.debts?.some(debt => 
+          debt.type === 'credit-card' || (debt.interestRate && debt.interestRate > 10)),
+        lowSavingsRate: ((userContext.financialInfo?.annualIncome || 0) - (userContext.financialInfo?.annualExpenses || 0)) / (userContext.financialInfo?.annualIncome || 1) < 0.20
+      },
+      progressToTarget: {
+        currentAmount: userContext.netWorth || 0,
+        targetAmount: userContext.financialGoal?.targetAmount || 1000000,
+        targetYear: userContext.financialGoal?.targetYear || new Date().getFullYear() + 10,
+        progressPercentage: ((userContext.netWorth || 0) / (userContext.financialGoal?.targetAmount || 1000000)) * 100,
+        yearsRemaining: (userContext.financialGoal?.targetYear || new Date().getFullYear() + 10) - new Date().getFullYear(),
+        monthlyTargetNeeded: Math.max(0, ((userContext.financialGoal?.targetAmount || 1000000) - (userContext.netWorth || 0)) / 
+          (((userContext.financialGoal?.targetYear || new Date().getFullYear() + 10) - new Date().getFullYear()) * 12))
+      },
+      requestType: "comprehensive_goal_suggestions",
       timestamp: new Date().toISOString()
     };
     
@@ -606,38 +671,77 @@ export const generatePlanWithAssistant = async (client, message, userContext = {
       userId
     );
     
-    // Validate plan response (matches new schema - array of intermediate goals)
-    if (!response.intermediateGoals || !Array.isArray(response.intermediateGoals)) {
-      throw new Error("Invalid plan response - missing intermediateGoals array");
+    // Check if the assistant is asking for clarification
+    if (response.needsClarification) {
+      return {
+        needsClarification: true,
+        message: response.message,
+        clarificationQuestions: response.clarificationQuestions || [],
+        suggestedGoals: [] // No goals yet, waiting for clarification
+      };
     }
     
-    // Map each goal to include required IDs and defaults
-    const processedGoals = response.intermediateGoals.map((goal, index) => ({
-      id: Date.now().toString() + index.toString() + Math.random().toString(36).substr(2, 9),
-      title: goal.title,
-      type: goal.type,
-      targetAmount: goal.targetAmount || 0,
-      targetDate: goal.targetDate,
-      status: goal.status || "Not Started",
-      currentAmount: goal.currentAmount || 0,
-      progress: goal.progress || 0,
-      description: goal.description || "",
-      category: goal.category || goal.type
-    }));
+    // Validate response structure for plan generation
+    if (!response.suggestedGoals || !Array.isArray(response.suggestedGoals)) {
+      throw new Error("Invalid plan response - missing suggestedGoals array");
+    }
+    
+    // Process each suggested goal to match IntermediateGoal schema exactly
+    const processedGoals = response.suggestedGoals.map((goal, index) => {
+      const processedGoal = {
+        id: Date.now().toString() + index.toString() + Math.random().toString(36).substr(2, 9),
+        title: goal.title,
+        type: goal.type,
+        status: goal.status || "Not Started"
+      };
+
+      // Add optional fields only if provided
+      if (goal.targetAmount !== undefined) processedGoal.targetAmount = goal.targetAmount;
+      if (goal.targetDate) processedGoal.targetDate = goal.targetDate;
+      if (goal.currentAmount !== undefined) processedGoal.currentAmount = goal.currentAmount;
+      if (goal.progress !== undefined) processedGoal.progress = goal.progress;
+      if (goal.description) processedGoal.description = goal.description;
+      if (goal.category) processedGoal.category = goal.category;
+      
+      // Process submilestones if provided
+      if (goal.submilestones && Array.isArray(goal.submilestones)) {
+        processedGoal.submilestones = goal.submilestones.map((sub, subIndex) => ({
+          id: Date.now().toString() + index.toString() + subIndex.toString() + Math.random().toString(36).substr(2, 6),
+          title: sub.title,
+          completed: sub.completed || false,
+          order: sub.order !== undefined ? sub.order : subIndex,
+          ...(sub.description && { description: sub.description }),
+          ...(sub.targetAmount !== undefined && { targetAmount: sub.targetAmount }),
+          ...(sub.targetDate && { targetDate: sub.targetDate }),
+          ...(sub.completedDate && { completedDate: sub.completedDate })
+        }));
+      }
+
+      return processedGoal;
+    });
     
     return {
-      intermediateGoals: processedGoals
+      needsClarification: false,
+      planTitle: response.planTitle,
+      planDescription: response.planDescription,
+      message: response.message,
+      suggestedGoals: processedGoals
     };
     
   } catch (error) {
-    logger.error("❌ PLAN: Assistant failed", {
+    logger.error("❌ PLAN ASSISTANT: Failed to generate goal suggestions", {
       userId,
       error: error.message
     });
     
-    throw new Error("Plan generation failed. Please try again with more specific details about your financial goals.");
+    throw new Error("Failed to generate goal suggestions. Please try again with more specific details about your objectives.");
   }
 };
+
+/**
+ * Plan Assistant - Generate comprehensive financial plans
+ */
+// Note: generatePlanWithAssistant function removed - replaced by generateGoalSuggestionsWithAssistant
 
 /**
  * Main assistant orchestrator - replaces smartChatInvoke
@@ -744,12 +848,12 @@ export const assistantChatInvoke = async (inputText, userId, userContext = null,
         responseSource
       };
       
-      // Update user data if extracted using existing database functions
+      // Update user data if extracted using assistant wrapper
       if (personalizedResponse.financialInfo || personalizedResponse.assets?.length || 
           personalizedResponse.debts?.length || personalizedResponse.goals || personalizedResponse.skills ||
           personalizedResponse.operations) {
         try {
-          // Use existing updateUserDataFromAI function with proper wrapper
+          // Use local updateUserDataViaAssistant function for data updates
           await updateUserDataViaAssistant(userId, personalizedResponse);
           logger.info("📝 ASSISTANT: Updated user data from extraction", {
             userId,
@@ -769,42 +873,96 @@ export const assistantChatInvoke = async (inputText, userId, userContext = null,
       }
       
     } else if (routingDecision.route === "PLAN") {
-      logger.info("📋 ASSISTANT: Generating financial plan", {userId});
+      logger.info("📋 ASSISTANT: Generating goal suggestions", {userId});
       
       // Load full user context if not provided
       if (!userContext) {
         userContext = await getAIContextData(userId);
       }
       
-      const planResponse = await generatePlanWithAssistant(
+      const planResponse = await generateGoalSuggestionsWithAssistant(
         client, 
         inputText, 
         userContext, 
+        conversationHistory,
         userId
       );
       
       responseSource = "plan_assistant";
       tokensSaved = 0; // No savings for plan generation
       
-      response = {
-        message: `I've created a plan with ${planResponse.intermediateGoals?.length || 0} intermediate goals to help you achieve your financial objectives. These goals will guide your progress step by step.`,
-        financialInfo: null,
-        assets: [],
-        debts: [],
-        goals: planResponse.intermediateGoals, // The plan is the goals
-        skills: null,
-        plan: planResponse, // Include the full plan structure
-        usedUserData: true,
-        tokensSaved,
-        routingDecision,
-        responseSource
-      };
+      // Handle clarification questions
+      if (planResponse.needsClarification) {
+        response = {
+          message: planResponse.message,
+          financialInfo: null,
+          assets: [],
+          debts: [],
+          goals: null,
+          skills: null,
+          clarificationQuestions: planResponse.clarificationQuestions,
+          needsClarification: true,
+          usedUserData: true,
+          tokensSaved,
+          routingDecision,
+          responseSource
+        };
+      } else {
+        // Directly add the suggested goals to the user's goals collection
+        try {
+          if (planResponse.suggestedGoals && planResponse.suggestedGoals.length > 0) {
+            await updateUserDataViaAssistant(userId, {
+              goals: planResponse.suggestedGoals
+            });
+            
+            logger.info("✅ PLAN ASSISTANT: Goals added directly to user's collection", {
+              userId,
+              planTitle: planResponse.planTitle,
+              goalsAdded: planResponse.suggestedGoals.length
+            });
+          }
+        } catch (updateError) {
+          logger.warn("⚠️ PLAN ASSISTANT: Failed to add goals directly", {
+            userId,
+            error: updateError.message
+          });
+        }
+        
+        // Handle plan generation - goals now added directly
+        response = {
+          message: planResponse.message || `I've created "${planResponse.planTitle}" and added ${planResponse.suggestedGoals?.length || 0} new goals to your Goals page to help you achieve your objectives. You can view and manage them in your Goals section.`,
+          financialInfo: null,
+          assets: [],
+          debts: [],
+          goals: planResponse.suggestedGoals, // Goals that were added
+          skills: null,
+          plan: {
+            title: planResponse.planTitle,
+            description: planResponse.planDescription,
+            addedGoals: planResponse.suggestedGoals
+          },
+          usedUserData: true,
+          tokensSaved,
+          routingDecision,
+          responseSource,
+          goalsAdded: true, // Flag to indicate goals were added directly
+          operations: ["goals"] // Trigger client refresh
+        };
+      }
       
-      // Note: Plan data is returned to client - client will save via existing UI flows
-      logger.info("💾 ASSISTANT: Plan generated - client will handle saving", {
-        userId, 
-        goalsCount: planResponse.intermediateGoals?.length
-      });
+      // Log the result
+      if (planResponse.needsClarification) {
+        logger.info("❓ PLAN ASSISTANT: Clarification questions generated", {
+          userId, 
+          questionsCount: planResponse.clarificationQuestions?.length
+        });
+      } else {
+        logger.info("✅ PLAN ASSISTANT: Goals added directly to user's collection", {
+          userId, 
+          planTitle: planResponse.planTitle,
+          goalsAdded: planResponse.suggestedGoals?.length
+        });
+      }
     }
     
     const duration = Date.now() - startTime;
@@ -991,7 +1149,7 @@ const updateUserDataViaAssistant = async (userId, assistantResponse) => {
       const currentGoalsArray = currentGoals === null ? [] : currentGoals;
       
       // Check if adding new goals would exceed limit
-      const availableSlots = Math.max(0, 10 - currentGoalsArray.length);
+      const availableSlots = Math.max(0, 15 - currentGoalsArray.length);
       const goalsToAdd = assistantResponse.goals.slice(0, availableSlots);
       
       if (goalsToAdd.length > 0) {
@@ -1018,7 +1176,7 @@ const updateUserDataViaAssistant = async (userId, assistantResponse) => {
           userId,
           currentGoalsCount: currentGoalsArray.length,
           requestedGoalsCount: assistantResponse.goals.length,
-          limit: 10
+          limit: 15
         });
       }
     }

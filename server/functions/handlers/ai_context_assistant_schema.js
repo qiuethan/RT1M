@@ -486,3 +486,146 @@ export const contextAssistantSchema = {
   additionalProperties: false
 };
 
+// New dedicated schema for plan generation (focused on goal suggestions)
+export const planAssistantSchema = {
+  type: "object",
+  properties: {
+    message: {
+      type: "string",
+      description: "Explanatory message about the plan and suggested goals OR clarification questions"
+    },
+    
+    needsClarification: {
+      type: "boolean",
+      description: "True if you need to ask clarification questions before generating a plan"
+    },
+    
+    clarificationQuestions: {
+      type: "array",
+      maxItems: 3,
+      items: {
+        type: "string"
+      },
+      description: "Up to 3 specific clarification questions to help generate a better plan"
+    },
+    
+    planTitle: {
+      type: "string",
+      description: "Title for the overall plan/strategy (only include if not asking clarification)"
+    },
+    
+    planDescription: {
+      type: "string", 
+      description: "Brief description of the overall strategy (only include if not asking clarification)"
+    },
+    
+    suggestedGoals: {
+      type: "array",
+      maxItems: 10,
+      items: {
+        type: "object",
+        properties: {
+          title: {
+            type: "string",
+            description: "Clear, specific goal title"
+          },
+          type: {
+            type: "string",
+            enum: [
+              "financial",
+              "skill", 
+              "behavior",
+              "lifestyle",
+              "networking",
+              "project"
+            ],
+            description: "Goal category type"
+          },
+          targetAmount: {
+            type: "number",
+            minimum: 0,
+            description: "Target amount for financial goals (optional, only for financial goals)"
+          },
+          targetDate: {
+            type: "string",
+            pattern: "^\\d{4}-\\d{2}-\\d{2}$",
+            description: "Target completion date in YYYY-MM-DD format (optional)"
+          },
+          status: {
+            type: "string",
+            enum: ["Not Started", "In Progress", "Completed"],
+            description: "Goal status - use 'Not Started' for new suggested goals"
+          },
+          currentAmount: {
+            type: "number",
+            minimum: 0,
+            description: "Current progress amount for financial goals (use 0 for new goals)"
+          },
+          progress: {
+            type: "number",
+            minimum: 0,
+            maximum: 100,
+            description: "Progress percentage for non-financial goals (use 0 for new goals)"
+          },
+          description: {
+            type: "string",
+            description: "Detailed description of what this goal involves and why it's important"
+          },
+          category: {
+            type: "string",
+            description: "Additional categorization or notes about the goal"
+          },
+          submilestones: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                title: {
+                  type: "string",
+                  description: "Submilestone title"
+                },
+                description: {
+                  type: "string",
+                  description: "Brief description of this submilestone"
+                },
+                targetAmount: {
+                  type: "number",
+                  minimum: 0,
+                  description: "Target amount for financial submilestones"
+                },
+                targetDate: {
+                  type: "string",
+                  pattern: "^\\d{4}-\\d{2}-\\d{2}$",
+                  description: "Target date for this submilestone (YYYY-MM-DD)"
+                },
+                completed: {
+                  type: "boolean",
+                  description: "Whether this submilestone is completed (use false for new ones)"
+                },
+                completedDate: {
+                  type: "string",
+                  pattern: "^\\d{4}-\\d{2}-\\d{2}$",
+                  description: "Date when submilestone was completed (optional)"
+                },
+                order: {
+                  type: "number",
+                  minimum: 0,
+                  description: "Order/sequence of this submilestone"
+                }
+              },
+              required: ["title", "completed", "order"],
+              additionalProperties: false
+            },
+            description: "Optional submilestones to break down the goal into smaller steps"
+          }
+        },
+        required: ["title", "type"],
+        additionalProperties: false
+      },
+      description: "List of intermediate goals that match the exact IntermediateGoal schema"
+    }
+  },
+  required: ["message", "needsClarification"],
+  additionalProperties: false
+};
+

@@ -199,89 +199,7 @@ export const chatResponseSchema = {
   additionalProperties: false
 };
 
-/**
- * Plan generation schema for structured financial plans
- */
-export const planSchema = {
-  type: "object",
-  properties: {
-    title: {type: "string"},
-    description: {type: "string"},
-    timeframe: {type: "string"},
-    category: {
-      type: "string",
-      enum: ["investment", "savings", "debt", "income", "budget", "mixed"],
-    },
-    priority: {
-      type: "string",
-      enum: ["high", "medium", "low"],
-    },
-    steps: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          id: {type: "string"},
-          title: {type: "string"},
-          description: {type: "string"},
-          order: {type: "integer"},
-          timeframe: {type: "string"},
-          completed: {type: "boolean", default: false},
-          dueDate: {type: "string"},
-          cost: {type: "number"},
-          resources: {
-            type: "array",
-            items: {type: "string"},
-          },
-        },
-        required: ["id", "title", "description", "order", "timeframe"],
-      },
-    },
-    milestones: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          id: {type: "string"},
-          title: {type: "string"},
-          description: {type: "string"},
-          targetAmount: {type: "number"},
-          targetDate: {type: "string"},
-          completed: {type: "boolean", default: false},
-          completedDate: {type: "string"},
-        },
-        required: ["id", "title", "description", "targetDate"],
-      },
-    },
-    estimatedCost: {type: "number"},
-    expectedReturn: {type: "number"},
-    riskLevel: {
-      type: "string",
-      enum: ["low", "medium", "high"],
-    },
-    prerequisites: {
-      type: "array",
-      items: {type: "string"},
-    },
-    resources: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          type: {
-            type: "string",
-            enum: ["link", "document", "tool", "contact"],
-          },
-          title: {type: "string"},
-          url: {type: "string"},
-          description: {type: "string"},
-        },
-        required: ["type", "title"],
-      },
-    },
-  },
-  required: ["title", "description", "timeframe", "category", "priority", "steps", "milestones", "riskLevel"],
-};
+// Note: planSchema removed - no longer needed with new goal-based approach
 
 /**
  * Log AI conversation for analytics and improvement
@@ -353,28 +271,4 @@ export const checkPlanReadiness = (userContext) => {
          userContext.dataCompleteness.hasFinancialInfo;
 };
 
-/**
- * Validate plan structure before saving
- */
-export const validatePlanStructure = (planData) => {
-  if (!planData.steps || !Array.isArray(planData.steps) || planData.steps.length === 0) {
-    throw new Error("Plan must include at least one step");
-  }
-
-  if (!planData.milestones || !Array.isArray(planData.milestones)) {
-    planData.milestones = [];
-  }
-
-  // Apply limits
-  if (planData.steps.length > 10) {
-    planData.steps = planData.steps.slice(0, 10);
-    logger.warn(`Plan steps limited to 10`);
-  }
-
-  if (planData.milestones.length > 10) {
-    planData.milestones = planData.milestones.slice(0, 10);
-    logger.warn(`Plan milestones limited to 10`);
-  }
-
-  return planData;
-}; 
+// Note: validatePlanStructure function removed - no longer needed with new goal-based approach 

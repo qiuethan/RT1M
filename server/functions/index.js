@@ -920,14 +920,6 @@ export {
   getSmartChatStats,
 } from "./handlers/ai_smart_chat.js";
 
-// Plan Generation
-export {
-  generateFinancialPlan,
-  getUserPlans,
-  updatePlanStep,
-  updatePlanMilestone,
-} from "./handlers/ai_plans.js";
-
 // Utilities & Logging
 export {
   logAIConversation,
