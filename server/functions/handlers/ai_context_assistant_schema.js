@@ -16,17 +16,17 @@ export const contextAssistantSchema = {
     income: {
       type: "number",
       minimum: 0,
-      description: "Annual income if mentioned"
+      description: "Annual income if explicitly mentioned by user"
     },
     expenses: {
-      type: "number", 
+      type: "number",
       minimum: 0,
-      description: "Annual expenses if mentioned"
+      description: "Annual expenses if explicitly mentioned by user"
     },
     savings: {
       type: "number",
       minimum: 0,
-      description: "Current savings if mentioned"
+      description: "Current savings if explicitly mentioned by user"
     },
     
     // Assets (create new)
@@ -35,16 +35,38 @@ export const contextAssistantSchema = {
       items: {
         type: "object",
         properties: {
-          name: {type: "string", description: "Asset name"},
+          name: {
+            type: "string",
+            description: "Asset name"
+          },
           type: {
             type: "string",
-            enum: ["house", "car", "investment", "savings", "retirement", "other"],
+            enum: [
+              "house",
+              "car",
+              "investment",
+              "savings",
+              "retirement",
+              "other"
+            ],
             description: "Asset category"
           },
-          value: {type: "number", minimum: 0, description: "Current value"},
-          description: {type: "string", description: "Optional description"}
+          value: {
+            type: "number",
+            minimum: 0,
+            description: "Current value"
+          },
+          description: {
+            type: "string",
+            description: "Optional description"
+          }
         },
-        required: ["name", "type", "value"]
+        required: [
+          "name",
+          "type",
+          "value"
+        ],
+        additionalProperties: false
       },
       description: "New assets to add (only if user mentions new assets)"
     },
@@ -55,17 +77,44 @@ export const contextAssistantSchema = {
       items: {
         type: "object",
         properties: {
-          name: {type: "string", description: "Debt name"},
+          name: {
+            type: "string",
+            description: "Debt name"
+          },
           type: {
-            type: "string", 
-            enum: ["mortgage", "credit-card", "student-loan", "car-loan", "personal-loan", "business-loan", "other"],
+            type: "string",
+            enum: [
+              "mortgage",
+              "credit-card",
+              "student-loan",
+              "car-loan",
+              "personal-loan",
+              "business-loan",
+              "other"
+            ],
             description: "Debt category"
           },
-          balance: {type: "number", minimum: 0, description: "Current balance"},
-          interestRate: {type: "number", minimum: 0, description: "Interest rate percentage"},
-          description: {type: "string", description: "Optional description"}
+          balance: {
+            type: "number",
+            minimum: 0,
+            description: "Current balance"
+          },
+          interestRate: {
+            type: "number",
+            minimum: 0,
+            description: "Interest rate percentage"
+          },
+          description: {
+            type: "string",
+            description: "Optional description"
+          }
         },
-        required: ["name", "type", "balance"]
+        required: [
+          "name",
+          "type",
+          "balance"
+        ],
+        additionalProperties: false
       },
       description: "New debts to add (only if user mentions new debts)"
     },
@@ -76,41 +125,108 @@ export const contextAssistantSchema = {
       items: {
         type: "object",
         properties: {
-          title: {type: "string", description: "Goal title"},
+          title: {
+            type: "string",
+            description: "Goal title"
+          },
           type: {
             type: "string",
-            enum: ["financial", "skill", "behavior", "lifestyle", "networking", "project"],
+            enum: [
+              "financial",
+              "skill",
+              "behavior",
+              "lifestyle",
+              "networking",
+              "project"
+            ],
             description: "Goal category"
           },
-          targetAmount: {type: "number", minimum: 0, description: "Target amount for financial goals"},
-          currentAmount: {type: "number", minimum: 0, description: "Current progress amount"},
-          targetDate: {type: "string", format: "date", description: "Target completion date (YYYY-MM-DD)"},
+          targetAmount: {
+            type: "number",
+            minimum: 0,
+            description: "Target amount for financial goals"
+          },
+          currentAmount: {
+            type: "number",
+            minimum: 0,
+            description: "Current progress amount"
+          },
+          targetDate: {
+            type: "string",
+            pattern: "^\\d{4}-\\d{2}-\\d{2}$",
+            description: "Target completion date (YYYY-MM-DD)"
+          },
           status: {
             type: "string",
-            enum: ["Not Started", "In Progress", "Completed"],
+            enum: [
+              "Not Started",
+              "In Progress",
+              "Completed"
+            ],
             description: "Current status"
           },
-          progress: {type: "number", minimum: 0, maximum: 100, description: "Progress percentage for non-financial goals"},
-          description: {type: "string", description: "Goal description"},
-          category: {type: "string", description: "Additional category info"},
+          progress: {
+            type: "number",
+            minimum: 0,
+            maximum: 100,
+            description: "Progress percentage for non-financial goals"
+          },
+          description: {
+            type: "string",
+            description: "Goal description"
+          },
+          category: {
+            type: "string",
+            description: "Additional category info"
+          },
           submilestones: {
             type: "array",
             items: {
-              type: "object", 
+              type: "object",
               properties: {
-                title: {type: "string", description: "Submilestone title"},
-                description: {type: "string", description: "Brief description"},
-                targetAmount: {type: "number", minimum: 0, description: "Target amount if financial"},
-                targetDate: {type: "string", format: "date", description: "Target date (YYYY-MM-DD)"},
-                completed: {type: "boolean", description: "Whether completed"},
-                order: {type: "number", minimum: 0, description: "Order/sequence"}
+                title: {
+                  type: "string",
+                  description: "Submilestone title"
+                },
+                description: {
+                  type: "string",
+                  description: "Brief description"
+                },
+                targetAmount: {
+                  type: "number",
+                  minimum: 0,
+                  description: "Target amount if financial"
+                },
+                targetDate: {
+                  type: "string",
+                  pattern: "^\\d{4}-\\d{2}-\\d{2}$",
+                  description: "Target date (YYYY-MM-DD)"
+                },
+                completed: {
+                  type: "boolean",
+                  description: "Whether completed"
+                },
+                order: {
+                  type: "number",
+                  minimum: 0,
+                  description: "Order/sequence"
+                }
               },
-              required: ["title", "completed", "order"]
+              required: [
+                "title",
+                "completed",
+                "order"
+              ],
+              additionalProperties: false
             },
             description: "Optional submilestones to break down the goal"
           }
         },
-        required: ["title", "type"]
+        required: [
+          "title",
+          "type"
+        ],
+        additionalProperties: false
       },
       description: "New goals to add (only if user mentions new goals)"
     },
@@ -118,7 +234,9 @@ export const contextAssistantSchema = {
     // Skills (create new)
     skills: {
       type: "array",
-      items: {type: "string"},
+      items: {
+        type: "string"
+      },
       description: "New skills to add (only if user mentions new skills)"
     },
     
@@ -132,84 +250,170 @@ export const contextAssistantSchema = {
           items: {
             type: "object",
             properties: {
-              id: {type: "string", description: "Exact ID of goal to edit"},
+              id: {
+                type: "string",
+                description: "Exact ID of goal to edit"
+              },
               updates: {
                 type: "object",
                 properties: {
-                  title: {type: "string"},
+                  title: {
+                    type: "string"
+                  },
                   type: {
                     type: "string",
-                    enum: ["financial", "skill", "behavior", "lifestyle", "networking", "project"]
+                    enum: [
+                      "financial",
+                      "skill",
+                      "behavior",
+                      "lifestyle",
+                      "networking",
+                      "project"
+                    ]
                   },
-                  targetAmount: {type: "number", minimum: 0},
-                  currentAmount: {type: "number", minimum: 0},
-                  targetDate: {type: "string", format: "date"},
+                  targetAmount: {
+                    type: "number",
+                    minimum: 0
+                  },
+                  currentAmount: {
+                    type: "number",
+                    minimum: 0
+                  },
+                  targetDate: {
+                    type: "string",
+                    pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
                   status: {
                     type: "string",
-                    enum: ["Not Started", "In Progress", "Completed"]
+                    enum: [
+                      "Not Started",
+                      "In Progress",
+                      "Completed"
+                    ]
                   },
-                  progress: {type: "number", minimum: 0, maximum: 100},
-                  description: {type: "string"},
-                  category: {type: "string"},
-                  submilestones: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        id: {type: "string"},
-                        title: {type: "string"},
-                        description: {type: "string"},
-                        targetAmount: {type: "number", minimum: 0},
-                        targetDate: {type: "string", format: "date"},
-                        completed: {type: "boolean"},
-                        order: {type: "number", minimum: 0}
-                      }
-                    }
-                  }
+                  progress: {
+                    type: "number",
+                    minimum: 0,
+                    maximum: 100
+                  },
+                  description: {
+                    type: "string"
+                  },
+                  category: {
+                    type: "string"
+                  },
+                                     submilestones: {
+                     type: "array",
+                     items: {
+                       type: "object",
+                       properties: {
+                         id: {
+                           type: "string",
+                           description: "ID of existing submilestone to update (required for edits)"
+                         },
+                         title: {
+                           type: "string"
+                         },
+                         description: {
+                           type: "string"
+                         },
+                         targetAmount: {
+                           type: "number",
+                           minimum: 0
+                         },
+                         targetDate: {
+                           type: "string",
+                           pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+                         },
+                         completed: {
+                           type: "boolean"
+                         },
+                         order: {
+                           type: "number",
+                           minimum: 0,
+                           description: "Order/sequence (can be used instead of ID for updates)"
+                         }
+                       },
+                       additionalProperties: false,
+                       description: "Individual submilestone updates - include ID or order to identify which submilestone to update"
+                     },
+                     description: "Array of submilestone updates - each item updates one specific submilestone"
+                   }
                 },
+                additionalProperties: false,
                 description: "Fields to update (only include changed fields)"
               }
             },
-            required: ["id", "updates"]
+            required: [
+              "id",
+              "updates"
+            ],
+            additionalProperties: false
           },
           description: "Goals to edit by ID"
         },
         
         goalDeletes: {
           type: "array",
-          items: {type: "string"},
+          items: {
+            type: "string"
+          },
           description: "Goal IDs to delete"
         },
         
         // Asset Operations
         assetEdits: {
-          type: "array", 
+          type: "array",
           items: {
             type: "object",
             properties: {
-              id: {type: "string", description: "Exact ID of asset to edit"},
+              id: {
+                type: "string",
+                description: "Exact ID of asset to edit"
+              },
               updates: {
                 type: "object",
                 properties: {
-                  name: {type: "string"},
+                  name: {
+                    type: "string"
+                  },
                   type: {
                     type: "string",
-                    enum: ["house", "car", "investment", "savings", "retirement", "other"]
+                    enum: [
+                      "house",
+                      "car",
+                      "investment",
+                      "savings",
+                      "retirement",
+                      "other"
+                    ]
                   },
-                  value: {type: "number", minimum: 0},
-                  description: {type: "string"}
+                  value: {
+                    type: "number",
+                    minimum: 0
+                  },
+                  description: {
+                    type: "string"
+                  }
                 },
+                additionalProperties: false,
                 description: "Fields to update (only include changed fields)"
               }
             },
-            required: ["id", "updates"]
+            required: [
+              "id",
+              "updates"
+            ],
+            additionalProperties: false
           },
           description: "Assets to edit by ID"
         },
         
         assetDeletes: {
           type: "array",
-          items: {type: "string"},
+          items: {
+            type: "string"
+          },
           description: "Asset IDs to delete"
         },
         
@@ -217,35 +421,64 @@ export const contextAssistantSchema = {
         debtEdits: {
           type: "array",
           items: {
-            type: "object", 
+            type: "object",
             properties: {
-              id: {type: "string", description: "Exact ID of debt to edit"},
+              id: {
+                type: "string",
+                description: "Exact ID of debt to edit"
+              },
               updates: {
                 type: "object",
                 properties: {
-                  name: {type: "string"},
+                  name: {
+                    type: "string"
+                  },
                   type: {
                     type: "string",
-                    enum: ["mortgage", "credit-card", "student-loan", "car-loan", "personal-loan", "business-loan", "other"]
+                    enum: [
+                      "mortgage",
+                      "credit-card",
+                      "student-loan",
+                      "car-loan",
+                      "personal-loan",
+                      "business-loan",
+                      "other"
+                    ]
                   },
-                  balance: {type: "number", minimum: 0},
-                  interestRate: {type: "number", minimum: 0},
-                  description: {type: "string"}
+                  balance: {
+                    type: "number",
+                    minimum: 0
+                  },
+                  interestRate: {
+                    type: "number",
+                    minimum: 0
+                  },
+                  description: {
+                    type: "string"
+                  }
                 },
+                additionalProperties: false,
                 description: "Fields to update (only include changed fields)"
               }
             },
-            required: ["id", "updates"]
+            required: [
+              "id",
+              "updates"
+            ],
+            additionalProperties: false
           },
           description: "Debts to edit by ID"
         },
         
         debtDeletes: {
           type: "array",
-          items: {type: "string"},
+          items: {
+            type: "string"
+          },
           description: "Debt IDs to delete"
         }
       },
+      additionalProperties: false,
       description: "Edit and delete operations (use exact IDs from context data)"
     }
   },

@@ -305,7 +305,7 @@ export const routeWithAssistant = async (client, message, userContext = {}, conv
     
     // Prepare minimal context for router (complete profile info + routing metadata)
     const routerContext = {
-      conversationHistory: conversationHistory.slice(-3), // Last 3 exchanges
+      conversationHistory: conversationHistory.slice(-5), // Last 5 exchanges
       hasUserData: !!(userContext && Object.keys(userContext).length > 0),
       profile: userContext ? {
         // Basic Information
@@ -515,15 +515,25 @@ export const getPersonalizedAdviceWithAssistant = async (client, message, userCo
         
         // Process submilestones if provided
         if (goal.submilestones && Array.isArray(goal.submilestones)) {
-          processedGoal.submilestones = goal.submilestones.map((sub, index) => ({
-            id: Date.now().toString() + index.toString() + Math.random().toString(36).substr(2, 9),
-            title: sub.title,
-            description: sub.description || "",
-            targetAmount: sub.targetAmount || undefined,
-            targetDate: sub.targetDate || undefined,
-            completed: Boolean(sub.completed),
-            order: typeof sub.order === 'number' ? sub.order : index
-          }));
+          processedGoal.submilestones = goal.submilestones.map((sub, index) => {
+            const submilestone = {
+              id: Date.now().toString() + index.toString() + Math.random().toString(36).substr(2, 9),
+              title: sub.title,
+              description: sub.description || "",
+              completed: Boolean(sub.completed),
+              order: typeof sub.order === 'number' ? sub.order : index
+            };
+            
+            // Only include targetAmount and targetDate if they have actual values
+            if (sub.targetAmount !== undefined && sub.targetAmount !== null) {
+              submilestone.targetAmount = sub.targetAmount;
+            }
+            if (sub.targetDate !== undefined && sub.targetDate !== null && sub.targetDate !== "") {
+              submilestone.targetDate = sub.targetDate;
+            }
+            
+            return submilestone;
+          });
         } else {
           processedGoal.submilestones = [];
         }
@@ -649,7 +659,7 @@ export const assistantChatInvoke = async (inputText, userId, userContext = null,
     // Load basic context and conversation history
     const [basicContext, conversationHistory] = await Promise.all([
       loadBasicUserContext(userId),
-      loadConversationHistory(userId, 3)
+      loadConversationHistory(userId, 5)
     ]);
     
     logger.info("🔍 DEBUG: About to route message", {
@@ -1070,11 +1080,40 @@ const updateUserDataViaAssistant = async (userId, assistantResponse) => {
             operations.goalEdits.forEach(edit => {
               const goalIndex = currentGoals.findIndex(goal => goal.id === edit.id);
               if (goalIndex !== -1) {
-                currentGoals[goalIndex] = { ...currentGoals[goalIndex], ...edit.updates };
+                const currentGoal = currentGoals[goalIndex];
+                const updates = { ...edit.updates };
+                
+                // Handle submilestones specially to avoid replacing entire array
+                if (updates.submilestones) {
+                  const currentSubmilestones = currentGoal.submilestones || [];
+                  const updatedSubmilestones = [...currentSubmilestones];
+                  
+                  // Update individual submilestones by ID or order
+                  updates.submilestones.forEach(subUpdate => {
+                    if (subUpdate.id) {
+                      // Update by ID
+                      const subIndex = updatedSubmilestones.findIndex(sub => sub.id === subUpdate.id);
+                      if (subIndex !== -1) {
+                        updatedSubmilestones[subIndex] = { ...updatedSubmilestones[subIndex], ...subUpdate };
+                      }
+                    } else if (typeof subUpdate.order === 'number') {
+                      // Update by order
+                      const subIndex = updatedSubmilestones.findIndex(sub => sub.order === subUpdate.order);
+                      if (subIndex !== -1) {
+                        updatedSubmilestones[subIndex] = { ...updatedSubmilestones[subIndex], ...subUpdate };
+                      }
+                    }
+                  });
+                  
+                  updates.submilestones = updatedSubmilestones;
+                }
+                
+                currentGoals[goalIndex] = { ...currentGoal, ...updates };
                 logger.info("✏️ ASSISTANT EDIT: Updated goal", {
                   userId,
                   goalId: edit.id,
-                  updates: Object.keys(edit.updates)
+                  updates: Object.keys(edit.updates),
+                  submilestoneUpdates: edit.updates.submilestones?.length || 0
                 });
               }
             });
