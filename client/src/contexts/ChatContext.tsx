@@ -192,7 +192,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           (response.data.assets && response.data.assets.length > 0) ||
           (response.data.debts && response.data.debts.length > 0) ||
           (response.data.goals && response.data.goals.length > 0) ||
-          response.data.skills
+          response.data.skills ||
+          response.data.operations // Include edit/delete operations
         )) {
           console.log('AI updated user data, triggering refresh');
           onDataUpdated(response.data);

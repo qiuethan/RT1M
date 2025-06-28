@@ -37,7 +37,16 @@ export default function Goals() {
     targetDate: '',
     status: 'Not Started',
     description: '',
-    category: ''
+    category: '',
+    submilestones: [] as Array<{
+      id: string;
+      title: string;
+      description: string;
+      targetAmount: string;
+      targetDate: string;
+      completed: boolean;
+      order: number;
+    }>
   });
   
   // Original form for change detection
@@ -69,7 +78,8 @@ export default function Goals() {
       targetDate: '',
       status: 'Not Started',
       description: '',
-      category: ''
+      category: '',
+      submilestones: []
     };
     setGoalForm(newForm);
     setOriginalGoalForm(newForm);
@@ -87,7 +97,16 @@ export default function Goals() {
       targetDate: goal.targetDate || '',
       status: goal.status,
       description: goal.description || '',
-      category: goal.category || ''
+      category: goal.category || '',
+      submilestones: (goal.submilestones || []).map(sub => ({
+        id: sub.id,
+        title: sub.title,
+        description: sub.description || '',
+        targetAmount: sub.targetAmount?.toString() || '',
+        targetDate: sub.targetDate || '',
+        completed: sub.completed,
+        order: sub.order
+      }))
     };
     setGoalForm(editForm);
     setOriginalGoalForm(editForm);
@@ -108,7 +127,16 @@ export default function Goals() {
         targetDate: goalForm.targetDate || undefined,
         status: goalForm.status as 'Not Started' | 'In Progress' | 'Completed',
         description: goalForm.description || undefined,
-        category: goalForm.category || undefined
+        category: goalForm.category || undefined,
+        submilestones: goalForm.submilestones.map(sub => ({
+          id: sub.id,
+          title: sub.title,
+          description: sub.description,
+          targetAmount: sub.targetAmount ? parseFloat(sub.targetAmount) : undefined,
+          targetDate: sub.targetDate || undefined,
+          completed: sub.completed,
+          order: sub.order
+        }))
       };
 
       if (editingGoal && editingGoal.id) {
@@ -131,6 +159,42 @@ export default function Goals() {
     } catch (error) {
       console.error('Error deleting goal:', error);
     }
+  };
+
+  // Submilestone management functions
+  const addSubmilestone = () => {
+    const newSubmilestone = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      title: '',
+      description: '',
+      targetAmount: '',
+      targetDate: '',
+      completed: false,
+      order: goalForm.submilestones.length
+    };
+    setGoalForm({
+      ...goalForm,
+      submilestones: [...goalForm.submilestones, newSubmilestone]
+    });
+  };
+
+  const updateSubmilestone = (index: number, field: string, value: any) => {
+    const updatedSubmilestones = [...goalForm.submilestones];
+    updatedSubmilestones[index] = { ...updatedSubmilestones[index], [field]: value };
+    setGoalForm({
+      ...goalForm,
+      submilestones: updatedSubmilestones
+    });
+  };
+
+  const removeSubmilestone = (index: number) => {
+    const updatedSubmilestones = goalForm.submilestones.filter((_, i) => i !== index);
+    // Reorder remaining submilestones
+    const reorderedSubmilestones = updatedSubmilestones.map((sub, i) => ({ ...sub, order: i }));
+    setGoalForm({
+      ...goalForm,
+      submilestones: reorderedSubmilestones
+    });
   };
 
   const getStatusColor = (status: string) => {
@@ -446,6 +510,35 @@ export default function Goals() {
                       {goal.description}
                     </div>
                   )}
+                  {goal.submilestones && goal.submilestones.length > 0 && (
+                    <div className="mt-3 pt-2 border-t border-surface-200">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-medium text-surface-500">Submilestones</span>
+                        <span className="text-xs text-surface-500">
+                          {goal.submilestones.filter(sub => sub.completed).length}/{goal.submilestones.length} completed
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        {goal.submilestones.slice(0, 3).map((submilestone, subIndex) => (
+                          <div key={submilestone.id} className="flex items-center gap-2 text-xs">
+                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                              submilestone.completed ? 'bg-green-500' : 'bg-surface-300'
+                            }`}></div>
+                            <span className={`truncate ${
+                              submilestone.completed ? 'text-surface-500 line-through' : 'text-surface-700'
+                            }`}>
+                              {submilestone.title}
+                            </span>
+                          </div>
+                        ))}
+                        {goal.submilestones.length > 3 && (
+                          <div className="text-xs text-surface-500 text-center">
+                            +{goal.submilestones.length - 3} more
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </Card>
             )) || []}
@@ -543,6 +636,95 @@ export default function Goals() {
               onChange={(e) => setGoalForm({...goalForm, description: e.target.value})}
               placeholder="Additional details about this goal"
             />
+
+            {/* Submilestones Section */}
+            <div className="border-t pt-4">
+              <div className="flex justify-between items-center mb-3">
+                <h4 className="text-lg font-medium text-surface-900">Submilestones</h4>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addSubmilestone}
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Add Submilestone
+                </Button>
+              </div>
+
+              {goalForm.submilestones.length > 0 ? (
+                <div className="space-y-3 max-h-60 overflow-y-auto">
+                  {goalForm.submilestones.map((submilestone, index) => (
+                    <div key={submilestone.id} className="p-3 border border-surface-200 rounded-lg bg-surface-50">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-sm font-medium text-surface-700">Submilestone {index + 1}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeSubmilestone(index)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Input
+                          label="Title"
+                          value={submilestone.title}
+                          onChange={(e) => updateSubmilestone(index, 'title', e.target.value)}
+                          placeholder="Submilestone title"
+                        />
+                        
+                        <div className="grid grid-cols-2 gap-2">
+                          {goalForm.type === 'financial' && (
+                            <Input
+                              label="Target Amount ($)"
+                              type="number"
+                              value={submilestone.targetAmount}
+                              onChange={(e) => updateSubmilestone(index, 'targetAmount', e.target.value)}
+                              placeholder="1000"
+                            />
+                          )}
+                          <DatePicker
+                            label="Target Date"
+                            value={submilestone.targetDate}
+                            onChange={(date) => updateSubmilestone(index, 'targetDate', date || '')}
+                          />
+                        </div>
+                        
+                        <Input
+                          label="Description"
+                          value={submilestone.description}
+                          onChange={(e) => updateSubmilestone(index, 'description', e.target.value)}
+                          placeholder="Brief description"
+                        />
+                        
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            id={`submilestone-${index}-completed`}
+                            checked={submilestone.completed}
+                            onChange={(e) => updateSubmilestone(index, 'completed', e.target.checked)}
+                            className="mr-2"
+                          />
+                          <label htmlFor={`submilestone-${index}-completed`} className="text-sm text-surface-700">
+                            Completed
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-surface-500 text-center py-4">
+                  No submilestones added yet. Break down your goal into smaller, manageable steps.
+                </p>
+              )}
+            </div>
             
             <div className="flex justify-between pt-4">
               {editingGoal && editingGoal.id && (

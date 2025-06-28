@@ -66,6 +66,21 @@ export const debtSchema = {
   required: ["name", "type", "balance"]
 };
 
+// Submilestone schema
+export const submilestoneSchema = {
+  type: "object",
+  properties: {
+    id: {type: "string", description: "Unique identifier (auto-generated if not provided)"},
+    title: {type: "string", description: "Submilestone title"},
+    description: {type: "string", description: "Brief description of the submilestone"},
+    targetAmount: {type: "number", minimum: 0, description: "Target amount for financial submilestones"},
+    targetDate: {type: "string", format: "date", description: "Target completion date (YYYY-MM-DD)"},
+    completed: {type: "boolean", description: "Whether this submilestone is completed"},
+    order: {type: "number", minimum: 0, description: "Order/sequence of this submilestone"}
+  },
+  required: ["title", "completed", "order"]
+};
+
 // Goal schema matching the exact database structure
 export const goalSchema = {
   type: "object",
@@ -86,7 +101,12 @@ export const goalSchema = {
     targetAmount: {type: "number", minimum: 0, description: "Target amount for financial goals"},
     currentAmount: {type: "number", minimum: 0, description: "Current progress amount"},
     targetDate: {type: "string", format: "date", description: "Target completion date (YYYY-MM-DD)"},
-    progress: {type: "number", minimum: 0, maximum: 100, description: "Progress percentage for non-financial goals"}
+    progress: {type: "number", minimum: 0, maximum: 100, description: "Progress percentage for non-financial goals"},
+    submilestones: {
+      type: "array",
+      items: submilestoneSchema,
+      description: "Optional submilestones to break down the goal into smaller steps"
+    }
   },
   required: ["title", "type"]
 };

@@ -98,6 +98,53 @@ const sanitizeDebts = (debts) => {
 };
 
 /**
+ * Sanitize and validate submilestones array
+ */
+const sanitizeSubmilestones = (submilestones) => {
+  if (!Array.isArray(submilestones)) return [];
+  
+  const sanitized = submilestones.map((sub, index) => {
+    if (!sub || typeof sub !== "object") return null;
+    
+    const sanitizedSub = {
+      id: sub.id || generateId(),
+      title: String(sub.title || "").trim(),
+      completed: Boolean(sub.completed),
+      order: typeof sub.order === 'number' ? sub.order : index
+    };
+    
+    if (sub.description) {
+      sanitizedSub.description = String(sub.description).trim().substring(0, 200);
+    }
+    
+    if (sub.targetAmount !== undefined && sub.targetAmount !== null) {
+      const amount = parseFloat(sub.targetAmount);
+      if (!isNaN(amount) && amount >= 0) {
+        sanitizedSub.targetAmount = amount;
+      }
+    }
+    
+    if (sub.targetDate) {
+      const dateStr = String(sub.targetDate).trim();
+      if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        sanitizedSub.targetDate = dateStr;
+      }
+    }
+    
+    if (sub.completedDate) {
+      const dateStr = String(sub.completedDate).trim();
+      if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        sanitizedSub.completedDate = dateStr;
+      }
+    }
+    
+    return sanitizedSub.title ? sanitizedSub : null;
+  }).filter(Boolean);
+  
+  return sanitized;
+};
+
+/**
  * Sanitize and validate goals array
  */
 const sanitizeGoals = (goals) => {
@@ -145,6 +192,14 @@ const sanitizeGoals = (goals) => {
       const progress = parseFloat(goal.progress);
       if (!isNaN(progress) && progress >= 0 && progress <= 100) {
         sanitizedGoal.progress = progress;
+      }
+    }
+    
+    // Sanitize submilestones
+    if (goal.submilestones) {
+      const sanitizedSubmilestones = sanitizeSubmilestones(goal.submilestones);
+      if (sanitizedSubmilestones.length > 0) {
+        sanitizedGoal.submilestones = sanitizedSubmilestones;
       }
     }
     

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, LoadingSpinner } from './ui';
+import { Button, LoadingSpinner, MarkdownMessage } from './ui';
 import { useChatContext } from '../contexts/ChatContext';
 
 export const MiniChatbot: React.FC = () => {
@@ -119,7 +119,11 @@ export const MiniChatbot: React.FC = () => {
                   : 'bg-surface-100 border border-surface-200 text-surface-900'
               }`}
             >
-              <p>{message.text}</p>
+              {message.sender === 'user' ? (
+                <p>{message.text}</p>
+              ) : (
+                <MarkdownMessage content={message.text} />
+              )}
               <p
                 className={`text-xs mt-1 ${
                   message.sender === 'user' ? 'text-primary-100' : 'text-surface-500'

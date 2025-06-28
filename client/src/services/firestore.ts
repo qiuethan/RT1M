@@ -47,6 +47,18 @@ export interface FinancialGoal {
   primaryStrategy?: string | null;
 }
 
+// Submilestone Interface
+export interface Submilestone {
+  id: string;
+  title: string;
+  description?: string;
+  targetAmount?: number;
+  targetDate?: string;
+  completed: boolean;
+  completedDate?: string;
+  order: number;
+}
+
 // Intermediate Goal Interface
 export interface IntermediateGoal {
   id?: string;
@@ -59,6 +71,7 @@ export interface IntermediateGoal {
   progress?: number;
   description?: string;
   category?: string;
+  submilestones?: Submilestone[];
 }
 
 // Education History Interface

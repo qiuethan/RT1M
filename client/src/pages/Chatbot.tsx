@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Button, LoadingSpinner } from '../components/ui';
+import { Button, LoadingSpinner, MarkdownMessage } from '../components/ui';
 import Footer from '../components/Footer';
 import { useChatContext } from '../contexts/ChatContext';
 
@@ -124,7 +124,11 @@ export default function Chatbot() {
                         : 'bg-surface-100 border border-surface-200 text-surface-900'
                     }`}
                   >
-                    <p className="text-sm">{message.text}</p>
+                    {message.sender === 'user' ? (
+                      <p className="text-sm">{message.text}</p>
+                    ) : (
+                      <MarkdownMessage content={message.text} className="text-sm" />
+                    )}
                     <p
                       className={`text-xs mt-1 ${
                         message.sender === 'user' ? 'text-primary-100' : 'text-surface-500'

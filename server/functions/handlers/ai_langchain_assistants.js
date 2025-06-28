@@ -10,6 +10,8 @@ import admin from "firebase-admin";
 
 // Import necessary functions from existing modules
 import {loadBasicUserContext, loadConversationHistory} from "./ai_smart_chat.js";
+import {contextAssistantSchema} from "./ai_context_assistant_schema.js";
+import {processContextAssistantResponse} from "./ai_context_assistant_tools.js";
 
 /**
  * Load comprehensive user context for AI processing
@@ -191,13 +193,24 @@ const runAssistant = async (client, assistantId, message, context = {}, userId =
       if (assistantMessage.content[0].type === 'text') {
         const textContent = assistantMessage.content[0].text.value;
         
-        // Try to parse as JSON first - handle cases where JSON has extra text
-        try {
-          // First try direct parsing
-          response = JSON.parse(textContent);
-          logger.info(`✅ ASSISTANT: JSON response parsed`, {
+        // For Context Assistant, use enhanced response processing
+        if (assistantId === getAssistantId("context_id")) {
+          response = processContextAssistantResponse(textContent);
+          logger.info(`✅ CONTEXT ASSISTANT: Enhanced response processed`, {
             userId,
-            assistantId: assistantId.substring(0, 10),
+            hasOperations: !!(response?.operations),
+            hasGoals: !!(response?.goals?.length),
+            hasAssets: !!(response?.assets?.length),
+            hasDebts: !!(response?.debts?.length)
+          });
+        } else {
+          // Try to parse as JSON first - handle cases where JSON has extra text
+          try {
+            // First try direct parsing
+            response = JSON.parse(textContent);
+            logger.info(`✅ ASSISTANT: JSON response parsed`, {
+              userId,
+              assistantId: assistantId.substring(0, 10),
             duration: `${duration}ms`,
             hasResponse: !!response
           });
@@ -235,6 +248,7 @@ const runAssistant = async (client, assistantId, message, context = {}, userId =
               responseLength: textContent.length
             });
           }
+        }
         }
       }
       
@@ -289,12 +303,47 @@ export const routeWithAssistant = async (client, message, userContext = {}, conv
       throw new Error("ROUTER_ASSISTANT_ID not configured");
     }
     
-    // Prepare context for router
+    // Prepare minimal context for router (complete profile info + routing metadata)
     const routerContext = {
-      userProfile: userContext,
       conversationHistory: conversationHistory.slice(-3), // Last 3 exchanges
+      hasUserData: !!(userContext && Object.keys(userContext).length > 0),
+      profile: userContext ? {
+        // Basic Information
+        basicInfo: userContext.basicInfo || null,
+        
+        // Education History (simplified for router)
+        education: userContext.educationHistory ? userContext.educationHistory.map(edu => ({
+          school: edu.school,
+          field: edu.field,
+          graduationYear: edu.graduationYear
+        })) : null,
+        
+        // Experience (simplified for router)
+        experience: userContext.experience ? userContext.experience.map(exp => ({
+          company: exp.company,
+          position: exp.position,
+          startYear: exp.startYear,
+          endYear: exp.endYear
+        })) : null,
+        
+        // Financial Goal (key info for routing decisions)
+        financialGoal: userContext.financialGoal ? {
+          targetAmount: userContext.financialGoal.targetAmount,
+          targetYear: userContext.financialGoal.targetYear,
+          timeframe: userContext.financialGoal.timeframe,
+          riskTolerance: userContext.financialGoal.riskTolerance,
+          primaryStrategy: userContext.financialGoal.primaryStrategy
+        } : null
+      } : null,
       timestamp: new Date().toISOString()
     };
+    
+    logger.info("🚦 DEBUG: Calling Router Assistant", {
+      userId,
+      message: message,
+      routerContext: JSON.stringify(routerContext),
+      routerId: routerId.substring(0, 15) + "..."
+    });
     
     const response = await runAssistant(
       client, 
@@ -304,8 +353,19 @@ export const routeWithAssistant = async (client, message, userContext = {}, conv
       userId
     );
     
+    logger.info("🚦 DEBUG: Router Assistant raw response", {
+      userId,
+      response: JSON.stringify(response, null, 2).substring(0, 500) + "...",
+      responseKeys: response ? Object.keys(response) : []
+    });
+    
     // Validate router response (matches new schema)
     if (!response || !response.route) {
+      logger.error("🚦 ERROR: Invalid router response", {
+        userId,
+        response: response,
+        hasRoute: !!(response?.route)
+      });
       throw new Error("Invalid router response - missing route");
     }
     
@@ -331,15 +391,16 @@ export const routeWithAssistant = async (client, message, userContext = {}, conv
   } catch (error) {
     logger.error("❌ ROUTER: Assistant routing failed", {
       userId,
-      error: error.message
+      error: error.message,
+      stack: error.stack
     });
     
-    // Fallback to safe routing
+    // Fallback to GENERAL for simple messages, not CONTEXT
     return {
-      route: "CONTEXT",
-      message: "",
+      route: "GENERAL",
+      message: "Hello! I'm here to help you with your financial planning journey. How can I assist you today?",
       confidence: 0.3,
-      reasoning: "Router error - defaulting to context"
+      reasoning: "Router error - providing general greeting"
     };
   }
 };
@@ -356,14 +417,17 @@ export const getPersonalizedAdviceWithAssistant = async (client, message, userCo
       throw new Error("CONTEXT_ASSISTANT_ID not configured");
     }
     
-    // Prepare full context for personalized assistant - include detailed existing data for duplicate prevention
+    // Prepare enhanced context for personalized assistant with edit/delete capabilities
     const fullContext = {
-      ...userContext,
-      timestamp: new Date().toISOString(),
-      // Include full details of existing data (limited to prevent context overload)
+      userProfile: {
+        financialGoal: userContext.financialGoal || {},
+        financialInfo: userContext.financialInfo || {},
+        personalInfo: userContext.personalInfo || {}
+      },
+      
+      // COMPLETE existing data with IDs for edit/delete operations
       existingData: {
-        // Show up to 10 most recent goals with full details
-        goals: (userContext.currentGoals || []).slice(0, 10).map(g => ({
+        goals: (userContext.currentGoals || []).map(g => ({
           id: g.id,
           title: g.title,
           type: g.type,
@@ -372,18 +436,20 @@ export const getPersonalizedAdviceWithAssistant = async (client, message, userCo
           progress: g.progress,
           targetDate: g.targetDate,
           status: g.status,
-          description: g.description
+          description: g.description,
+          category: g.category,
+          submilestones: g.submilestones || []
         })),
-        // Show up to 10 most valuable assets with full details
-        assets: (userContext.assets || []).slice(0, 10).map(a => ({
+        
+        assets: (userContext.assets || []).map(a => ({
           id: a.id,
           name: a.name,
           type: a.type,
           value: a.value,
           description: a.description
         })),
-        // Show up to 10 largest debts with full details
-        debts: (userContext.debts || []).slice(0, 10).map(d => ({
+        
+        debts: (userContext.debts || []).map(d => ({
           id: d.id,
           name: d.name,
           type: d.type,
@@ -391,20 +457,26 @@ export const getPersonalizedAdviceWithAssistant = async (client, message, userCo
           interestRate: d.interestRate,
           description: d.description
         })),
-        // Show complete financial info
-        financialInfo: userContext.financialInfo || {},
-        // Include counts if we're limiting data
-        counts: {
-          totalGoals: (userContext.currentGoals || []).length,
-          totalAssets: (userContext.assets || []).length,
-          totalDebts: (userContext.debts || []).length,
-          showingAllData: {
-            goals: (userContext.currentGoals || []).length <= 10,
-            assets: (userContext.assets || []).length <= 10,
-            debts: (userContext.debts || []).length <= 10
-          }
-        }
-      }
+        
+        skills: userContext.skills || [],
+        interests: userContext.interests || []
+      },
+      
+      // Summary stats for AI decision making
+      summary: {
+        totalGoals: (userContext.currentGoals || []).length,
+        completedGoals: (userContext.currentGoals || []).filter(g => g.status === 'Completed').length,
+        totalAssets: (userContext.assets || []).length,
+        totalDebts: (userContext.debts || []).length,
+        netWorth: (userContext.assets || []).reduce((sum, a) => sum + (a.value || 0), 0) - 
+                  (userContext.debts || []).reduce((sum, d) => sum + (d.balance || 0), 0),
+        progressToRT1M: ((userContext.assets || []).reduce((sum, a) => sum + (a.value || 0), 0) - 
+                        (userContext.debts || []).reduce((sum, d) => sum + (d.balance || 0), 0)) / 
+                        (userContext.financialGoal?.targetAmount || 1000000) * 100
+      },
+      
+      responseSchema: contextAssistantSchema,
+      timestamp: new Date().toISOString()
     };
     
     const response = await runAssistant(
@@ -415,33 +487,71 @@ export const getPersonalizedAdviceWithAssistant = async (client, message, userCo
       userId
     );
     
-    // Map context response to expected format (matches new schema)
+    // Map context response to expected format (enhanced for edit/delete operations)
     const financialInfo = {};
     if (response.income !== undefined) financialInfo.annualIncome = response.income;
     if (response.expenses !== undefined) financialInfo.annualExpenses = response.expenses;
     if (response.savings !== undefined) financialInfo.currentSavings = response.savings;
     
-    // Map goals to intermediate goals format
-    const intermediateGoals = response.goals?.map(goal => ({
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      title: goal.title,
-      type: goal.type,
-      targetAmount: goal.amount || 0,
-      targetDate: goal.date || null,
-      status: goal.status || "Not Started",
-      currentAmount: 0,
-      progress: 0,
-      description: goal.description || "",
-      category: goal.category || goal.type
-    })) || [];
+    // Handle goals operations (create, edit, delete)
+    let processedGoals = [];
+    let goalsOperations = null;
+    
+    if (response.goals && Array.isArray(response.goals)) {
+      // New goals to create with proper submilestone processing
+      processedGoals = response.goals.map(goal => {
+        const processedGoal = {
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          title: goal.title,
+          type: goal.type,
+          targetAmount: goal.amount || goal.targetAmount || 0,
+          targetDate: goal.date || goal.targetDate || null,
+          status: goal.status || "Not Started",
+          currentAmount: goal.currentAmount || 0,
+          progress: goal.progress || 0,
+          description: goal.description || "",
+          category: goal.category || goal.type
+        };
+        
+        // Process submilestones if provided
+        if (goal.submilestones && Array.isArray(goal.submilestones)) {
+          processedGoal.submilestones = goal.submilestones.map((sub, index) => ({
+            id: Date.now().toString() + index.toString() + Math.random().toString(36).substr(2, 9),
+            title: sub.title,
+            description: sub.description || "",
+            targetAmount: sub.targetAmount || undefined,
+            targetDate: sub.targetDate || undefined,
+            completed: Boolean(sub.completed),
+            order: typeof sub.order === 'number' ? sub.order : index
+          }));
+        } else {
+          processedGoal.submilestones = [];
+        }
+        
+        return processedGoal;
+      });
+    }
+    
+    // Handle edit/delete operations if specified
+    if (response.operations) {
+      goalsOperations = {
+        edits: response.operations.goalEdits || [],
+        deletes: response.operations.goalDeletes || [],
+        assetEdits: response.operations.assetEdits || [],
+        assetDeletes: response.operations.assetDeletes || [],
+        debtEdits: response.operations.debtEdits || [],
+        debtDeletes: response.operations.debtDeletes || []
+      };
+    }
     
     return {
       message: response.message || "I'd be happy to provide personalized advice based on your financial situation!",
       financialInfo: Object.keys(financialInfo).length > 0 ? financialInfo : null,
       assets: response.assets || [],
       debts: response.debts || [],
-      goals: intermediateGoals.length > 0 ? intermediateGoals : null,
-      skills: response.skills || null
+      goals: processedGoals.length > 0 ? processedGoals : null,
+      skills: response.skills || null,
+      operations: goalsOperations
     };
     
   } catch (error) {
@@ -542,6 +652,13 @@ export const assistantChatInvoke = async (inputText, userId, userContext = null,
       loadConversationHistory(userId, 3)
     ]);
     
+    logger.info("🔍 DEBUG: About to route message", {
+      userId,
+      inputText: inputText.substring(0, 50),
+      hasBasicContext: !!basicContext,
+      conversationHistoryCount: conversationHistory.length
+    });
+    
     // LAYER 1: Route the message
     const routingDecision = await routeWithAssistant(
       client, 
@@ -550,6 +667,15 @@ export const assistantChatInvoke = async (inputText, userId, userContext = null,
       conversationHistory, 
       userId
     );
+    
+    logger.info("🎯 DEBUG: Routing decision received", {
+      userId,
+      route: routingDecision.route,
+      hasMessage: !!routingDecision.message,
+      messagePreview: routingDecision.message?.substring(0, 100) + "...",
+      confidence: routingDecision.confidence,
+      reasoning: routingDecision.reasoning
+    });
     
     let response;
     let responseSource;
@@ -609,7 +735,8 @@ export const assistantChatInvoke = async (inputText, userId, userContext = null,
       
       // Update user data if extracted using existing database functions
       if (personalizedResponse.financialInfo || personalizedResponse.assets?.length || 
-          personalizedResponse.debts?.length || personalizedResponse.goals || personalizedResponse.skills) {
+          personalizedResponse.debts?.length || personalizedResponse.goals || personalizedResponse.skills ||
+          personalizedResponse.operations) {
         try {
           // Use existing updateUserDataFromAI function with proper wrapper
           await updateUserDataViaAssistant(userId, personalizedResponse);
@@ -619,7 +746,8 @@ export const assistantChatInvoke = async (inputText, userId, userContext = null,
             assetsCount: personalizedResponse.assets?.length || 0,
             debtsCount: personalizedResponse.debts?.length || 0,
             goalsCount: personalizedResponse.goals?.length || 0,
-            skillsCount: personalizedResponse.skills?.length || 0
+            skillsCount: personalizedResponse.skills?.length || 0,
+            hasOperations: !!personalizedResponse.operations
           });
         } catch (updateError) {
           logger.warn("⚠️ ASSISTANT: Failed to update user data", {
@@ -707,6 +835,7 @@ export const assistantChatInvoke = async (inputText, userId, userContext = null,
 /**
  * Update user data via Assistant extraction
  * Wrapper function to update various user data collections from AI responses
+ * Enhanced to support edit and delete operations
  */
 const updateUserDataViaAssistant = async (userId, assistantResponse) => {
   try {
@@ -913,6 +1042,134 @@ const updateUserDataViaAssistant = async (userId, assistantResponse) => {
       }
     }
 
+    // Handle edit and delete operations
+    if (assistantResponse.operations) {
+      const operations = assistantResponse.operations;
+      
+      // Handle goal edits and deletes
+      if ((operations.edits?.length > 0) || (operations.deletes?.length > 0)) {
+        const goalsRef = db.collection("users").doc(userId).collection("goals").doc("data");
+        const existingGoals = await goalsRef.get();
+        
+        if (existingGoals.exists) {
+          let currentGoals = existingGoals.data()?.intermediateGoals || [];
+          
+          // Apply deletes
+          if (operations.deletes?.length > 0) {
+            currentGoals = currentGoals.filter(goal => !operations.deletes.includes(goal.id));
+            logger.info("🗑️ ASSISTANT DELETE: Removed goals", {
+              userId,
+              deletedIds: operations.deletes,
+              remainingGoals: currentGoals.length
+            });
+          }
+          
+          // Apply edits
+          if (operations.edits?.length > 0) {
+            operations.edits.forEach(edit => {
+              const goalIndex = currentGoals.findIndex(goal => goal.id === edit.id);
+              if (goalIndex !== -1) {
+                currentGoals[goalIndex] = { ...currentGoals[goalIndex], ...edit.updates };
+                logger.info("✏️ ASSISTANT EDIT: Updated goal", {
+                  userId,
+                  goalId: edit.id,
+                  updates: Object.keys(edit.updates)
+                });
+              }
+            });
+          }
+          
+          batch.update(goalsRef, {
+            intermediateGoals: currentGoals,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          updateCount++;
+        }
+      }
+      
+      // Handle asset edits and deletes
+      if ((operations.assetEdits?.length > 0) || (operations.assetDeletes?.length > 0)) {
+        const financialsRef = db.collection("users").doc(userId).collection("financials").doc("data");
+        const existingFinancials = await financialsRef.get();
+        
+        if (existingFinancials.exists) {
+          let currentAssets = existingFinancials.data()?.assets || [];
+          
+          // Apply deletes
+          if (operations.assetDeletes?.length > 0) {
+            currentAssets = currentAssets.filter(asset => !operations.assetDeletes.includes(asset.id));
+            logger.info("🗑️ ASSISTANT DELETE: Removed assets", {
+              userId,
+              deletedIds: operations.assetDeletes,
+              remainingAssets: currentAssets.length
+            });
+          }
+          
+          // Apply edits
+          if (operations.assetEdits?.length > 0) {
+            operations.assetEdits.forEach(edit => {
+              const assetIndex = currentAssets.findIndex(asset => asset.id === edit.id);
+              if (assetIndex !== -1) {
+                currentAssets[assetIndex] = { ...currentAssets[assetIndex], ...edit.updates };
+                logger.info("✏️ ASSISTANT EDIT: Updated asset", {
+                  userId,
+                  assetId: edit.id,
+                  updates: Object.keys(edit.updates)
+                });
+              }
+            });
+          }
+          
+          batch.update(financialsRef, {
+            assets: currentAssets,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          updateCount++;
+        }
+      }
+      
+      // Handle debt edits and deletes
+      if ((operations.debtEdits?.length > 0) || (operations.debtDeletes?.length > 0)) {
+        const financialsRef = db.collection("users").doc(userId).collection("financials").doc("data");
+        const existingFinancials = await financialsRef.get();
+        
+        if (existingFinancials.exists) {
+          let currentDebts = existingFinancials.data()?.debts || [];
+          
+          // Apply deletes
+          if (operations.debtDeletes?.length > 0) {
+            currentDebts = currentDebts.filter(debt => !operations.debtDeletes.includes(debt.id));
+            logger.info("🗑️ ASSISTANT DELETE: Removed debts", {
+              userId,
+              deletedIds: operations.debtDeletes,
+              remainingDebts: currentDebts.length
+            });
+          }
+          
+          // Apply edits
+          if (operations.debtEdits?.length > 0) {
+            operations.debtEdits.forEach(edit => {
+              const debtIndex = currentDebts.findIndex(debt => debt.id === edit.id);
+              if (debtIndex !== -1) {
+                currentDebts[debtIndex] = { ...currentDebts[debtIndex], ...edit.updates };
+                logger.info("✏️ ASSISTANT EDIT: Updated debt", {
+                  userId,
+                  debtId: edit.id,
+                  updates: Object.keys(edit.updates)
+                });
+              }
+            });
+          }
+          
+          batch.update(financialsRef, {
+            debts: currentDebts,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          updateCount++;
+        }
+      }
+    }
+
     // Commit all updates if any were prepared
     if (updateCount > 0) {
       await batch.commit();
@@ -924,7 +1181,8 @@ const updateUserDataViaAssistant = async (userId, assistantResponse) => {
         hasAssets: !!(assistantResponse.assets?.length),
         hasDebts: !!(assistantResponse.debts?.length),
         hasGoals: !!(assistantResponse.goals?.length),
-        hasSkills: !!(assistantResponse.skills?.length)
+        hasSkills: !!(assistantResponse.skills?.length),
+        hasOperations: !!assistantResponse.operations
       });
       
       return {
@@ -947,6 +1205,5 @@ const updateUserDataViaAssistant = async (userId, assistantResponse) => {
     });
     throw error;
   }
-};
+}; 
 
- 
