@@ -79,91 +79,91 @@ export default function FinancialsRefactored() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-surface-50 via-secondary-50/20 to-accent-50/30">
-      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-surface-50 via-secondary-50/20 to-accent-50/30 pt-4 sm:pt-6">
+      <div className="max-w-7xl mx-auto py-4 sm:py-6 lg:py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-surface-900">Financial Overview</h1>
-          <p className="text-surface-600 mt-2">
+        <div className="mb-3 sm:mb-4 lg:mb-6">
+          <h1 className="text-lg sm:text-xl font-bold text-surface-900">Financial Overview</h1>
+          <p className="text-sm sm:text-base text-surface-600 mt-1 sm:mt-2">
             Manage your financial information and track your wealth building progress
           </p>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Financial Overview Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 lg:gap-6">
             <Card variant="secondary" className="text-center group hover:scale-105" hover>
-              <div className="w-12 h-12 bg-gradient-to-br from-secondary-500 to-secondary-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-medium">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 sm:w-10 lg:w-12 h-8 sm:h-10 lg:h-12 bg-gradient-to-br from-secondary-500 to-secondary-600 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 lg:mb-4 shadow-medium">
+                <svg className="w-4 sm:w-5 lg:w-6 h-4 sm:h-5 lg:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                 </svg>
               </div>
-              <div className="text-2xl font-bold text-secondary-700 mb-2">
+              <div className="text-base sm:text-lg lg:text-xl font-bold text-secondary-700 mb-1 sm:mb-2">
                 {formatCurrency(financialInfo.annualIncome || 0)}
               </div>
-              <div className="text-sm text-secondary-600 font-medium">Annual Income</div>
+              <div className="text-xs sm:text-sm text-secondary-600 font-medium">Annual Income</div>
             </Card>
             
             <Card variant="accent" className="text-center group hover:scale-105" hover>
-              <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-medium">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 sm:w-10 lg:w-12 h-8 sm:h-10 lg:h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 lg:mb-4 shadow-medium">
+                <svg className="w-4 sm:w-5 lg:w-6 h-4 sm:h-5 lg:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
-              <div className="text-2xl font-bold text-red-600 mb-2">
+              <div className="text-base sm:text-lg lg:text-xl font-bold text-red-600 mb-1 sm:mb-2">
                 {formatCurrency(financialInfo.annualExpenses || 0)}
               </div>
-              <div className="text-sm text-red-600 font-medium">Annual Expenses</div>
+              <div className="text-xs sm:text-sm text-red-600 font-medium">Annual Expenses</div>
             </Card>
             
             <Card variant="primary" className="text-center group hover:scale-105" hover>
-              <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-medium">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 sm:w-10 lg:w-12 h-8 sm:h-10 lg:h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 lg:mb-4 shadow-medium">
+                <svg className="w-4 sm:w-5 lg:w-6 h-4 sm:h-5 lg:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
               </div>
-              <div className="text-2xl font-bold text-primary-700 mb-2">
+              <div className="text-base sm:text-lg lg:text-xl font-bold text-primary-700 mb-1 sm:mb-2">
                 {formatCurrency(calculateTotalAssets(assets || []))}
               </div>
-              <div className="text-sm text-primary-600 font-medium">Total Assets</div>
+              <div className="text-xs sm:text-sm text-primary-600 font-medium">Total Assets</div>
             </Card>
             
             <Card variant="glass" className="text-center group hover:scale-105" hover>
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-medium">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 sm:w-10 lg:w-12 h-8 sm:h-10 lg:h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 lg:mb-4 shadow-medium">
+                <svg className="w-4 sm:w-5 lg:w-6 h-4 sm:h-5 lg:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
               </div>
-              <div className={`text-2xl font-bold mb-2 ${getNetWorthColor(calculateNetWorth())}`}>
+              <div className={`text-base sm:text-lg lg:text-xl font-bold mb-1 sm:mb-2 ${getNetWorthColor(calculateNetWorth())}`}>
                 {formatCurrency(calculateNetWorth())}
               </div>
-              <div className="text-sm text-purple-600 font-medium">Net Worth</div>
+              <div className="text-xs sm:text-sm text-purple-600 font-medium">Net Worth</div>
             </Card>
           </div>
 
           {/* Cash Flow Overview */}
-          <Card className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-surface-900">Cash Flow Analysis</h2>
+          <Card className="p-4 sm:p-6">
+            <div className="flex justify-between items-center mb-4 sm:mb-6">
+              <h2 className="text-base sm:text-lg font-semibold text-surface-900">Cash Flow Analysis</h2>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="p-4 bg-green-50 rounded-lg">
-                <div className="text-lg font-semibold text-green-700 mb-2">Annual Cash Flow</div>
-                <div className={`text-2xl font-bold ${getCashFlowColor(calculateCashFlow())}`}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
+              <div className="p-3 sm:p-4 bg-green-50 rounded-lg">
+                <div className="text-sm sm:text-base font-semibold text-green-700 mb-2">Annual Cash Flow</div>
+                <div className={`text-lg sm:text-xl font-bold ${getCashFlowColor(calculateCashFlow())}`}>
                   {calculateCashFlow() >= 0 ? '+' : ''}{formatCurrency(calculateCashFlow())}
                 </div>
-                <div className="text-sm text-green-600 mt-1">
+                <div className="text-xs sm:text-sm text-green-600 mt-1">
                   Income - Expenses
                 </div>
               </div>
               
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <div className="text-lg font-semibold text-blue-700 mb-2">Savings Rate</div>
-                <div className={`text-2xl font-bold ${getSavingsRateColor(calculateSavingsRate())}`}>
+              <div className="p-3 sm:p-4 bg-blue-50 rounded-lg">
+                <div className="text-sm sm:text-base font-semibold text-blue-700 mb-2">Savings Rate</div>
+                <div className={`text-lg sm:text-xl font-bold ${getSavingsRateColor(calculateSavingsRate())}`}>
                   {formatPercentage(calculateSavingsRate())}
                 </div>
-                <div className="text-sm text-blue-600 mt-1">
+                <div className="text-xs sm:text-sm text-blue-600 mt-1">
                   Of annual income
                 </div>
               </div>
@@ -173,14 +173,16 @@ export default function FinancialsRefactored() {
           {/* Income & Expenses */}
                         <Card className="p-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-surface-900">Income & Expenses</h2>
+              <h2 className="text-base sm:text-lg font-semibold text-surface-900">Income & Expenses</h2>
               <Button 
                 onClick={saveFinancialInfo}
                 disabled={savingSection === 'info' || !hasFinancialInfoChanged}
                 variant={hasFinancialInfoChanged ? 'primary' : 'outline'}
                 size="sm"
+                className="text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
               >
-                {savingSection === 'info' ? 'Saving...' : 'Save Changes'}
+                <span className="hidden sm:inline">{savingSection === 'info' ? 'Saving...' : 'Save Changes'}</span>
+                <span className="sm:hidden">{savingSection === 'info' ? 'Saving...' : 'Save'}</span>
               </Button>
             </div>
             
@@ -216,18 +218,20 @@ export default function FinancialsRefactored() {
           {/* Assets */}
           <Card className="p-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-surface-900">
+              <h2 className="text-base sm:text-lg font-semibold text-surface-900">
                 Assets ({formatArrayForDisplay(assets).length}) - {formatCurrency(calculateTotalAssets(assets || []))}
               </h2>
               <Button 
                 onClick={() => assetModal.openModal()}
                 variant="outline"
                 size="sm"
+                className="text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
               >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                Add Asset
+                <span className="hidden sm:inline">Add Asset</span>
+                <span className="sm:hidden">Add</span>
               </Button>
             </div>
             
@@ -271,14 +275,15 @@ export default function FinancialsRefactored() {
                               </div>
                             </div>
                             
-                            <span className="text-lg font-semibold text-green-600">
+                            <span className="text-base sm:text-lg font-semibold text-green-600">
                               {formatCurrency(asset.value)}
                             </span>
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-1 sm:space-x-2">
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => assetModal.openModal(asset)}
+                                className="px-2 sm:px-3 text-xs sm:text-sm"
                               >
                                 Edit
                               </Button>
@@ -286,7 +291,7 @@ export default function FinancialsRefactored() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleDeleteAsset(asset.id!)}
-                                className="text-red-600 hover:text-red-700"
+                                className="text-red-600 hover:text-red-700 px-2 sm:px-3 text-xs sm:text-sm"
                               >
                                 Delete
                               </Button>
@@ -303,18 +308,20 @@ export default function FinancialsRefactored() {
           {/* Debts */}
           <Card className="p-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-surface-900">
+              <h2 className="text-base sm:text-lg font-semibold text-surface-900">
                 Debts ({formatArrayForDisplay(debts).length}) - {formatCurrency(calculateTotalDebts(debts || []))}
               </h2>
               <Button 
                 onClick={() => debtModal.openModal()}
                 variant="outline"
                 size="sm"
+                className="text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
               >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                Add Debt
+                <span className="hidden sm:inline">Add Debt</span>
+                <span className="sm:hidden">Add</span>
               </Button>
             </div>
             
@@ -361,14 +368,15 @@ export default function FinancialsRefactored() {
                               </div>
                             </div>
                             
-                            <span className="text-lg font-semibold text-red-600">
+                            <span className="text-base sm:text-lg font-semibold text-red-600">
                               {formatCurrency(debt.balance)}
                             </span>
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-1 sm:space-x-2">
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => debtModal.openModal(debt)}
+                                className="px-2 sm:px-3 text-xs sm:text-sm"
                               >
                                 Edit
                               </Button>
@@ -376,7 +384,7 @@ export default function FinancialsRefactored() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleDeleteDebt(debt.id!)}
-                                className="text-red-600 hover:text-red-700"
+                                className="text-red-600 hover:text-red-700 px-2 sm:px-3 text-xs sm:text-sm"
                               >
                                 Delete
                               </Button>
@@ -396,8 +404,9 @@ export default function FinancialsRefactored() {
           isOpen={assetModal.showModal}
           onClose={assetModal.closeModal}
           title={assetModal.editingAsset ? 'Edit Asset' : 'Add New Asset'}
+          size="md"
         >
-          <div className="space-y-4">
+          <div className="space-y-2 sm:space-y-3">
             <Input
               label="Asset Name"
               value={assetModal.assetForm.name}
@@ -425,18 +434,26 @@ export default function FinancialsRefactored() {
               value={assetModal.assetForm.description || ''}
               onChange={(e) => assetModal.updateForm({description: e.target.value})}
               placeholder="Additional details about this asset"
-              rows={3}
+              rows={2}
             />
             
-            <div className="flex justify-end space-x-3 pt-4">
-              <Button variant="outline" onClick={assetModal.closeModal}>
+            <div className="flex justify-end space-x-2 sm:space-x-3 pt-2 sm:pt-3">
+              <Button 
+                variant="outline" 
+                onClick={assetModal.closeModal}
+                size="sm"
+                className="px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm"
+              >
                 Cancel
               </Button>
               <Button 
                 onClick={() => assetModal.handleSave(formatArrayForDisplay(assets), saveAssetWithTotals)}
                 disabled={!assetModal.isFormValid}
+                size="sm"
+                className="px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm"
               >
-                {assetModal.editingAsset ? 'Update Asset' : 'Add Asset'}
+                <span className="hidden sm:inline">{assetModal.editingAsset ? 'Update Asset' : 'Add Asset'}</span>
+                <span className="sm:hidden">{assetModal.editingAsset ? 'Update' : 'Add'}</span>
               </Button>
             </div>
           </div>
@@ -447,8 +464,9 @@ export default function FinancialsRefactored() {
           isOpen={debtModal.showModal}
           onClose={debtModal.closeModal}
           title={debtModal.editingDebt ? 'Edit Debt' : 'Add New Debt'}
+          size="md"
         >
-          <div className="space-y-4">
+          <div className="space-y-2 sm:space-y-3">
             <Input
               label="Debt Name"
               value={debtModal.debtForm.name}
@@ -484,18 +502,26 @@ export default function FinancialsRefactored() {
               value={debtModal.debtForm.description || ''}
               onChange={(e) => debtModal.updateForm({description: e.target.value})}
               placeholder="Additional details about this debt"
-              rows={3}
+              rows={2}
             />
             
-            <div className="flex justify-end space-x-3 pt-4">
-              <Button variant="outline" onClick={debtModal.closeModal}>
+            <div className="flex justify-end space-x-2 sm:space-x-3 pt-2 sm:pt-3">
+              <Button 
+                variant="outline" 
+                onClick={debtModal.closeModal}
+                size="sm"
+                className="px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm"
+              >
                 Cancel
               </Button>
               <Button 
                 onClick={() => debtModal.handleSave(formatArrayForDisplay(debts), saveDebtWithTotals)}
                 disabled={!debtModal.isFormValid}
+                size="sm"
+                className="px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm"
               >
-                {debtModal.editingDebt ? 'Update Debt' : 'Add Debt'}
+                <span className="hidden sm:inline">{debtModal.editingDebt ? 'Update Debt' : 'Add Debt'}</span>
+                <span className="sm:hidden">{debtModal.editingDebt ? 'Update' : 'Add'}</span>
               </Button>
             </div>
           </div>

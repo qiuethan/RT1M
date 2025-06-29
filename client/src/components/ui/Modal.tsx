@@ -42,14 +42,14 @@ const Modal = ({
   if (!isOpen) return null;
 
   const sizeClasses = {
-    sm: 'max-w-md',
-    md: 'max-w-lg',
-    lg: 'max-w-2xl',
-    xl: 'max-w-4xl',
+    sm: 'max-w-sm sm:max-w-md',
+    md: 'max-w-sm sm:max-w-lg',
+    lg: 'max-w-md sm:max-w-xl',
+    xl: 'max-w-lg sm:max-w-2xl',
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-[60] overflow-y-auto">
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
@@ -57,13 +57,13 @@ const Modal = ({
       />
       
       {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-3 sm:p-4 text-center">
-        <div className={`relative w-full ${sizeClasses[size]} max-h-[90vh] sm:max-h-[80vh] flex flex-col transform rounded-lg bg-white shadow-xl transition-all ${className}`}>
+      <div className="flex min-h-full items-start sm:items-center justify-center p-2 sm:p-4 pt-36 sm:pt-20">
+        <div className={`relative w-full ${sizeClasses[size]} max-h-[calc(100vh-11rem)] sm:max-h-[75vh] flex flex-col transform rounded-lg bg-white shadow-xl transition-all ${className}`}>
           {/* Header */}
           {(title || showCloseButton) && (
-            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-surface-200 flex-shrink-0">
+            <div className="flex items-center justify-between p-2 sm:p-3 border-b border-surface-200 flex-shrink-0">
               {title && (
-                <h3 className="text-lg font-semibold text-surface-900">
+                <h3 className="text-sm sm:text-base font-semibold text-surface-900">
                   {title}
                 </h3>
               )}
@@ -72,9 +72,9 @@ const Modal = ({
                   variant="outline"
                   size="sm"
                   onClick={onClose}
-                  className="!p-2 min-h-[44px] min-w-[44px]"
+                  className="!p-1.5 min-h-[36px] min-w-[36px]"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </Button>

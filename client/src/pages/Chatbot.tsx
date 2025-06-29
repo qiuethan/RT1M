@@ -60,10 +60,8 @@ export default function Chatbot() {
 
   const quickQuestions = [
     "How can I save more money?",
-    "What's a good emergency fund amount?",
     "How do I start investing?",
-    "Help me create a budget",
-    "What are some side hustle ideas?"
+    "Help me create a budget"
   ];
 
   const handleQuickQuestion = (question: string) => {
@@ -71,7 +69,7 @@ export default function Chatbot() {
   };
 
   return (
-    <div className="h-screen bg-surface-50 flex flex-col overflow-hidden pb-20 md:pb-0">
+    <div className="h-screen bg-surface-50 flex flex-col overflow-hidden pt-4 sm:pt-6">
       <div className="flex-1 py-4 sm:py-6 px-4 sm:px-6 lg:px-8 overflow-hidden">
         <div className="max-w-7xl mx-auto h-full">
           <div className="bg-white rounded-lg shadow-lg border border-surface-200 flex flex-col h-full">
@@ -85,10 +83,10 @@ export default function Chatbot() {
                     </svg>
                   </div>
                   <div>
-                    <h1 className="text-lg sm:text-xl font-semibold text-surface-900">
+                    <h1 className="text-base sm:text-lg font-semibold text-surface-900">
                       {userName ? `${userName}'s AI Financial Advisor` : 'AI Financial Advisor'}
                     </h1>
-                    <p className="text-xs sm:text-sm text-surface-600 hidden sm:block">
+                    <p className="text-xs text-surface-600 hidden sm:block">
                       {userName ? `Hello ${userName}! Your personal finance assistant` : 'Your personal finance assistant'}
                     </p>
                   </div>
@@ -173,10 +171,10 @@ export default function Chatbot() {
 
             {/* Star Feature & Quick Questions */}
             {messages.length === 1 && (
-              <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-surface-100 flex-shrink-0 space-y-3 sm:space-y-4">
+              <div className="px-4 sm:px-6 py-2 sm:py-3 border-t border-surface-100 flex-shrink-0 space-y-2 sm:space-y-3">
                 {/* Star Feature Button */}
                 <div>
-                  <p className="text-xs sm:text-sm text-surface-600 mb-2 sm:mb-3 font-medium">⭐ Our most powerful feature:</p>
+                  <p className="text-xs text-surface-600 mb-1 sm:mb-2 font-medium">⭐ Our most powerful feature:</p>
                   <button
                     onClick={async () => {
                       addMessage({
@@ -185,13 +183,13 @@ export default function Chatbot() {
                       });
                       await generatePlan();
                     }}
-                    className="w-full flex items-center justify-center gap-2 sm:gap-3 py-3 sm:py-4 px-4 sm:px-6 bg-gradient-to-r from-accent-400 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white rounded-xl font-semibold text-base sm:text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                    className="w-full flex items-center justify-center gap-2 py-2 sm:py-3 px-3 sm:px-4 bg-gradient-to-r from-accent-400 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white rounded-lg font-semibold text-sm sm:text-base transition-all duration-200 shadow-md hover:shadow-lg"
                   >
-                    <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                     </svg>
                     Make me a plan
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg>
                   </button>
@@ -199,13 +197,13 @@ export default function Chatbot() {
 
                 {/* Quick Questions */}
                 <div>
-                  <p className="text-xs sm:text-sm text-surface-600 mb-2 sm:mb-3 font-medium">💡 Quick questions to get started:</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                  <p className="text-xs text-surface-600 mb-1 sm:mb-2 font-medium">💡 Quick questions:</p>
+                  <div className="grid grid-cols-1 gap-1 sm:gap-2">
                     {quickQuestions.map((question, index) => (
                       <button
                         key={index}
                         onClick={() => handleQuickQuestion(question)}
-                        className="text-left p-2 sm:p-3 bg-surface-50 hover:bg-surface-100 border border-surface-200 rounded-lg transition-colors text-xs sm:text-sm text-surface-700 hover:text-surface-900"
+                        className="text-left p-2 bg-surface-50 hover:bg-surface-100 border border-surface-200 rounded-md transition-colors text-xs text-surface-700 hover:text-surface-900"
                       >
                         {question}
                       </button>
@@ -222,8 +220,8 @@ export default function Chatbot() {
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Ask me anything about your finances..."
-                  className="flex-1 min-h-[44px] max-h-32 p-3 border border-surface-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none text-sm sm:text-base"
+                  placeholder="Ask about your finances..."
+                  className="flex-1 min-h-[44px] max-h-32 px-2 py-1.5 text-base border border-surface-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
                   rows={1}
                 />
                 <Button

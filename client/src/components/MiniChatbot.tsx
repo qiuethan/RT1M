@@ -70,7 +70,7 @@ export const MiniChatbot: React.FC = () => {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-80 h-96 bg-white rounded-lg shadow-xl border border-surface-200 flex flex-col">
+    <div className="fixed bottom-6 right-6 z-50 w-[85vw] sm:w-80 h-[70vh] sm:h-[500px] max-w-sm bg-white rounded-lg shadow-xl border border-surface-200 flex flex-col">
       {/* Header */}
       <div className="bg-gradient-to-r from-primary-500 to-accent-500 text-white p-4 rounded-t-lg flex justify-between items-center">
         <div className="flex items-center gap-2">

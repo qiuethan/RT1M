@@ -84,7 +84,7 @@ export default function Landing() {
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4 sm:px-0 mb-8 sm:mb-12">
               <Link to="/signup" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full sm:w-auto group min-h-[48px]">
+                <Button variant="primary" size="lg" className="w-full sm:w-auto group min-h-[48px] bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white">
                   Start Your Journey
                   <svg className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -92,7 +92,7 @@ export default function Landing() {
                 </Button>
               </Link>
               <Link to="/login" className="w-full sm:w-auto">
-                <Button variant="outline" size="lg" className="w-full sm:w-auto min-h-[48px]">
+                <Button variant="outline" size="lg" className="w-full sm:w-auto min-h-[48px] border-2 border-primary-500 text-primary-600 hover:bg-primary-50">
                   Sign In
                 </Button>
               </Link>

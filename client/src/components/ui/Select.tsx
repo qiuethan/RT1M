@@ -29,7 +29,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(({
   placeholder
 }, ref) => {
   const selectClasses = `
-    block w-full px-3 py-2 border border-surface-300 rounded-md shadow-sm
+    block w-full px-2 py-1.5 text-base border border-surface-300 rounded-md shadow-sm
     focus:outline-none focus:ring-primary-500 focus:border-primary-500
     disabled:bg-surface-100 disabled:cursor-not-allowed
     bg-white text-surface-900
@@ -40,7 +40,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(({
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-surface-700 mb-2">
+        <label className="block text-sm font-medium text-surface-700 mb-1">
           {label}
           {required && <span className="text-error-500 ml-1">*</span>}
         </label>

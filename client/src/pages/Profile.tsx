@@ -427,11 +427,11 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-surface-50">
-      <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-surface-50 pt-4 sm:pt-6">
+      <div className="max-w-4xl mx-auto py-4 sm:py-6 lg:py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-surface-900">
+          <h1 className="text-xl sm:text-2xl font-bold text-surface-900">
             {basicInfo.name ? `${basicInfo.name}'s Profile` : 'Your Profile'}
           </h1>
           <p className="text-surface-600 mt-2">
@@ -442,20 +442,20 @@ export default function Profile() {
           </p>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Basic Information */}
           <Card className="overflow-hidden">
             <div 
-              className="p-6 cursor-pointer bg-gradient-to-r from-primary-50 to-accent-50 border-b border-surface-200"
+              className="p-3 sm:p-4 lg:p-6 cursor-pointer bg-gradient-to-r from-primary-50 to-accent-50 border-b border-surface-200"
               onClick={() => toggleSection('basic')}
             >
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-xl font-semibold text-surface-900 flex items-center">
-                    <span className="w-2 h-2 bg-primary-500 rounded-full mr-3"></span>
+                  <h2 className="text-base sm:text-lg font-semibold text-surface-900 flex items-center">
+                    <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-primary-500 rounded-full mr-2 sm:mr-3"></span>
                     Basic Information
                   </h2>
-                  <p className="text-sm text-surface-600 mt-1">Personal details and contact information</p>
+                  <p className="text-xs sm:text-sm text-surface-600 mt-1">Personal details and contact information</p>
                 </div>
                 <svg 
                   className={`w-5 h-5 text-surface-500 transition-transform duration-200 ${openSections.basic ? 'transform rotate-180' : ''}`}
@@ -469,8 +469,8 @@ export default function Profile() {
             </div>
             
             {openSections.basic && (
-              <div className="p-6 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-2 sm:p-3 lg:p-4 space-y-2 sm:space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                   <Input
                     label="Full Name"
                     value={basicInfo.name}
@@ -487,7 +487,7 @@ export default function Profile() {
                   />
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
                   <DatePicker
                     label="Birthday"
                     value={basicInfo.birthday}
@@ -509,7 +509,7 @@ export default function Profile() {
                   />
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                   <Select
                     label="Country"
                     value={basicInfo.country}
@@ -532,8 +532,10 @@ export default function Profile() {
                     disabled={savingSection === 'basic' || !isFormChanged(originalBasicInfo, basicInfo)}
                     variant={isFormChanged(originalBasicInfo, basicInfo) ? 'primary' : 'outline'}
                     size="sm"
+                    className="text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
                   >
-                    Save Changes
+                    <span className="hidden sm:inline">Save Changes</span>
+                    <span className="sm:hidden">Save</span>
                   </Button>
                 </div>
               </div>
@@ -543,16 +545,16 @@ export default function Profile() {
           {/* Financial Goal */}
           <Card className="overflow-hidden">
             <div 
-              className="p-6 cursor-pointer bg-gradient-to-r from-accent-50 to-secondary-50 border-b border-surface-200"
+              className="p-4 sm:p-6 cursor-pointer bg-gradient-to-r from-accent-50 to-secondary-50 border-b border-surface-200"
               onClick={() => toggleSection('financialGoal')}
             >
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-xl font-semibold text-surface-900 flex items-center">
-                    <span className="w-2 h-2 bg-accent-500 rounded-full mr-3"></span>
+                  <h2 className="text-base sm:text-lg font-semibold text-surface-900 flex items-center">
+                    <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-accent-500 rounded-full mr-2 sm:mr-3"></span>
                     Financial Goal & Strategy
                   </h2>
-                  <p className="text-sm text-surface-600 mt-1">Your RT1M target and investment approach</p>
+                  <p className="text-xs sm:text-sm text-surface-600 mt-1">Your RT1M target and investment approach</p>
                 </div>
                 <svg 
                   className={`w-5 h-5 text-surface-500 transition-transform duration-200 ${openSections.financialGoal ? 'transform rotate-180' : ''}`}
@@ -566,8 +568,8 @@ export default function Profile() {
             </div>
             
             {openSections.financialGoal && (
-              <div className="p-6 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-2 sm:p-3 lg:p-4 space-y-2 sm:space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                   <Input
                     label="Target Amount ($)"
                     type="number"
@@ -600,7 +602,7 @@ export default function Profile() {
                 />
                 
                 <Select
-                  label="Primary Strategy"
+                  label="Primary Investment Strategy"
                   value={financialGoal.primaryStrategy}
                   onChange={(e) => setFinancialGoal({...financialGoal, primaryStrategy: e.target.value})}
                   options={primaryStrategyOptions}
@@ -613,8 +615,10 @@ export default function Profile() {
                     disabled={savingSection === 'financialGoal' || !isFormChanged(originalFinancialGoal, financialGoal)}
                     variant={isFormChanged(originalFinancialGoal, financialGoal) ? 'primary' : 'outline'}
                     size="sm"
+                    className="text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
                   >
-                    Save Changes
+                    <span className="hidden sm:inline">Save Changes</span>
+                    <span className="sm:hidden">Save</span>
                   </Button>
                 </div>
               </div>
@@ -624,16 +628,16 @@ export default function Profile() {
           {/* Education History */}
           <Card className="overflow-hidden">
             <div 
-              className="p-6 cursor-pointer bg-gradient-to-r from-secondary-50 to-primary-50 border-b border-surface-200"
+              className="p-3 sm:p-4 lg:p-6 cursor-pointer bg-gradient-to-r from-secondary-50 to-primary-50 border-b border-surface-200"
               onClick={() => toggleSection('education')}
             >
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-xl font-semibold text-surface-900 flex items-center">
-                    <span className="w-2 h-2 bg-secondary-500 rounded-full mr-3"></span>
+                  <h2 className="text-lg sm:text-xl font-semibold text-surface-900 flex items-center">
+                    <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-secondary-500 rounded-full mr-2 sm:mr-3"></span>
                     Education History
                   </h2>
-                  <p className="text-sm text-surface-600 mt-1">Your academic background and qualifications</p>
+                  <p className="text-xs sm:text-sm text-surface-600 mt-1">Your academic background and qualifications</p>
                 </div>
                 <svg 
                   className={`w-5 h-5 text-surface-500 transition-transform duration-200 ${openSections.education ? 'transform rotate-180' : ''}`}
@@ -647,7 +651,7 @@ export default function Profile() {
             </div>
             
             {openSections.education && (
-              <div className="p-6 space-y-6">
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                 {educationHistory.length === 0 && (
                   <div className="text-center py-8 text-surface-500">
                     <svg className="w-12 h-12 mx-auto mb-4 text-surface-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -702,11 +706,13 @@ export default function Profile() {
                     onClick={addEducationEntry}
                     variant="outline"
                     size="sm"
+                    className="text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
                   >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
-                    Add Education
+                    <span className="hidden sm:inline">Add Education</span>
+                    <span className="sm:hidden">Add</span>
                   </Button>
                   
                   <Button 
@@ -715,8 +721,10 @@ export default function Profile() {
                     disabled={savingSection === 'education' || !isFormChanged(originalEducationHistory, educationHistory)}
                     variant={isFormChanged(originalEducationHistory, educationHistory) ? 'primary' : 'outline'}
                     size="sm"
+                    className="text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
                   >
-                    Save Changes
+                    <span className="hidden sm:inline">Save Changes</span>
+                    <span className="sm:hidden">Save</span>
                   </Button>
                 </div>
               </div>
@@ -726,16 +734,16 @@ export default function Profile() {
           {/* Work Experience */}
           <Card className="overflow-hidden">
             <div 
-              className="p-6 cursor-pointer bg-gradient-to-r from-accent-50 to-secondary-50 border-b border-surface-200"
+              className="p-3 sm:p-4 lg:p-6 cursor-pointer bg-gradient-to-r from-accent-50 to-secondary-50 border-b border-surface-200"
               onClick={() => toggleSection('experience')}
             >
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-xl font-semibold text-surface-900 flex items-center">
-                    <span className="w-2 h-2 bg-accent-500 rounded-full mr-3"></span>
+                  <h2 className="text-lg sm:text-xl font-semibold text-surface-900 flex items-center">
+                    <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-accent-500 rounded-full mr-2 sm:mr-3"></span>
                     Work Experience
                   </h2>
-                  <p className="text-sm text-surface-600 mt-1">Your professional work history</p>
+                  <p className="text-xs sm:text-sm text-surface-600 mt-1">Your professional work history</p>
                 </div>
                 <svg 
                   className={`w-5 h-5 text-surface-500 transition-transform duration-200 ${openSections.experience ? 'transform rotate-180' : ''}`}
@@ -749,7 +757,7 @@ export default function Profile() {
             </div>
             
             {openSections.experience && (
-              <div className="p-6 space-y-6">
+              <div className="p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 lg:space-y-6">
                 {experience.length === 0 && (
                   <div className="text-center py-8 text-surface-500">
                     <svg className="w-12 h-12 mx-auto mb-4 text-surface-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -846,16 +854,16 @@ export default function Profile() {
           {/* Skills & Interests */}
           <Card className="overflow-hidden">
             <div 
-              className="p-6 cursor-pointer bg-gradient-to-r from-primary-50 to-surface-50 border-b border-surface-200"
+              className="p-3 sm:p-4 lg:p-6 cursor-pointer bg-gradient-to-r from-primary-50 to-surface-50 border-b border-surface-200"
               onClick={() => toggleSection('skills')}
             >
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-xl font-semibold text-surface-900 flex items-center">
-                    <span className="w-2 h-2 bg-primary-500 rounded-full mr-3"></span>
+                  <h2 className="text-lg sm:text-xl font-semibold text-surface-900 flex items-center">
+                    <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-primary-500 rounded-full mr-2 sm:mr-3"></span>
                     Skills & Interests
                   </h2>
-                  <p className="text-sm text-surface-600 mt-1">Your professional skills and personal interests</p>
+                  <p className="text-xs sm:text-sm text-surface-600 mt-1">Your professional skills and personal interests</p>
                 </div>
                 <svg 
                   className={`w-5 h-5 text-surface-500 transition-transform duration-200 ${openSections.skills ? 'transform rotate-180' : ''}`}
@@ -869,7 +877,7 @@ export default function Profile() {
             </div>
             
             {openSections.skills && (
-              <div className="p-6 space-y-8">
+              <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6 lg:space-y-8">
                 {/* Skills Section */}
                 <div>
                   <h3 className="text-lg font-medium text-surface-800 mb-4 flex items-center">

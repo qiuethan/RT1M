@@ -414,7 +414,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
   return (
     <div className={`relative ${className}`}>
       {label && (
-        <label className="block text-sm font-medium text-surface-700 mb-2">
+        <label className="block text-sm font-medium text-surface-700 mb-1">
           {label}
           {required && <span className="text-error-500 ml-1">*</span>}
         </label>
@@ -425,7 +425,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className={`w-full px-3 py-2 text-left border rounded-lg bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+        className={`w-full px-2 py-1.5 text-base text-left border rounded-md bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
           disabled 
             ? 'bg-surface-50 text-surface-400 cursor-not-allowed border-surface-200' 
             : error

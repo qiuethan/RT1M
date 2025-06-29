@@ -351,16 +351,16 @@ export default function Goals() {
   const status = getMainGoalStatus();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-surface-50 via-accent-50/20 to-primary-50/30">
-      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-surface-50 via-accent-50/20 to-primary-50/30 pt-4 sm:pt-6">
+      <div className="max-w-7xl mx-auto py-4 sm:py-6 lg:py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-3xl font-bold text-surface-900">
+              <h1 className="text-xl sm:text-2xl font-bold text-surface-900">
                 {userName ? `${userName}'s Goals & Progress` : 'Your Goals & Progress'}
               </h1>
-              <p className="text-surface-600 mt-2">
+              <p className="text-sm sm:text-base text-surface-600 mt-1 sm:mt-2">
                 {userName 
                   ? `Welcome back, ${userName}! Track and manage all your goals in one place` 
                   : 'Track and manage all your goals in one place'
@@ -370,75 +370,76 @@ export default function Goals() {
             
             {/* Quick Actions */}
             <div className="flex items-center gap-3">
-              <Button onClick={openAddModal} size="sm">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <Button onClick={openAddModal} size="sm" className="text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                Add Goal
+                <span className="hidden sm:inline">Add Goal</span>
+                <span className="sm:hidden">Add</span>
               </Button>
             </div>
           </div>
         </div>
 
         {/* Goal Overview Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card variant="primary" className="text-center group hover:scale-105" hover>
-            <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-medium">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 lg:gap-6 mb-6 sm:mb-8">
+          <Card variant="primary" className="group hover:scale-105" hover>
+            <div className="w-8 sm:w-10 lg:w-12 h-8 sm:h-10 lg:h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 lg:mb-4 shadow-medium">
+              <svg className="w-4 sm:w-5 lg:w-6 h-4 sm:h-5 lg:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
               </svg>
             </div>
-            <div className="text-2xl font-bold text-primary-700 mb-2">
+            <div className="text-base sm:text-lg lg:text-2xl font-bold text-primary-700 mb-1 sm:mb-2 text-center">
               {goals?.intermediateGoals?.length || 0}
             </div>
-            <div className="text-sm text-primary-600 font-medium">Total Goals</div>
+            <div className="text-xs sm:text-sm text-primary-600 font-medium text-center">Total Goals</div>
           </Card>
           
-          <Card variant="secondary" className="text-center group hover:scale-105" hover>
-            <div className="w-12 h-12 bg-gradient-to-br from-secondary-500 to-secondary-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-medium">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <Card variant="secondary" className="group hover:scale-105" hover>
+            <div className="w-8 sm:w-10 lg:w-12 h-8 sm:h-10 lg:h-12 bg-gradient-to-br from-secondary-500 to-secondary-600 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 lg:mb-4 shadow-medium">
+              <svg className="w-4 sm:w-5 lg:w-6 h-4 sm:h-5 lg:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div className="text-2xl font-bold text-secondary-700 mb-2">
+            <div className="text-base sm:text-lg lg:text-2xl font-bold text-secondary-700 mb-1 sm:mb-2 text-center">
               {goals?.intermediateGoals?.filter(g => g.status === 'Completed').length || 0}
             </div>
-            <div className="text-sm text-secondary-600 font-medium">Completed</div>
+            <div className="text-xs sm:text-sm text-secondary-600 font-medium text-center">Completed</div>
           </Card>
           
-          <Card variant="accent" className="text-center group hover:scale-105" hover>
-            <div className="w-12 h-12 bg-gradient-to-br from-accent-500 to-accent-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-medium">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <Card variant="accent" className="group hover:scale-105" hover>
+            <div className="w-8 sm:w-10 lg:w-12 h-8 sm:h-10 lg:h-12 bg-gradient-to-br from-accent-500 to-accent-600 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 lg:mb-4 shadow-medium">
+              <svg className="w-4 sm:w-5 lg:w-6 h-4 sm:h-5 lg:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
             </div>
-            <div className="text-2xl font-bold text-accent-700 mb-2">
+            <div className="text-base sm:text-lg lg:text-2xl font-bold text-accent-700 mb-1 sm:mb-2 text-center">
               {goals?.intermediateGoals?.filter(g => g.status === 'In Progress').length || 0}
             </div>
-            <div className="text-sm text-accent-600 font-medium">In Progress</div>
+            <div className="text-xs sm:text-sm text-accent-600 font-medium text-center">In Progress</div>
           </Card>
           
-          <Card variant="glass" className="text-center group hover:scale-105" hover>
-            <div className="w-12 h-12 bg-gradient-to-br from-surface-400 to-surface-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-medium">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <Card variant="glass" className="group hover:scale-105" hover>
+            <div className="w-8 sm:w-10 lg:w-12 h-8 sm:h-10 lg:h-12 bg-gradient-to-br from-surface-400 to-surface-500 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 lg:mb-4 shadow-medium">
+              <svg className="w-4 sm:w-5 lg:w-6 h-4 sm:h-5 lg:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
             </div>
-            <div className="text-2xl font-bold text-surface-700 mb-2">
+            <div className="text-base sm:text-lg lg:text-2xl font-bold text-surface-700 mb-1 sm:mb-2 text-center">
               {goals?.intermediateGoals?.filter(g => g.status === 'Not Started').length || 0}
             </div>
-            <div className="text-sm text-surface-600 font-medium">Not Started</div>
+            <div className="text-xs sm:text-sm text-surface-600 font-medium text-center">Not Started</div>
           </Card>
         </div>
 
         {/* Main Financial Goal */}
-        <Card variant="gradient" className="p-8 mb-8">
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-surface-900 mb-2">
+        <Card variant="gradient" className="p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 sm:mb-4">
+            <div className="mb-2 sm:mb-0">
+              <h2 className="text-base sm:text-lg lg:text-xl font-bold text-surface-900 mb-1 sm:mb-2">
                 RT1M Goal: {formatCurrency(profile?.financialGoal?.targetAmount || 1000000)}
               </h2>
-              <p className="text-surface-600">
+              <p className="text-sm sm:text-base text-surface-600">
                 Target by {profile?.financialGoal?.targetYear || new Date().getFullYear() + 10}
               </p>
             </div>
@@ -448,38 +449,38 @@ export default function Goals() {
           </div>
 
           {/* Progress Bar */}
-          <div className="mb-6">
+          <div className="mb-3 sm:mb-4">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-surface-700">Overall Progress</span>
-              <span className="text-sm font-medium text-surface-700">{progress.toFixed(1)}%</span>
+              <span className="text-xs sm:text-sm font-medium text-surface-700">Overall Progress</span>
+              <span className="text-xs sm:text-sm font-medium text-surface-700">{progress.toFixed(1)}%</span>
             </div>
-            <div className="w-full bg-surface-200 rounded-full h-4">
+            <div className="w-full bg-surface-200 rounded-full h-3 sm:h-4">
               <div 
-                className="bg-gradient-to-r from-primary-500 to-accent-500 h-4 rounded-full transition-all duration-300"
+                className="bg-gradient-to-r from-primary-500 to-accent-500 h-3 sm:h-4 rounded-full transition-all duration-300"
                 style={{ width: `${Math.min(progress, 100)}%` }}
               ></div>
             </div>
           </div>
 
           {/* Key Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-xl font-bold text-green-700">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
+            <div className="text-center p-2 sm:p-3 bg-green-50 rounded-lg">
+              <div className="text-sm sm:text-base lg:text-lg font-bold text-green-700">
                 {formatCurrency(stats?.netWorth || 0)}
               </div>
-              <div className="text-sm text-green-600">Current Net Worth</div>
+              <div className="text-xs sm:text-sm text-green-600">Current Net Worth</div>
             </div>
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-xl font-bold text-blue-700">
+            <div className="text-center p-2 sm:p-3 bg-blue-50 rounded-lg">
+              <div className="text-sm sm:text-base lg:text-lg font-bold text-blue-700">
                 {formatCurrency((profile?.financialGoal?.targetAmount || 0) - (stats?.netWorth || 0))}
               </div>
-              <div className="text-sm text-blue-600">Remaining to Goal</div>
+              <div className="text-xs sm:text-sm text-blue-600">Remaining to Goal</div>
             </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-xl font-bold text-purple-700">
+            <div className="text-center p-2 sm:p-3 bg-purple-50 rounded-lg">
+              <div className="text-sm sm:text-base lg:text-lg font-bold text-purple-700">
                 {formatCurrency(monthlyTarget)}
               </div>
-              <div className="text-sm text-purple-600">Monthly Target</div>
+              <div className="text-xs sm:text-sm text-purple-600">Monthly Target</div>
             </div>
           </div>
         </Card>
@@ -487,10 +488,10 @@ export default function Goals() {
         {/* All Goals */}
         <div>
           <div className="mb-6">
-            <h3 className="text-xl font-semibold text-surface-900">All Goals</h3>
+            <h3 className="text-lg font-semibold text-surface-900">All Goals</h3>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
             {/* Existing Goals */}
             {goals?.intermediateGoals
               ?.slice()
@@ -503,14 +504,14 @@ export default function Goals() {
               })
               ?.map((goal, index) => (
               <div key={goal.id || index} className="cursor-pointer" onClick={() => openDetailsModal(goal)}>
-                <Card variant="glass" className="p-6 h-[400px] flex flex-col" hover>
+                <Card variant="glass" className="p-2 sm:p-3 lg:p-4 h-[300px] sm:h-[350px] lg:h-[400px] flex flex-col" hover>
                 {/* Header Section - Fixed Height */}
-                <div className="h-20 mb-4 flex-shrink-0">
+                <div className="h-14 sm:h-16 mb-1 sm:mb-2 flex-shrink-0">
                   {/* Header with icon and title */}
-                  <div className="flex items-start gap-3 mb-3">
-                    <span className="text-lg mt-0.5 flex-shrink-0">{getGoalTypeIcon(goal.type)}</span>
+                  <div className="flex items-start gap-1 sm:gap-2 mb-1 sm:mb-2">
+                    <span className="text-sm sm:text-lg mt-0.5 flex-shrink-0">{getGoalTypeIcon(goal.type)}</span>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-surface-900 leading-tight break-words line-clamp-2" title={goal.title}>
+                      <h4 className="text-sm sm:text-base font-semibold text-surface-900 leading-tight break-words line-clamp-2" title={goal.title}>
                         {goal.title}
                       </h4>
                     </div>
@@ -529,13 +530,13 @@ export default function Goals() {
                   </div>
                   
                   {/* Tags row */}
-                  <div className="flex items-center gap-2">
-                    <span className={`px-3 py-1 text-xs font-medium rounded-full ${getGoalTypeColor(goal.type)}`}>
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <span className={`px-1.5 sm:px-2 py-0.5 text-xs font-medium rounded-full ${getGoalTypeColor(goal.type)}`}>
                       {goal.type}
                     </span>
                     <Badge 
                       variant={goal.status === 'Completed' ? 'success' : goal.status === 'In Progress' ? 'primary' : 'neutral' as any} 
-                      className="px-3 py-1 text-xs font-medium"
+                      className="px-1.5 sm:px-2 py-0.5 text-xs font-medium"
                     >
                       {goal.status}
                     </Badge>
@@ -543,16 +544,16 @@ export default function Goals() {
                 </div>
                 
                 {/* Progress Section - Fixed Height */}
-                <div className="h-16 mb-4 flex-shrink-0">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-surface-600">Progress</span>
-                    <span className="text-sm font-medium text-surface-600">
+                <div className="h-10 sm:h-12 mb-1 sm:mb-2 flex-shrink-0">
+                  <div className="flex justify-between items-center mb-1 sm:mb-2">
+                    <span className="text-xs sm:text-sm font-medium text-surface-600">Progress</span>
+                    <span className="text-xs sm:text-sm font-medium text-surface-600">
                       {getGoalProgress(goal).toFixed(1)}%
                     </span>
                   </div>
-                  <div className="w-full bg-surface-200 rounded-full h-2">
+                  <div className="w-full bg-surface-200 rounded-full h-1.5 sm:h-2">
                     <div 
-                      className={`h-2 rounded-full transition-all duration-300 ${
+                      className={`h-1.5 sm:h-2 rounded-full transition-all duration-300 ${
                         goal.type === 'financial' 
                           ? 'bg-gradient-to-r from-green-500 to-emerald-500'
                           : 'bg-gradient-to-r from-blue-500 to-purple-500'
@@ -565,7 +566,7 @@ export default function Goals() {
                 </div>
 
                 {/* Details Section - Fixed Height */}
-                <div className="h-20 mb-4 flex-shrink-0">
+                <div className="h-16 mb-2 flex-shrink-0">
                   <div className="space-y-2 text-sm">
                     {goal.type === 'financial' ? (
                       <>
@@ -596,15 +597,15 @@ export default function Goals() {
                 {/* Flexible Content Section */}
                 <div className="flex-1 overflow-hidden">
                   {goal.description && (
-                    <div className="mb-3 p-2 bg-surface-50 rounded text-xs text-surface-600">
+                    <div className="mb-2 p-1.5 bg-surface-50 rounded text-xs text-surface-600">
                       <div className="line-clamp-3">
                         {goal.description}
                       </div>
                     </div>
                   )}
                   {goal.submilestones && goal.submilestones.length > 0 && (
-                    <div className="pt-2 border-t border-surface-200">
-                      <div className="flex justify-between items-center mb-2">
+                    <div className="pt-1.5 border-t border-surface-200">
+                      <div className="flex justify-between items-center mb-1">
                         <span className="text-xs font-medium text-surface-500">Submilestones</span>
                         <span className="text-xs text-surface-500">
                           {goal.submilestones.filter(sub => sub.completed).length}/{goal.submilestones.length}
@@ -638,19 +639,19 @@ export default function Goals() {
             
             {/* Add New Goal Card */}
             <div 
-              className="p-6 border-2 border-dashed border-surface-300 hover:border-primary-300 transition-colors cursor-pointer bg-white rounded-lg shadow-sm h-[400px] flex items-center justify-center"
+              className="p-3 sm:p-4 border-2 border-dashed border-surface-300 hover:border-primary-300 transition-colors cursor-pointer bg-white rounded-lg shadow-sm h-[300px] sm:h-[350px] lg:h-[400px] flex items-center justify-center"
               onClick={openAddModal}
             >
               <div className="text-center">
-                <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mb-4 mx-auto">
-                  <svg className="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary-100 rounded-full flex items-center justify-center mb-2 sm:mb-3 mx-auto">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
                 </div>
-                <h4 className="text-lg font-medium text-surface-900 mb-2">
+                <h4 className="text-sm sm:text-base font-medium text-surface-900 mb-1 sm:mb-2">
                   Add New Goal
                 </h4>
-                <p className="text-sm text-surface-600">
+                <p className="text-xs sm:text-sm text-surface-600">
                   Create a financial or personal development goal
                 </p>
               </div>
@@ -663,8 +664,9 @@ export default function Goals() {
           isOpen={showModal}
           onClose={() => setShowModal(false)}
           title={editingGoal ? 'Edit Goal' : 'Add New Goal'}
+          size="lg"
         >
-          <div className="space-y-4">
+          <div className="space-y-2 sm:space-y-3">
             <Input
               label="Goal Title"
               value={goalForm.title}
@@ -680,7 +682,7 @@ export default function Goals() {
             />
             
             {goalForm.type === 'financial' ? (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                 <Input
                   label="Target Amount ($)"
                   type="number"
@@ -723,54 +725,56 @@ export default function Goals() {
               ]}
             />
             
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-surface-700">
+            <div className="space-y-1">
+              <label className="block text-xs sm:text-sm font-medium text-surface-700">
                 Description (Optional)
               </label>
               <textarea
                 value={goalForm.description}
                 onChange={(e) => setGoalForm({...goalForm, description: e.target.value})}
                 placeholder="Additional details about this goal..."
-                rows={3}
-                className="w-full px-3 py-2 border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                rows={2}
+                className="w-full px-2 py-1.5 text-base border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               />
             </div>
 
             {/* Submilestones Section */}
-            <div className="border-t pt-4">
-              <div className="flex justify-between items-center mb-3">
-                <h4 className="text-lg font-medium text-surface-900">Submilestones</h4>
+            <div className="border-t pt-2 sm:pt-3">
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="text-sm sm:text-base font-medium text-surface-900">Submilestones</h4>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={addSubmilestone}
+                  className="px-2 py-1 text-xs"
                 >
-                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
-                  Add Submilestone
+                  <span className="hidden sm:inline">Add Submilestone</span>
+                  <span className="sm:hidden">Add</span>
                 </Button>
               </div>
 
               {goalForm.submilestones.length > 0 ? (
-                <div className="space-y-3 max-h-60 overflow-y-auto">
+                <div className="space-y-2">
                   {goalForm.submilestones.map((submilestone, index) => (
-                    <div key={submilestone.id} className="p-3 border border-surface-200 rounded-lg bg-surface-50">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-sm font-medium text-surface-700">Submilestone {index + 1}</span>
+                    <div key={submilestone.id} className="p-2 border border-surface-200 rounded-lg bg-surface-50">
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="text-xs sm:text-sm font-medium text-surface-700">Submilestone {index + 1}</span>
                         <button
                           type="button"
                           onClick={() => removeSubmilestone(index)}
                           className="text-red-500 hover:text-red-700"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                         </button>
                       </div>
                       
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         <Input
                           label="Title"
                           value={submilestone.title}
@@ -778,7 +782,7 @@ export default function Goals() {
                           placeholder="Submilestone title"
                         />
                         
-                        <div className={`grid gap-2 ${goalForm.type === 'financial' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                        <div className={`grid gap-1.5 ${goalForm.type === 'financial' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
                           {goalForm.type === 'financial' && (
                             <Input
                               label="Target Amount ($)"
@@ -795,16 +799,16 @@ export default function Goals() {
                           />
                         </div>
                         
-                        <div className="space-y-2">
-                          <label className="block text-sm font-medium text-surface-700">
+                        <div className="space-y-1">
+                          <label className="block text-xs sm:text-sm font-medium text-surface-700">
                             Description
                           </label>
                           <textarea
                             value={submilestone.description}
                             onChange={(e) => updateSubmilestone(index, 'description', e.target.value)}
                             placeholder="Brief description of this submilestone..."
-                            rows={2}
-                            className="w-full px-3 py-2 border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            rows={1}
+                            className="w-full px-2 py-1.5 text-base border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                           />
                         </div>
                         
@@ -825,13 +829,13 @@ export default function Goals() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-surface-500 text-center py-4">
-                  No submilestones added yet. Break down your goal into smaller, manageable steps.
+                <p className="text-xs sm:text-sm text-surface-500 text-center py-2">
+                  No submilestones added yet. Break down your goal into smaller steps.
                 </p>
               )}
             </div>
             
-            <div className="flex justify-between pt-4">
+            <div className="flex justify-between pt-2 sm:pt-3">
               {editingGoal && editingGoal.id && (
                 <Button 
                   variant="outline" 
@@ -841,8 +845,13 @@ export default function Goals() {
                   Delete Goal
                 </Button>
               )}
-              <div className="flex space-x-3 ml-auto">
-                <Button variant="outline" onClick={() => setShowModal(false)}>
+              <div className="flex space-x-2 sm:space-x-3 ml-auto">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowModal(false)}
+                  size="sm"
+                  className="px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm"
+                >
                   Cancel
                 </Button>
                 <Button 
@@ -850,8 +859,11 @@ export default function Goals() {
                   loading={saving}
                   disabled={saving || !isFormChanged(originalGoalForm, goalForm)}
                   variant={isFormChanged(originalGoalForm, goalForm) ? 'primary' : 'outline'}
+                  size="sm"
+                  className="px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm"
                 >
-                  {editingGoal ? 'Update Goal' : 'Add Goal'}
+                  <span className="hidden sm:inline">{editingGoal ? 'Update Goal' : 'Add Goal'}</span>
+                  <span className="sm:hidden">{editingGoal ? 'Update' : 'Add'}</span>
                 </Button>
               </div>
             </div>
@@ -865,21 +877,22 @@ export default function Goals() {
           isOpen={showDetailsModal}
           onClose={() => setShowDetailsModal(false)}
           title="Goal Details"
+          size="md"
         >
           {selectedGoal && (
-            <div className="space-y-6">
+            <div className="space-y-3 sm:space-y-4">
               {/* Header */}
-              <div className="flex items-start gap-3">
-                <span className="text-2xl">{getGoalTypeIcon(selectedGoal.type)}</span>
-                <div className="flex-1">
-                  <h3 className="text-xl font-semibold text-surface-900 mb-2">{selectedGoal.title}</h3>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-3 py-1 text-xs font-medium rounded-full ${getGoalTypeColor(selectedGoal.type)}`}>
+              <div className="flex items-start gap-2 sm:gap-3">
+                <span className="text-lg sm:text-xl">{getGoalTypeIcon(selectedGoal.type)}</span>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm sm:text-base font-semibold text-surface-900 mb-1 leading-tight">{selectedGoal.title}</h3>
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getGoalTypeColor(selectedGoal.type)}`}>
                       {selectedGoal.type}
                     </span>
                     <Badge 
                       variant={selectedGoal.status === 'Completed' ? 'success' : selectedGoal.status === 'In Progress' ? 'primary' : 'neutral' as any}
-                      className="px-3 py-1 text-xs font-medium"
+                      className="px-2 py-0.5 text-xs font-medium"
                     >
                       {selectedGoal.status}
                     </Badge>
@@ -892,8 +905,10 @@ export default function Goals() {
                     setShowDetailsModal(false);
                     openEditModal(selectedGoal);
                   }}
+                  className="px-2 py-1 text-xs sm:text-sm"
                 >
-                  Edit Goal
+                  <span className="hidden sm:inline">Edit Goal</span>
+                  <span className="sm:hidden">Edit</span>
                 </Button>
               </div>
 
@@ -920,25 +935,25 @@ export default function Goals() {
               </div>
 
               {/* Progress Update Section */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-blue-800 mb-3">Update Progress</h4>
-                <div className="space-y-3">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 sm:p-3">
+                <h4 className="text-xs sm:text-sm font-medium text-blue-800 mb-2">Update Progress</h4>
+                <div className="space-y-2">
                   {selectedGoal.type === 'financial' ? (
                     <div>
-                      <label className="block text-sm font-medium text-surface-700 mb-1">
+                      <label className="block text-xs sm:text-sm font-medium text-surface-700 mb-1">
                         Current Amount ($)
                       </label>
                       <input
                         type="number"
                         value={progressForm.currentAmount}
                         onChange={(e) => setProgressForm({...progressForm, currentAmount: e.target.value})}
-                        className="w-full px-3 py-2 border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         placeholder="Enter current amount"
                       />
                     </div>
                   ) : (
                     <div>
-                      <label className="block text-sm font-medium text-surface-700 mb-1">
+                      <label className="block text-xs sm:text-sm font-medium text-surface-700 mb-1">
                         Progress (%)
                       </label>
                       <input
@@ -947,7 +962,7 @@ export default function Goals() {
                         max="100"
                         value={progressForm.progress}
                         onChange={(e) => setProgressForm({...progressForm, progress: e.target.value})}
-                        className="w-full px-3 py-2 border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         placeholder="Enter progress percentage"
                       />
                     </div>
@@ -957,7 +972,7 @@ export default function Goals() {
                     disabled={savingProgress || (selectedGoal.type === 'financial' ? !progressForm.currentAmount : !progressForm.progress)}
                     loading={savingProgress}
                     size="sm"
-                    className="w-full"
+                    className="w-full px-2 py-1 text-xs sm:text-sm"
                   >
                     {savingProgress ? 'Updating...' : 'Update Progress'}
                   </Button>
@@ -965,34 +980,34 @@ export default function Goals() {
               </div>
 
               {/* Details */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {selectedGoal.type === 'financial' ? (
                   <>
-                    <div className="bg-surface-50 p-4 rounded-lg">
-                      <div className="text-sm text-surface-500">Current Amount</div>
-                      <div className="text-lg font-semibold text-surface-900">
+                    <div className="bg-surface-50 p-2 sm:p-3 rounded-lg">
+                      <div className="text-xs sm:text-sm text-surface-500">Current Amount</div>
+                      <div className="text-sm sm:text-base font-semibold text-surface-900">
                         {formatCurrency(selectedGoal.currentAmount || 0)}
                       </div>
                     </div>
-                    <div className="bg-surface-50 p-4 rounded-lg">
-                      <div className="text-sm text-surface-500">Target Amount</div>
-                      <div className="text-lg font-semibold text-surface-900">
+                    <div className="bg-surface-50 p-2 sm:p-3 rounded-lg">
+                      <div className="text-xs sm:text-sm text-surface-500">Target Amount</div>
+                      <div className="text-sm sm:text-base font-semibold text-surface-900">
                         {formatCurrency(selectedGoal.targetAmount || 0)}
                       </div>
                     </div>
                   </>
                 ) : (
-                  <div className="bg-surface-50 p-4 rounded-lg col-span-2">
-                    <div className="text-sm text-surface-500">Progress</div>
-                    <div className="text-lg font-semibold text-surface-900">
+                  <div className="bg-surface-50 p-2 sm:p-3 rounded-lg sm:col-span-2">
+                    <div className="text-xs sm:text-sm text-surface-500">Progress</div>
+                    <div className="text-sm sm:text-base font-semibold text-surface-900">
                       {(selectedGoal.progress || 0).toFixed(0)}% Complete
                     </div>
                   </div>
                 )}
                 {selectedGoal.targetDate && (
-                  <div className="bg-surface-50 p-4 rounded-lg col-span-2">
-                    <div className="text-sm text-surface-500">Target Date</div>
-                    <div className="text-lg font-semibold text-surface-900">
+                  <div className="bg-surface-50 p-2 sm:p-3 rounded-lg sm:col-span-2">
+                    <div className="text-xs sm:text-sm text-surface-500">Target Date</div>
+                    <div className="text-sm sm:text-base font-semibold text-surface-900">
                       {new Date(selectedGoal.targetDate).toLocaleDateString()}
                     </div>
                   </div>
@@ -1002,8 +1017,8 @@ export default function Goals() {
               {/* Description */}
               {selectedGoal.description && (
                 <div>
-                  <h4 className="text-sm font-medium text-surface-700 mb-2">Description</h4>
-                  <p className="text-surface-600 bg-surface-50 p-3 rounded-lg">
+                  <h4 className="text-xs sm:text-sm font-medium text-surface-700 mb-1">Description</h4>
+                  <p className="text-xs sm:text-sm text-surface-600 bg-surface-50 p-2 rounded-lg">
                     {selectedGoal.description}
                   </p>
                 </div>
@@ -1012,35 +1027,35 @@ export default function Goals() {
               {/* Submilestones */}
               {selectedGoal.submilestones && selectedGoal.submilestones.length > 0 && (
                 <div>
-                  <div className="flex justify-between items-center mb-3">
-                    <h4 className="text-sm font-medium text-surface-700">Submilestones</h4>
-                    <span className="text-sm text-surface-500">
-                      Click to toggle completion
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="text-xs sm:text-sm font-medium text-surface-700">Submilestones</h4>
+                    <span className="text-xs text-surface-500">
+                      Click to toggle
                     </span>
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {selectedGoal.submilestones.map((submilestone) => (
-                      <div key={submilestone.id} className="flex items-start gap-3 p-3 bg-surface-50 rounded-lg hover:bg-surface-100 cursor-pointer transition-colors" onClick={() => handleSubmilestoneToggle(submilestone.id)}>
-                        <div className={`w-3 h-3 rounded-full mt-1.5 flex-shrink-0 ${
+                      <div key={submilestone.id} className="flex items-start gap-2 p-2 bg-surface-50 rounded-lg hover:bg-surface-100 cursor-pointer transition-colors" onClick={() => handleSubmilestoneToggle(submilestone.id)}>
+                        <div className={`w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 ${
                           submilestone.completed ? 'bg-green-500' : 'bg-surface-300'
                         }`}></div>
-                        <div className="flex-1">
-                          <div className={`font-medium ${
+                        <div className="flex-1 min-w-0">
+                          <div className={`text-xs sm:text-sm font-medium ${
                             submilestone.completed ? 'text-surface-500 line-through' : 'text-surface-900'
                           }`}>
                             {submilestone.title}
                           </div>
                           {submilestone.description && (
-                            <p className="text-sm text-surface-600 mt-1">
+                            <p className="text-xs text-surface-600 mt-0.5">
                               {submilestone.description}
                             </p>
                           )}
-                          <div className="flex items-center gap-4 mt-2 text-xs text-surface-500">
+                          <div className="flex items-center gap-2 sm:gap-3 mt-1 text-xs text-surface-500">
                             {selectedGoal.type === 'financial' && submilestone.targetAmount && submilestone.targetAmount > 0 && (
-                              <span>Target: {formatCurrency(submilestone.targetAmount)}</span>
+                              <span className="truncate">Target: {formatCurrency(submilestone.targetAmount)}</span>
                             )}
                             {submilestone.targetDate && (
-                              <span>Due: {new Date(submilestone.targetDate).toLocaleDateString()}</span>
+                              <span className="truncate">Due: {new Date(submilestone.targetDate).toLocaleDateString()}</span>
                             )}
                           </div>
                         </div>

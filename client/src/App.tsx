@@ -52,7 +52,7 @@ function App() {
             <Navbar />
           
           {/* Main content with enhanced backdrop and proper spacing for mobile */}
-          <main className="min-h-screen relative pt-16 md:pt-16 pb-16 md:pb-0">
+                        <main className="min-h-screen relative pt-16 md:pt-16">
             {/* Additional mobile spacing for mobile nav */}
             <div className="h-14 md:hidden"></div>
             

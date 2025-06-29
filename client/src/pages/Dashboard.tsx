@@ -465,7 +465,7 @@ export const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-surface-50 via-primary-50/20 to-secondary-50/30">
+    <div className="min-h-screen bg-gradient-to-br from-surface-50 via-primary-50/20 to-secondary-50/30 pt-4 sm:pt-6">
       <div className="max-w-7xl mx-auto py-4 sm:py-8 px-4 sm:px-6 lg:px-8">
         {/* Welcome Header */}
         <div className="mb-6 sm:mb-8">
@@ -475,14 +475,6 @@ export const Dashboard: React.FC = () => {
                 Welcome back, {userName || 'there'}!
               </h1>
               <p className="text-surface-600 mt-1 sm:mt-2 text-sm sm:text-base">Track your journey to ${targetAmount.toLocaleString()}</p>
-            </div>
-            <div className="flex space-x-3">
-              <Button onClick={() => navigate('/goals')} size="sm" className="flex-1 sm:flex-none">
-                <svg className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                <span className="hidden sm:inline">Manage Goals</span>
-              </Button>
             </div>
           </div>
         </div>
@@ -843,9 +835,9 @@ export const Dashboard: React.FC = () => {
               </div>
             ))}
 
-            {/* Add New Goal Card */}
+            {/* Add New Goal Card - Hidden on mobile */}
             <div 
-              className="p-6 border-2 border-dashed border-surface-300 hover:border-primary-300 transition-colors cursor-pointer bg-white rounded-lg shadow-sm h-[400px] flex items-center justify-center"
+              className="hidden sm:flex p-6 border-2 border-dashed border-surface-300 hover:border-primary-300 transition-colors cursor-pointer bg-white rounded-lg shadow-sm h-[400px] items-center justify-center"
               onClick={openAddModal}
             >
               <div className="text-center">
@@ -867,7 +859,7 @@ export const Dashboard: React.FC = () => {
 
         {/* Next Milestone */}
         <Card variant="secondary" className="p-6 mb-8">
-          <h3 className="text-xl font-semibold text-secondary-800 mb-4">Next Milestone</h3>
+          <h3 className="text-lg font-semibold text-secondary-800 mb-4">Next Milestone</h3>
           {nextMilestone?.nextMilestone ? (
             <div className="space-y-4">
               <div className="flex items-center">
@@ -948,13 +940,14 @@ export const Dashboard: React.FC = () => {
       {/* Mini Chatbot */}
       <MiniChatbot />
       
-      {/* Goal Edit/Add Modal */}
+              {/* Goal Edit/Add Modal */}
         <Modal
           isOpen={showModal}
           onClose={() => setShowModal(false)}
-        title={editingGoal ? 'Edit Goal' : 'Add New Goal'}
+          title={editingGoal ? 'Edit Goal' : 'Add New Goal'}
+          size="lg"
         >
-          <div className="space-y-4">
+          <div className="space-y-2 sm:space-y-3">
             <Input
               label="Goal Title"
               value={goalForm.title}
@@ -970,20 +963,20 @@ export const Dashboard: React.FC = () => {
             />
             
             {goalForm.type === 'financial' ? (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                 <Input
                   label="Target Amount ($)"
                   type="number"
                   value={goalForm.targetAmount}
-                onChange={(e) => setGoalForm({...goalForm, targetAmount: e.target.value})}
+                  onChange={(e) => setGoalForm({...goalForm, targetAmount: e.target.value})}
                   placeholder="10000"
                 />
                 <Input
                   label="Current Amount ($)"
                   type="number"
                   value={goalForm.currentAmount}
-                onChange={(e) => setGoalForm({...goalForm, currentAmount: e.target.value})}
-                placeholder="2500"
+                  onChange={(e) => setGoalForm({...goalForm, currentAmount: e.target.value})}
+                  placeholder="2500"
                 />
               </div>
             ) : (
@@ -991,8 +984,8 @@ export const Dashboard: React.FC = () => {
                 label="Progress (%)"
                 type="number"
                 value={goalForm.progress}
-              onChange={(e) => setGoalForm({...goalForm, progress: e.target.value})}
-              placeholder="25"
+                onChange={(e) => setGoalForm({...goalForm, progress: e.target.value})}
+                placeholder="25"
               />
             )}
             
@@ -1013,38 +1006,40 @@ export const Dashboard: React.FC = () => {
                 ]}
           />
           
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-surface-700">
-              Description (Optional)
-            </label>
-            <textarea
-              value={goalForm.description}
-              onChange={(e) => setGoalForm({...goalForm, description: e.target.value})}
-              placeholder="Additional details about this goal..."
-              rows={3}
-              className="w-full px-3 py-2 border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      <div className="space-y-1">
+              <label className="block text-xs sm:text-sm font-medium text-surface-700">
+                Description (Optional)
+              </label>
+              <textarea
+                value={goalForm.description}
+                onChange={(e) => setGoalForm({...goalForm, description: e.target.value})}
+                placeholder="Additional details about this goal..."
+                rows={2}
+                className="w-full px-2 py-1.5 text-base border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               />
             </div>
             
-          {/* Submilestones Section */}
-          <div className="border-t pt-4">
-            <div className="flex justify-between items-center mb-3">
-              <h4 className="text-lg font-medium text-surface-900">Submilestones</h4>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addSubmilestone}
-              >
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Add Submilestone
-              </Button>
-            </div>
+                      {/* Submilestones Section */}
+            <div className="border-t pt-2 sm:pt-3">
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="text-sm sm:text-base font-medium text-surface-900">Submilestones</h4>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addSubmilestone}
+                  className="px-2 py-1 text-xs"
+                >
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  <span className="hidden sm:inline">Add Submilestone</span>
+                  <span className="sm:hidden">Add</span>
+                </Button>
+              </div>
 
             {goalForm.submilestones.length > 0 ? (
-              <div className="space-y-3 max-h-60 overflow-y-auto">
+              <div className="space-y-3">
                 {goalForm.submilestones.map((submilestone, index) => (
                   <div key={submilestone.id} className="p-3 border border-surface-200 rounded-lg bg-surface-50">
                     <div className="flex justify-between items-start mb-2">
@@ -1094,7 +1089,7 @@ export const Dashboard: React.FC = () => {
                           onChange={(e) => updateSubmilestone(index, 'description', e.target.value)}
                           placeholder="Brief description of this submilestone..."
                           rows={2}
-                          className="w-full px-3 py-2 border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          className="w-full px-2 py-1.5 text-base border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         />
                       </div>
                       
@@ -1121,67 +1116,80 @@ export const Dashboard: React.FC = () => {
             )}
           </div>
           
-          <div className="flex justify-between pt-4">
-            {editingGoal && editingGoal.id && (
-            <Button 
-              variant="outline"
-                onClick={() => handleDeleteGoal(editingGoal.id!)}
-                className="text-red-600 hover:text-red-700"
-            >
-                Delete Goal
-              </Button>
-            )}
-            <div className="flex space-x-3 ml-auto">
-              <Button variant="outline" onClick={() => setShowModal(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSaveGoal} 
-                loading={saving}
-                disabled={saving || !isFormChanged(originalGoalForm, goalForm)}
-              variant={isFormChanged(originalGoalForm, goalForm) ? 'primary' : 'outline'}
-            >
-                {editingGoal ? 'Update Goal' : 'Add Goal'}
-            </Button>
+                      <div className="flex justify-between pt-2 sm:pt-3">
+              {editingGoal && editingGoal.id && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleDeleteGoal(editingGoal.id!)}
+                  className="text-red-600 hover:text-red-700 px-2 py-1 text-xs sm:text-sm"
+                  size="sm"
+                >
+                  <span className="hidden sm:inline">Delete Goal</span>
+                  <span className="sm:hidden">Delete</span>
+                </Button>
+              )}
+              <div className="flex space-x-2 sm:space-x-3 ml-auto">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowModal(false)}
+                  size="sm"
+                  className="px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSaveGoal} 
+                  loading={saving}
+                  disabled={saving || !isFormChanged(originalGoalForm, goalForm)}
+                  variant={isFormChanged(originalGoalForm, goalForm) ? 'primary' : 'outline'}
+                  size="sm"
+                  className="px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm"
+                >
+                  <span className="hidden sm:inline">{editingGoal ? 'Update Goal' : 'Add Goal'}</span>
+                  <span className="sm:hidden">{editingGoal ? 'Update' : 'Add'}</span>
+                </Button>
+              </div>
             </div>
-          </div>
           </div>
         </Modal>
 
-      {/* Goal Details Modal */}
+            {/* Goal Details Modal */}
       <Modal
         isOpen={showDetailsModal}
         onClose={() => setShowDetailsModal(false)}
         title="Goal Details"
+        size="md"
       >
         {selectedGoal && (
-          <div className="space-y-6">
+          <div className="space-y-3 sm:space-y-4">
             {/* Header */}
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">{getGoalTypeIcon(selectedGoal.type)}</span>
-              <div className="flex-1">
-                <h3 className="text-xl font-semibold text-surface-900 mb-2">{selectedGoal.title}</h3>
-                <div className="flex items-center gap-2">
-                  <span className={`px-3 py-1 text-xs font-medium rounded-full ${getGoalTypeColor(selectedGoal.type)}`}>
+            <div className="flex items-start gap-2 sm:gap-3">
+              <span className="text-lg sm:text-xl">{getGoalTypeIcon(selectedGoal.type)}</span>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm sm:text-base font-semibold text-surface-900 mb-1 leading-tight">{selectedGoal.title}</h3>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getGoalTypeColor(selectedGoal.type)}`}>
                     {selectedGoal.type}
                   </span>
                   <Badge 
                     variant={selectedGoal.status === 'Completed' ? 'success' : selectedGoal.status === 'In Progress' ? 'primary' : 'neutral' as any}
-                    className="px-3 py-1 text-xs font-medium"
+                    className="px-2 py-0.5 text-xs font-medium"
                   >
                     {selectedGoal.status}
                   </Badge>
                 </div>
               </div>
-                             <Button
-                 variant="outline"
-                 size="sm"
-                 onClick={() => {
-                   setShowDetailsModal(false);
-                   openEditModal(selectedGoal);
-                 }}
-               >
-                Edit Goal
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setShowDetailsModal(false);
+                  openEditModal(selectedGoal);
+                }}
+                className="px-2 py-1 text-xs sm:text-sm"
+              >
+                <span className="hidden sm:inline">Edit Goal</span>
+                <span className="sm:hidden">Edit</span>
               </Button>
             </div>
 
@@ -1208,25 +1216,25 @@ export const Dashboard: React.FC = () => {
             </div>
 
                           {/* Progress Update Section */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-blue-800 mb-3">Update Progress</h4>
-                <div className="space-y-3">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 sm:p-3">
+                <h4 className="text-xs sm:text-sm font-medium text-blue-800 mb-2">Update Progress</h4>
+                <div className="space-y-2">
                   {selectedGoal.type === 'financial' ? (
                     <div>
-                      <label className="block text-sm font-medium text-surface-700 mb-1">
+                      <label className="block text-xs sm:text-sm font-medium text-surface-700 mb-1">
                         Current Amount ($)
                       </label>
                       <input
                         type="number"
                         value={progressForm.currentAmount}
                         onChange={(e) => setProgressForm({...progressForm, currentAmount: e.target.value})}
-                        className="w-full px-3 py-2 border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         placeholder="Enter current amount"
                       />
                     </div>
                   ) : (
                     <div>
-                      <label className="block text-sm font-medium text-surface-700 mb-1">
+                      <label className="block text-xs sm:text-sm font-medium text-surface-700 mb-1">
                         Progress (%)
                       </label>
                       <input
@@ -1235,7 +1243,7 @@ export const Dashboard: React.FC = () => {
                         max="100"
                         value={progressForm.progress}
                         onChange={(e) => setProgressForm({...progressForm, progress: e.target.value})}
-                        className="w-full px-3 py-2 border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         placeholder="Enter progress percentage"
                       />
                     </div>
@@ -1245,7 +1253,7 @@ export const Dashboard: React.FC = () => {
                     disabled={savingProgress || (selectedGoal.type === 'financial' ? !progressForm.currentAmount : !progressForm.progress)}
                     loading={savingProgress}
                     size="sm"
-                    className="w-full"
+                    className="w-full px-2 py-1 text-xs sm:text-sm"
                   >
                     {savingProgress ? 'Updating...' : 'Update Progress'}
                   </Button>
@@ -1253,45 +1261,45 @@ export const Dashboard: React.FC = () => {
               </div>
 
               {/* Details */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {selectedGoal.type === 'financial' ? (
                   <>
-                    <div className="bg-surface-50 p-4 rounded-lg">
-                      <div className="text-sm text-surface-500">Current Amount</div>
-                      <div className="text-lg font-semibold text-surface-900">
+                    <div className="bg-surface-50 p-2 sm:p-3 rounded-lg">
+                      <div className="text-xs sm:text-sm text-surface-500">Current Amount</div>
+                      <div className="text-sm sm:text-base font-semibold text-surface-900">
                         {formatCurrency(selectedGoal.currentAmount || 0)}
                       </div>
                     </div>
-                    <div className="bg-surface-50 p-4 rounded-lg">
-                      <div className="text-sm text-surface-500">Target Amount</div>
-                      <div className="text-lg font-semibold text-surface-900">
+                    <div className="bg-surface-50 p-2 sm:p-3 rounded-lg">
+                      <div className="text-xs sm:text-sm text-surface-500">Target Amount</div>
+                      <div className="text-sm sm:text-base font-semibold text-surface-900">
                         {formatCurrency(selectedGoal.targetAmount || 0)}
                       </div>
                     </div>
                   </>
                 ) : (
-                  <div className="bg-surface-50 p-4 rounded-lg col-span-2">
-                    <div className="text-sm text-surface-500">Progress</div>
-                    <div className="text-lg font-semibold text-surface-900">
+                  <div className="bg-surface-50 p-2 sm:p-3 rounded-lg sm:col-span-2">
+                    <div className="text-xs sm:text-sm text-surface-500">Progress</div>
+                    <div className="text-sm sm:text-base font-semibold text-surface-900">
                       {(selectedGoal.progress || 0).toFixed(0)}% Complete
                     </div>
                   </div>
                 )}
                 {selectedGoal.targetDate && (
-                  <div className="bg-surface-50 p-4 rounded-lg col-span-2">
-                    <div className="text-sm text-surface-500">Target Date</div>
-                    <div className="text-lg font-semibold text-surface-900">
+                  <div className="bg-surface-50 p-2 sm:p-3 rounded-lg sm:col-span-2">
+                    <div className="text-xs sm:text-sm text-surface-500">Target Date</div>
+                    <div className="text-sm sm:text-base font-semibold text-surface-900">
                       {new Date(selectedGoal.targetDate).toLocaleDateString()}
                     </div>
                   </div>
                 )}
               </div>
 
-            {/* Description */}
+                        {/* Description */}
             {selectedGoal.description && (
               <div>
-                <h4 className="text-sm font-medium text-surface-700 mb-2">Description</h4>
-                <p className="text-surface-600 bg-surface-50 p-3 rounded-lg">
+                <h4 className="text-xs sm:text-sm font-medium text-surface-700 mb-1">Description</h4>
+                <p className="text-xs sm:text-sm text-surface-600 bg-surface-50 p-2 rounded-lg">
                   {selectedGoal.description}
                 </p>
               </div>
@@ -1299,41 +1307,41 @@ export const Dashboard: React.FC = () => {
 
             {/* Submilestones */}
             {selectedGoal.submilestones && selectedGoal.submilestones.length > 0 && (
-                              <div>
-                  <div className="flex justify-between items-center mb-3">
-                    <h4 className="text-sm font-medium text-surface-700">Submilestones</h4>
-                    <span className="text-sm text-surface-500">
-                      Click to toggle completion
-                    </span>
-                  </div>
-                                  <div className="space-y-3">
-                    {selectedGoal.submilestones.map((submilestone) => (
-                      <div key={submilestone.id} className="flex items-start gap-3 p-3 bg-surface-50 rounded-lg hover:bg-surface-100 cursor-pointer transition-colors" onClick={() => handleSubmilestoneToggle(submilestone.id)}>
-                        <div className={`w-3 h-3 rounded-full mt-1.5 flex-shrink-0 ${
-                          submilestone.completed ? 'bg-green-500' : 'bg-surface-300'
-                        }`}></div>
-                        <div className="flex-1">
-                          <div className={`font-medium ${
-                            submilestone.completed ? 'text-surface-500 line-through' : 'text-surface-900'
-                          }`}>
-                            {submilestone.title}
-                          </div>
-                          {submilestone.description && (
-                            <p className="text-sm text-surface-600 mt-1">
-                              {submilestone.description}
-                            </p>
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="text-xs sm:text-sm font-medium text-surface-700">Submilestones</h4>
+                  <span className="text-xs text-surface-500">
+                    Click to toggle
+                  </span>
+                </div>
+                                <div className="space-y-2">
+                  {selectedGoal.submilestones.map((submilestone) => (
+                    <div key={submilestone.id} className="flex items-start gap-2 p-2 bg-surface-50 rounded-lg hover:bg-surface-100 cursor-pointer transition-colors" onClick={() => handleSubmilestoneToggle(submilestone.id)}>
+                      <div className={`w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 ${
+                        submilestone.completed ? 'bg-green-500' : 'bg-surface-300'
+                      }`}></div>
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-xs sm:text-sm font-medium ${
+                          submilestone.completed ? 'text-surface-500 line-through' : 'text-surface-900'
+                        }`}>
+                          {submilestone.title}
+                        </div>
+                        {submilestone.description && (
+                          <p className="text-xs text-surface-600 mt-0.5">
+                            {submilestone.description}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 sm:gap-3 mt-1 text-xs text-surface-500">
+                          {selectedGoal.type === 'financial' && submilestone.targetAmount && submilestone.targetAmount > 0 && (
+                            <span className="truncate">Target: {formatCurrency(submilestone.targetAmount)}</span>
                           )}
-                          <div className="flex items-center gap-4 mt-2 text-xs text-surface-500">
-                            {selectedGoal.type === 'financial' && submilestone.targetAmount && submilestone.targetAmount > 0 && (
-                              <span>Target: {formatCurrency(submilestone.targetAmount)}</span>
-                            )}
-                            {submilestone.targetDate && (
-                              <span>Due: {new Date(submilestone.targetDate).toLocaleDateString()}</span>
-                            )}
-                          </div>
+                          {submilestone.targetDate && (
+                            <span className="truncate">Due: {new Date(submilestone.targetDate).toLocaleDateString()}</span>
+                          )}
                         </div>
                       </div>
-                    ))}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
