@@ -20,7 +20,7 @@ const Footer = () => {
         </div>
         
         <div className="border-t border-surface-800 mt-8 pt-8 text-center text-sm text-surface-400">
-          <p>&copy; 2024 RT1M. All rights reserved. Build your wealth, secure your future.</p>
+          <p>&copy; 2025 RT1M.app. All rights reserved. Build your wealth, secure your future.</p>
         </div>
       </div>
     </footer>

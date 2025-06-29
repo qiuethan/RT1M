@@ -57,8 +57,8 @@ const Modal = ({
       />
       
       {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className={`relative w-full ${sizeClasses[size]} max-h-[90vh] flex flex-col transform rounded-lg bg-white shadow-xl transition-all ${className}`}>
+      <div className="flex min-h-full items-center justify-center p-4 pt-20">
+        <div className={`relative w-full ${sizeClasses[size]} max-h-[80vh] flex flex-col transform rounded-lg bg-white shadow-xl transition-all ${className}`}>
           {/* Header */}
           {(title || showCloseButton) && (
             <div className="flex items-center justify-between p-6 border-b border-surface-200 flex-shrink-0">

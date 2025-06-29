@@ -173,7 +173,7 @@ export default function FinancialsRefactored() {
           </Card>
 
           {/* Income & Expenses */}
-          <Card className="p-6">
+                        <Card className="p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-surface-900">Income & Expenses</h2>
               <Button 

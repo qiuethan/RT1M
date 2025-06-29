@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useChatContext } from '../contexts/ChatContext';
 import { Card, Button, Badge, Modal, Input, Select, DatePicker, LoadingSpinner } from '../components/ui';
@@ -16,13 +16,14 @@ import {
 } from '../services/firestore';
 import { generateNextMilestone } from '../utils/financial';
 import { isFormChanged, useUnsavedChanges, UnsavedChangesPrompt } from '../utils/unsavedChanges';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
   const { registerDataRefreshCallback, unregisterDataRefreshCallback } = useChatContext();
 
   const location = useLocation();
+  const navigate = useNavigate();
   const [userName, setUserName] = useState<string>('');
   const [stats, setStats] = useState<UserStats | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -31,7 +32,15 @@ export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [nextMilestone, setNextMilestone] = useState<{ nextMilestone: any; progressToNext: number } | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedGoal, setSelectedGoal] = useState<IntermediateGoal | null>(null);
   const [saving, setSaving] = useState(false);
+  const [savingProgress, setSavingProgress] = useState(false);
+  const [progressForm, setProgressForm] = useState({
+    currentAmount: '',
+    progress: ''
+  });
+  const [editingGoal, setEditingGoal] = useState<IntermediateGoal | null>(null);
   const [goalForm, setGoalForm] = useState({
     title: '',
     type: 'financial' as 'financial' | 'skill' | 'behavior' | 'lifestyle' | 'networking' | 'project',
@@ -40,7 +49,17 @@ export const Dashboard: React.FC = () => {
     progress: '',
     targetDate: '',
     status: 'Not Started',
-    description: ''
+    description: '',
+    category: '',
+    submilestones: [] as Array<{
+      id: string;
+      title: string;
+      description: string;
+      targetAmount: string;
+      targetDate: string;
+      completed: boolean;
+      order: number;
+    }>
   });
   
   // Original form for change detection
@@ -52,6 +71,186 @@ export const Dashboard: React.FC = () => {
     hasUnsavedGoalChanges,
     'You have unsaved changes to your goal. Are you sure you want to leave without saving?'
   );
+
+  // Memoized calculated progress values to prevent unnecessary re-renders during tour
+  const progressValues = useMemo(() => {
+    const currentAmount = stats?.netWorth || 0;
+    const targetAmount = profile?.financialGoal?.targetAmount ?? 1000000;
+    const progressPercentage = targetAmount > 0 ? (currentAmount / targetAmount) * 100 : 0;
+    
+    return { currentAmount, targetAmount, progressPercentage };
+  }, [stats?.netWorth, profile?.financialGoal?.targetAmount]);
+
+  const { currentAmount, targetAmount, progressPercentage } = progressValues;
+
+  const goalTypeOptions = [
+    { value: 'financial', label: '💰 Financial Goals' },
+    { value: 'skill', label: '🧠 Skill-Based Goals' },
+    { value: 'behavior', label: '📊 Financial Behavior Goals' },
+    { value: 'lifestyle', label: '🏋️ Lifestyle Discipline Goals' },
+    { value: 'networking', label: '💬 Networking & Mentorship Goals' },
+    { value: 'project', label: '🛠️ Project / Output-Based Goals' }
+  ];
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const getGoalTypeIcon = (type: string) => {
+    switch (type) {
+      case 'financial': return '💰';
+      case 'skill': return '🧠';
+      case 'behavior': return '📊';
+      case 'lifestyle': return '🏋️';
+      case 'networking': return '💬';
+      case 'project': return '🛠️';
+      default: return '🎯';
+    }
+  };
+
+  const getGoalTypeColor = (type: string) => {
+    switch (type) {
+      case 'financial':
+        return 'bg-green-100 text-green-800';
+      case 'skill':
+        return 'bg-blue-100 text-blue-800';
+      case 'behavior':
+        return 'bg-purple-100 text-purple-800';
+      case 'lifestyle':
+        return 'bg-orange-100 text-orange-800';
+      case 'networking':
+        return 'bg-pink-100 text-pink-800';
+      case 'project':
+        return 'bg-indigo-100 text-indigo-800';
+      default:
+        return 'bg-surface-100 text-surface-800';
+    }
+  };
+
+  const getGoalProgress = (goal: IntermediateGoal) => {
+    if (goal.type === 'financial' && goal.targetAmount && goal.targetAmount > 0) {
+      return ((goal.currentAmount || 0) / goal.targetAmount) * 100;
+    } else {
+      return goal.progress || 0;
+    }
+  };
+
+  // Submilestone management functions
+  const addSubmilestone = () => {
+    const newSubmilestone = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      title: '',
+      description: '',
+      targetAmount: '',
+      targetDate: '',
+      completed: false,
+      order: goalForm.submilestones.length
+    };
+    setGoalForm({
+      ...goalForm,
+      submilestones: [...goalForm.submilestones, newSubmilestone]
+    });
+  };
+
+  const updateSubmilestone = (index: number, field: string, value: any) => {
+    const updatedSubmilestones = [...goalForm.submilestones];
+    updatedSubmilestones[index] = { ...updatedSubmilestones[index], [field]: value };
+    setGoalForm({
+      ...goalForm,
+      submilestones: updatedSubmilestones
+    });
+  };
+
+  const removeSubmilestone = (index: number) => {
+    const updatedSubmilestones = goalForm.submilestones.filter((_, i) => i !== index);
+    // Reorder remaining submilestones
+    const reorderedSubmilestones = updatedSubmilestones.map((sub, i) => ({ ...sub, order: i }));
+    setGoalForm({
+      ...goalForm,
+      submilestones: reorderedSubmilestones
+    });
+  };
+
+  const handleDeleteGoal = async (goalId: string) => {
+    try {
+      // For now, just reload the data after delete
+      // You may want to implement a proper delete function
+      const updatedGoals = await getUserIntermediateGoals();
+      setGoals(updatedGoals);
+      setShowModal(false);
+    } catch (error) {
+      console.error('Error deleting goal:', error);
+    }
+  };
+
+  const openDetailsModal = (goal: IntermediateGoal) => {
+    setSelectedGoal(goal);
+    setProgressForm({
+      currentAmount: goal.currentAmount?.toString() || '',
+      progress: goal.progress?.toString() || ''
+    });
+    setShowDetailsModal(true);
+  };
+
+  const handleProgressUpdate = async () => {
+    if (!selectedGoal) return;
+
+    try {
+      setSavingProgress(true);
+      
+      const updatedGoal: IntermediateGoal = {
+        ...selectedGoal,
+        currentAmount: selectedGoal.type === 'financial' ? (parseFloat(progressForm.currentAmount) || 0) : selectedGoal.currentAmount,
+        progress: selectedGoal.type !== 'financial' ? (parseFloat(progressForm.progress) || 0) : selectedGoal.progress
+      };
+
+      await addIntermediateGoal(updatedGoal);
+      
+      // Update the selected goal state
+      setSelectedGoal(updatedGoal);
+      
+      // Reload goals data
+      const updatedGoals = await getUserIntermediateGoals();
+      setGoals(updatedGoals);
+      
+    } catch (error) {
+      console.error('Error updating progress:', error);
+    } finally {
+      setSavingProgress(false);
+    }
+  };
+
+  const handleSubmilestoneToggle = async (submilestoneId: string) => {
+    if (!selectedGoal || !selectedGoal.submilestones) return;
+
+    try {
+      const updatedSubmilestones = selectedGoal.submilestones.map(sub => 
+        sub.id === submilestoneId ? { ...sub, completed: !sub.completed } : sub
+      );
+
+      const updatedGoal: IntermediateGoal = {
+        ...selectedGoal,
+        submilestones: updatedSubmilestones
+      };
+
+      await addIntermediateGoal(updatedGoal);
+      
+      // Update the selected goal state
+      setSelectedGoal(updatedGoal);
+      
+      // Reload goals data
+      const updatedGoals = await getUserIntermediateGoals();
+      setGoals(updatedGoals);
+      
+    } catch (error) {
+      console.error('Error updating submilestone:', error);
+    }
+  };
 
 
 
@@ -164,7 +363,10 @@ export const Dashboard: React.FC = () => {
     };
   }, [currentUser, registerDataRefreshCallback, unregisterDataRefreshCallback]);
 
+
+
   const openAddModal = () => {
+    setEditingGoal(null);
     const newForm = {
       title: '',
       type: 'financial' as 'financial' | 'skill' | 'behavior' | 'lifestyle' | 'networking' | 'project',
@@ -173,10 +375,39 @@ export const Dashboard: React.FC = () => {
       progress: '',
       targetDate: '',
       status: 'Not Started',
-      description: ''
+      description: '',
+      category: '',
+      submilestones: []
     };
     setGoalForm(newForm);
     setOriginalGoalForm(newForm);
+    setShowModal(true);
+  };
+
+  const openEditModal = (goal: IntermediateGoal) => {
+    setEditingGoal(goal);
+    const editForm = {
+      title: goal.title,
+      type: goal.type,
+      targetAmount: goal.targetAmount?.toString() || '',
+      currentAmount: goal.currentAmount?.toString() || '',
+      progress: goal.progress?.toString() || '',
+      targetDate: goal.targetDate || '',
+      status: goal.status,
+      description: goal.description || '',
+      category: goal.category || '',
+      submilestones: (goal.submilestones || []).map(sub => ({
+        id: sub.id,
+        title: sub.title,
+        description: sub.description || '',
+        targetAmount: sub.targetAmount?.toString() || '',
+        targetDate: sub.targetDate || '',
+        completed: sub.completed,
+        order: sub.order
+      }))
+    };
+    setGoalForm(editForm);
+    setOriginalGoalForm(editForm);
     setShowModal(true);
   };
 
@@ -187,7 +418,7 @@ export const Dashboard: React.FC = () => {
       setSaving(true);
       
       const newGoal: IntermediateGoal = {
-        id: Date.now().toString(),
+        id: editingGoal?.id || Date.now().toString(),
         title: goalForm.title,
         type: goalForm.type,
         targetAmount: goalForm.type === 'financial' ? (parseFloat(goalForm.targetAmount) || 0) : undefined,
@@ -195,7 +426,17 @@ export const Dashboard: React.FC = () => {
         progress: goalForm.type !== 'financial' ? (parseFloat(goalForm.progress) || 0) : undefined,
         targetDate: goalForm.targetDate || undefined,
         status: goalForm.status as 'Not Started' | 'In Progress' | 'Completed',
-        description: goalForm.description || undefined
+        description: goalForm.description || undefined,
+        category: goalForm.category || undefined,
+        submilestones: goalForm.submilestones.map(sub => ({
+          id: sub.id,
+          title: sub.title,
+          description: sub.description,
+          targetAmount: sub.targetAmount ? parseFloat(sub.targetAmount) : undefined,
+          targetDate: sub.targetDate || undefined,
+          completed: sub.completed,
+          order: sub.order
+        }))
       };
 
       await addIntermediateGoal(newGoal);
@@ -212,15 +453,6 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  const goalTypeOptions = [
-    { value: 'financial', label: '💰 Financial Goals' },
-    { value: 'skill', label: '🧠 Skill-Based Goals' },
-    { value: 'behavior', label: '📊 Financial Behavior Goals' },
-    { value: 'lifestyle', label: '🏋️ Lifestyle Discipline Goals' },
-    { value: 'networking', label: '💬 Networking & Mentorship Goals' },
-    { value: 'project', label: '🛠️ Project / Output-Based Goals' }
-  ];
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-surface-50 via-primary-50/20 to-secondary-50/30 flex items-center justify-center">
@@ -232,18 +464,6 @@ export const Dashboard: React.FC = () => {
       </div>
     );
   }
-
-  const currentAmount = stats?.netWorth || 0;
-  const targetAmount = profile?.financialGoal?.targetAmount ?? 1000000;
-  const progressPercentage = targetAmount > 0 ? (currentAmount / targetAmount) * 100 : 0;
-  
-  console.log('Dashboard - Render values:', {
-    currentAmount,
-    targetAmount,
-    progressPercentage,
-    stats,
-    profile: profile?.financialGoal
-  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-surface-50 via-primary-50/20 to-secondary-50/30">
@@ -258,7 +478,7 @@ export const Dashboard: React.FC = () => {
               <p className="text-surface-600 mt-2">Track your journey to ${targetAmount.toLocaleString()}</p>
             </div>
             <div className="flex space-x-3">
-              <Button onClick={() => window.location.href = '/goals'}>
+              <Button onClick={() => navigate('/goals')}>
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
@@ -277,27 +497,146 @@ export const Dashboard: React.FC = () => {
               <p className="text-surface-600">Your current net worth journey</p>
             </div>
             
-            {/* Large Progress Bar */}
-            <div className="mb-6">
-              <div className="flex justify-between items-center mb-2">
+            {/* Enhanced Progress Bar */}
+            <div className="mb-6 relative">
+              <div className="flex justify-between items-center mb-4">
                 <span className="text-sm font-medium text-surface-600">Current Net Worth</span>
                 <span className="text-sm font-medium text-surface-900">
                   ${currentAmount.toLocaleString()} / ${targetAmount.toLocaleString()}
                 </span>
               </div>
-              <div className="w-full bg-surface-200 rounded-full h-6">
-                <div 
-                  className="bg-gradient-to-r from-primary-500 to-secondary-500 h-6 rounded-full transition-all duration-500 relative"
-                  style={{ width: `${Math.min(progressPercentage, 100)}%` }}
-                >
-                  <div className="absolute right-0 top-0 h-6 w-6 bg-white rounded-full shadow-lg transform translate-x-1/2 flex items-center justify-center">
-                    <div className="w-3 h-3 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full"></div>
+              
+              {/* Progress Bar Container */}
+              <div className="relative">
+                {/* Background Track */}
+                <div className="w-full bg-gradient-to-r from-surface-200 via-surface-100 to-surface-200 rounded-full h-8 shadow-inner overflow-hidden">
+                  {/* Animated Background Pattern */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+                  
+                  {/* Progress Fill */}
+                  <div 
+                    className="relative h-8 rounded-full transition-all duration-1000 ease-out overflow-hidden"
+                    style={{ width: `${Math.min(progressPercentage, 100)}%` }}
+                  >
+                    {/* Multi-layer gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-green-500 to-cyan-500"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary-500/80 via-secondary-500/80 to-accent-400/80 mix-blend-overlay"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-white/20"></div>
+                    
+                    {/* Animated shine effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-slide-shine"></div>
+                    
+                    {/* Sparkle effects */}
+                    {progressPercentage > 10 && (
+                      <div className="absolute top-1 left-2 w-1 h-1 bg-white rounded-full animate-twinkle"></div>
+                    )}
+                    {progressPercentage > 25 && (
+                      <div className="absolute bottom-1 left-8 w-1 h-1 bg-white rounded-full animate-twinkle-delay-1"></div>
+                    )}
+                    {progressPercentage > 50 && (
+                      <div className="absolute top-1 left-1/2 w-1 h-1 bg-white rounded-full animate-twinkle-delay-2"></div>
+                    )}
+                    {progressPercentage > 75 && (
+                      <div className="absolute bottom-1 right-4 w-1 h-1 bg-white rounded-full animate-twinkle-delay-3"></div>
+                    )}
+                  </div>
+                  
+                  {/* Progress Indicator */}
+                  <div 
+                    className="absolute top-0 transform -translate-x-1/2 transition-all duration-1000 ease-out"
+                    style={{ left: `${Math.min(progressPercentage, 100)}%` }}
+                  >
+                    <div className="relative">
+                      {/* Main indicator */}
+                      <div className="w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center border-2 border-primary-500">
+                        <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
+                      </div>
+                      
+                      {/* Shooting star effect for high progress */}
+                      {progressPercentage > 80 && (
+                        <div className="absolute -top-2 -left-2 w-12 h-12">
+                          <div className="absolute top-2 left-2 w-2 h-2 bg-yellow-400 rounded-full animate-ping"></div>
+                          <div className="absolute top-1 left-1 w-1 h-1 bg-yellow-300 rounded-full animate-bounce"></div>
+                          <div className="absolute top-3 left-6 w-1 h-1 bg-yellow-300 rounded-full animate-bounce delay-75"></div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
+                
+                {/* Milestone Markers */}
+                <div className="absolute top-0 w-full h-8 pointer-events-none">
+                  {[25, 50, 75].map((milestone) => (
+                    <div
+                      key={milestone}
+                      className={`absolute top-0 h-8 w-0.5 transform -translate-x-1/2 transition-colors duration-500 ${
+                        progressPercentage >= milestone ? 'bg-white/60' : 'bg-surface-400/40'
+                      }`}
+                      style={{ left: `${milestone}%` }}
+                    >
+                      <div className={`absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs font-medium transition-colors duration-500 ${
+                        progressPercentage >= milestone ? 'text-primary-600' : 'text-surface-500'
+                      }`}>
+                        {milestone}%
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="text-center mt-3">
-                <span className="text-2xl font-bold text-primary-600">{progressPercentage.toFixed(1)}%</span>
-                <span className="text-surface-600 ml-2">complete</span>
+              
+              {/* Progress Stats */}
+              <div className="flex justify-between items-center mt-6">
+                <div className="text-center">
+                  <div className="text-3xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
+                    {progressPercentage.toFixed(1)}%
+                  </div>
+                  <div className="text-sm text-surface-600">Complete</div>
+                </div>
+                
+                <div className="text-center">
+                  <div className="text-xl font-semibold text-surface-700">
+                    ${(targetAmount - currentAmount).toLocaleString()}
+                  </div>
+                  <div className="text-sm text-surface-600">Remaining</div>
+                </div>
+                
+                {progressPercentage > 0 && (
+                  <div className="text-center">
+                    <div className="text-xl font-semibold text-green-600">
+                      +${currentAmount.toLocaleString()}
+                    </div>
+                    <div className="text-sm text-surface-600">Progress Made</div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Motivational Message */}
+              <div className="text-center mt-4">
+                {progressPercentage >= 100 ? (
+                  <div className="text-lg font-semibold text-green-600 animate-bounce">
+                    🎉 Congratulations! You've reached your goal! 🎉
+                  </div>
+                ) : progressPercentage >= 75 ? (
+                  <div className="text-sm text-primary-600 font-medium">
+                    🌟 Amazing! You're in the final stretch!
+                  </div>
+                ) : progressPercentage >= 50 ? (
+                  <div className="text-sm text-secondary-600 font-medium">
+                    🚀 Great progress! You're halfway there!
+                  </div>
+                ) : progressPercentage >= 25 ? (
+                  <div className="text-sm text-accent-600 font-medium">
+                    💪 Keep it up! You're building momentum!
+                  </div>
+                ) : progressPercentage > 0 ? (
+                  <div className="text-sm text-surface-600 font-medium">
+                    🌱 Every journey begins with a single step!
+                  </div>
+                ) : (
+                  <div className="text-sm text-surface-600 font-medium">
+                    🎯 Ready to start your wealth-building journey?
+                  </div>
+                )}
               </div>
             </div>
           </Card>
@@ -306,21 +645,22 @@ export const Dashboard: React.FC = () => {
           <Card variant="primary" className="p-6">
             <h3 className="text-xl font-semibold text-primary-800 mb-4">Quick Actions</h3>
             <div className="space-y-3">
+              
               <Button 
                 variant="outline" 
                 className="w-full justify-start"
-                onClick={() => window.location.href = '/profile'}
+                onClick={() => navigate('/chatbot')}
               >
                 <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
-                Update Profile
+                AI Assistant
               </Button>
               
               <Button 
                 variant="outline" 
                 className="w-full justify-start"
-                onClick={() => window.location.href = '/goals'}
+                onClick={() => navigate('/goals')}
               >
                 <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -331,14 +671,24 @@ export const Dashboard: React.FC = () => {
               <Button 
                 variant="outline" 
                 className="w-full justify-start"
-                onClick={() => window.location.href = '/chatbot'}
+                onClick={() => navigate('/financials')}
               >
                 <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                 </svg>
-                AI Assistant
+                Manage Financials
               </Button>
               
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => navigate('/profile')}
+              >
+                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Update Profile
+              </Button>
 
             </div>
           </Card>
@@ -348,60 +698,165 @@ export const Dashboard: React.FC = () => {
         <div className="mb-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold text-surface-900">Your Intermediate Goals</h2>
-            <Button onClick={() => window.location.href = '/goals'} variant="outline">
+            <Button onClick={() => navigate('/goals')} variant="outline">
               View All Goals
             </Button>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Existing Goals */}
-            {goals?.intermediateGoals && goals.intermediateGoals.slice(0, 2).map((goal, index) => (
-              <Card key={goal.id || index} variant="glass" className="p-6" hover>
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-lg font-semibold text-surface-900">{goal.title}</h3>
-                  <Badge variant={goal.status === 'Completed' ? 'success' : goal.status === 'In Progress' ? 'primary' : 'neutral' as any}>
-                    {goal.status}
-                  </Badge>
+            {goals?.intermediateGoals && goals.intermediateGoals
+              .slice()
+              .sort((a, b) => {
+                // Sort by target date, with goals without dates at the end
+                if (!a.targetDate && !b.targetDate) return 0;
+                if (!a.targetDate) return 1;
+                if (!b.targetDate) return -1;
+                return new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime();
+              })
+              .slice(0, 2)
+              .map((goal, index) => (
+              <div key={goal.id || index} className="cursor-pointer" onClick={() => openDetailsModal(goal)}>
+                <Card variant="glass" className="p-6 h-[400px] flex flex-col" hover>
+                {/* Header Section - Fixed Height */}
+                <div className="h-20 mb-4 flex-shrink-0">
+                  {/* Header with icon and title */}
+                  <div className="flex items-start gap-3 mb-3">
+                    <span className="text-lg mt-0.5 flex-shrink-0">{getGoalTypeIcon(goal.type)}</span>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-surface-900 leading-tight break-words line-clamp-2" title={goal.title}>
+                        {goal.title}
+                      </h4>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditModal(goal);
+                      }}
+                      className="text-surface-400 hover:text-surface-600 transition-colors flex-shrink-0 ml-2"
+                      title="Edit goal"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  {/* Tags row */}
+                  <div className="flex items-center gap-2">
+                    <span className={`px-3 py-1 text-xs font-medium rounded-full ${getGoalTypeColor(goal.type)}`}>
+                      {goal.type}
+                    </span>
+                    <Badge 
+                      variant={goal.status === 'Completed' ? 'success' : goal.status === 'In Progress' ? 'primary' : 'neutral' as any} 
+                      className="px-3 py-1 text-xs font-medium"
+                    >
+                      {goal.status}
+                    </Badge>
+                  </div>
                 </div>
                 
-                <div className="mb-4">
+                {/* Progress Section - Fixed Height */}
+                <div className="h-16 mb-4 flex-shrink-0">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-surface-700">Progress</span>
-                    <span className="text-sm font-medium text-surface-700">
-                      {goal.type === 'financial' && goal.targetAmount && goal.targetAmount > 0 
-                        ? (((goal.currentAmount || 0) / goal.targetAmount) * 100).toFixed(1) 
-                        : (goal.progress || 0).toFixed(1)}%
+                    <span className="text-sm font-medium text-surface-600">Progress</span>
+                    <span className="text-sm font-medium text-surface-600">
+                      {getGoalProgress(goal).toFixed(1)}%
                     </span>
                   </div>
                   <div className="w-full bg-surface-200 rounded-full h-2">
                     <div 
-                      className="bg-gradient-to-r from-secondary-500 to-accent-500 h-2 rounded-full transition-all duration-300"
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        goal.type === 'financial' 
+                          ? 'bg-gradient-to-r from-green-500 to-emerald-500'
+                          : 'bg-gradient-to-r from-blue-500 to-purple-500'
+                      }`}
                       style={{ 
-                        width: `${goal.type === 'financial' && goal.targetAmount && goal.targetAmount > 0 
-                          ? Math.min(((goal.currentAmount || 0) / goal.targetAmount) * 100, 100) 
-                          : Math.min(goal.progress || 0, 100)}%` 
+                        width: `${Math.min(getGoalProgress(goal), 100)}%` 
                       }}
                     ></div>
                   </div>
                 </div>
 
-                <div className="text-sm text-surface-600">
-                  {goal.type === 'financial' ? (
-                    `$${(goal.currentAmount || 0).toLocaleString()} of $${(goal.targetAmount || 0).toLocaleString()}`
-                  ) : (
-                    `${(goal.progress || 0).toFixed(0)}% Complete`
+                {/* Details Section - Fixed Height */}
+                <div className="h-20 mb-4 flex-shrink-0">
+                  <div className="space-y-2 text-sm">
+                    {goal.type === 'financial' ? (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-surface-500">Current:</span>
+                          <span className="font-medium">{formatCurrency(goal.currentAmount || 0)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-surface-500">Target:</span>
+                          <span className="font-medium">{formatCurrency(goal.targetAmount || 0)}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex justify-between">
+                        <span className="text-surface-500">Progress:</span>
+                        <span className="font-medium">{(goal.progress || 0).toFixed(0)}% Complete</span>
+                      </div>
+                    )}
+                    {goal.targetDate && (
+                      <div className="flex justify-between">
+                        <span className="text-surface-500">Due:</span>
+                        <span className="font-medium">{new Date(goal.targetDate).toLocaleDateString()}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Flexible Content Section */}
+                <div className="flex-1 overflow-hidden">
+                  {goal.description && (
+                    <div className="mb-3 p-2 bg-surface-50 rounded text-xs text-surface-600">
+                      <div className="line-clamp-3">
+                        {goal.description}
+                      </div>
+                    </div>
+                  )}
+                  {goal.submilestones && goal.submilestones.length > 0 && (
+                    <div className="pt-2 border-t border-surface-200">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-medium text-surface-500">Submilestones</span>
+                        <span className="text-xs text-surface-500">
+                          {goal.submilestones.filter(sub => sub.completed).length}/{goal.submilestones.length}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        {goal.submilestones.slice(0, 2).map((submilestone) => (
+                          <div key={submilestone.id} className="flex items-center gap-2 text-xs">
+                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                              submilestone.completed ? 'bg-green-500' : 'bg-surface-300'
+                            }`}></div>
+                            <span className={`truncate ${
+                              submilestone.completed ? 'text-surface-500 line-through' : 'text-surface-700'
+                            }`}>
+                              {submilestone.title}
+                            </span>
+                          </div>
+                        ))}
+                        {goal.submilestones.length > 2 && (
+                          <div className="text-xs text-surface-500 text-center">
+                            +{goal.submilestones.length - 2} more
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
-              </Card>
+                </Card>
+              </div>
             ))}
 
             {/* Add New Goal Card */}
             <div 
-              className="p-6 border-2 border-dashed border-surface-300 hover:border-primary-300 transition-colors cursor-pointer bg-white rounded-lg shadow-sm"
+              className="p-6 border-2 border-dashed border-surface-300 hover:border-primary-300 transition-colors cursor-pointer bg-white rounded-lg shadow-sm h-[400px] flex items-center justify-center"
               onClick={openAddModal}
             >
-              <div className="flex flex-col items-center justify-center h-full min-h-[180px] text-center">
-                <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mb-4">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mb-4 mx-auto">
                   <svg className="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
@@ -500,98 +955,398 @@ export const Dashboard: React.FC = () => {
       {/* Mini Chatbot */}
       <MiniChatbot />
       
-      {showModal && (
-        <Modal
-          isOpen={showModal}
-          onClose={() => setShowModal(false)}
-          title="Add New Goal"
-        >
-          <div className="space-y-4">
-            <Input
-              label="Goal Title"
-              value={goalForm.title}
-              onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })}
-              placeholder="e.g., Emergency Fund, Learn Python, Build Portfolio"
-            />
-            
-            <Select
-              label="Goal Type"
-              value={goalForm.type}
-              onChange={(e) => setGoalForm({ ...goalForm, type: e.target.value as any })}
-              options={goalTypeOptions}
-            />
-            
-            {goalForm.type === 'financial' ? (
-              <div className="grid grid-cols-2 gap-4">
-                <Input
-                  label="Target Amount ($)"
-                  type="number"
-                  value={goalForm.targetAmount}
-                  onChange={(e) => setGoalForm({ ...goalForm, targetAmount: e.target.value })}
-                  placeholder="10000"
-                />
-                <Input
-                  label="Current Amount ($)"
-                  type="number"
-                  value={goalForm.currentAmount}
-                  onChange={(e) => setGoalForm({ ...goalForm, currentAmount: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-            ) : (
-              <Input
-                label="Progress (%)"
-                type="number"
-                value={goalForm.progress}
-                onChange={(e) => setGoalForm({ ...goalForm, progress: e.target.value })}
-                placeholder="0"
-              />
-            )}
-            
+      {/* Goal Edit/Add Modal */}
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingGoal ? 'Edit Goal' : 'Add New Goal'}
+      >
+        <div className="space-y-4">
+          <Input
+            label="Goal Title"
+            value={goalForm.title}
+            onChange={(e) => setGoalForm({...goalForm, title: e.target.value})}
+            placeholder="Save $10,000 for emergency fund"
+          />
+          
+          <Select
+            label="Goal Type"
+            value={goalForm.type}
+            onChange={(e) => setGoalForm({...goalForm, type: e.target.value as any})}
+            options={goalTypeOptions}
+          />
+          
+          {goalForm.type === 'financial' ? (
             <div className="grid grid-cols-2 gap-4">
-              <DatePicker
-                label="Target Date (Optional)"
-                value={goalForm.targetDate}
-                onChange={(date) => setGoalForm({ ...goalForm, targetDate: date || '' })}
+              <Input
+                label="Target Amount ($)"
+                type="number"
+                value={goalForm.targetAmount}
+                onChange={(e) => setGoalForm({...goalForm, targetAmount: e.target.value})}
+                placeholder="10000"
               />
-              <Select
-                label="Status"
-                value={goalForm.status}
-                onChange={(e) => setGoalForm({ ...goalForm, status: e.target.value as 'Not Started' | 'In Progress' | 'Completed' })}
-                options={[
-                  { value: 'Not Started', label: 'Not Started' },
-                  { value: 'In Progress', label: 'In Progress' },
-                  { value: 'Completed', label: 'Completed' }
-                ]}
+              <Input
+                label="Current Amount ($)"
+                type="number"
+                value={goalForm.currentAmount}
+                onChange={(e) => setGoalForm({...goalForm, currentAmount: e.target.value})}
+                placeholder="2500"
               />
             </div>
-            
+          ) : (
             <Input
-              label="Description (Optional)"
+              label="Progress (%)"
+              type="number"
+              value={goalForm.progress}
+              onChange={(e) => setGoalForm({...goalForm, progress: e.target.value})}
+              placeholder="25"
+            />
+          )}
+          
+          <DatePicker
+            label="Target Date (Optional)"
+            value={goalForm.targetDate}
+            onChange={(date) => setGoalForm({...goalForm, targetDate: date || ''})}
+          />
+          
+          <Select
+            label="Status"
+            value={goalForm.status}
+            onChange={(e) => setGoalForm({...goalForm, status: e.target.value})}
+            options={[
+              { value: 'Not Started', label: 'Not Started' },
+              { value: 'In Progress', label: 'In Progress' },
+              { value: 'Completed', label: 'Completed' }
+            ]}
+          />
+          
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-surface-700">
+              Description (Optional)
+            </label>
+            <textarea
               value={goalForm.description}
-              onChange={(e) => setGoalForm({ ...goalForm, description: e.target.value })}
-              placeholder="Brief description of this goal..."
+              onChange={(e) => setGoalForm({...goalForm, description: e.target.value})}
+              placeholder="Additional details about this goal..."
+              rows={3}
+              className="w-full px-3 py-2 border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             />
           </div>
-          
-          <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
-            <Button 
-              onClick={() => setShowModal(false)} 
-              variant="outline"
-              disabled={saving}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSaveGoal} 
-              disabled={saving || !goalForm.title || !goalForm.type || !isFormChanged(originalGoalForm, goalForm)}
-              variant={isFormChanged(originalGoalForm, goalForm) ? 'primary' : 'outline'}
-            >
-              {saving ? 'Saving...' : 'Add Goal'}
-            </Button>
+
+          {/* Submilestones Section */}
+          <div className="border-t pt-4">
+            <div className="flex justify-between items-center mb-3">
+              <h4 className="text-lg font-medium text-surface-900">Submilestones</h4>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addSubmilestone}
+              >
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add Submilestone
+              </Button>
+            </div>
+
+            {goalForm.submilestones.length > 0 ? (
+              <div className="space-y-3 max-h-60 overflow-y-auto">
+                {goalForm.submilestones.map((submilestone, index) => (
+                  <div key={submilestone.id} className="p-3 border border-surface-200 rounded-lg bg-surface-50">
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-sm font-medium text-surface-700">Submilestone {index + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeSubmilestone(index)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Input
+                        label="Title"
+                        value={submilestone.title}
+                        onChange={(e) => updateSubmilestone(index, 'title', e.target.value)}
+                        placeholder="Submilestone title"
+                      />
+                      
+                      <div className={`grid gap-2 ${goalForm.type === 'financial' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                        {goalForm.type === 'financial' && (
+                          <Input
+                            label="Target Amount ($)"
+                            type="number"
+                            value={submilestone.targetAmount}
+                            onChange={(e) => updateSubmilestone(index, 'targetAmount', e.target.value)}
+                            placeholder="1000"
+                          />
+                        )}
+                        <DatePicker
+                          label="Target Date"
+                          value={submilestone.targetDate}
+                          onChange={(date) => updateSubmilestone(index, 'targetDate', date || '')}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-surface-700">
+                          Description
+                        </label>
+                        <textarea
+                          value={submilestone.description}
+                          onChange={(e) => updateSubmilestone(index, 'description', e.target.value)}
+                          placeholder="Brief description of this submilestone..."
+                          rows={2}
+                          className="w-full px-3 py-2 border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        />
+                      </div>
+                      
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id={`submilestone-${index}-completed`}
+                          checked={submilestone.completed}
+                          onChange={(e) => updateSubmilestone(index, 'completed', e.target.checked)}
+                          className="mr-2"
+                        />
+                        <label htmlFor={`submilestone-${index}-completed`} className="text-sm text-surface-700">
+                          Completed
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-surface-500 text-center py-4">
+                No submilestones added yet. Break down your goal into smaller, manageable steps.
+              </p>
+            )}
           </div>
-        </Modal>
-      )}
+          
+          <div className="flex justify-between pt-4">
+            {editingGoal && editingGoal.id && (
+              <Button 
+                variant="outline" 
+                onClick={() => handleDeleteGoal(editingGoal.id!)}
+                className="text-red-600 hover:text-red-700"
+              >
+                Delete Goal
+              </Button>
+            )}
+            <div className="flex space-x-3 ml-auto">
+              <Button variant="outline" onClick={() => setShowModal(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSaveGoal} 
+                loading={saving}
+                disabled={saving || !isFormChanged(originalGoalForm, goalForm)}
+                variant={isFormChanged(originalGoalForm, goalForm) ? 'primary' : 'outline'}
+              >
+                {editingGoal ? 'Update Goal' : 'Add Goal'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Goal Details Modal */}
+      <Modal
+        isOpen={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        title="Goal Details"
+      >
+        {selectedGoal && (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">{getGoalTypeIcon(selectedGoal.type)}</span>
+              <div className="flex-1">
+                <h3 className="text-xl font-semibold text-surface-900 mb-2">{selectedGoal.title}</h3>
+                <div className="flex items-center gap-2">
+                  <span className={`px-3 py-1 text-xs font-medium rounded-full ${getGoalTypeColor(selectedGoal.type)}`}>
+                    {selectedGoal.type}
+                  </span>
+                  <Badge 
+                    variant={selectedGoal.status === 'Completed' ? 'success' : selectedGoal.status === 'In Progress' ? 'primary' : 'neutral' as any}
+                    className="px-3 py-1 text-xs font-medium"
+                  >
+                    {selectedGoal.status}
+                  </Badge>
+                </div>
+              </div>
+                             <Button
+                 variant="outline"
+                 size="sm"
+                 onClick={() => {
+                   setShowDetailsModal(false);
+                   openEditModal(selectedGoal);
+                 }}
+               >
+                Edit Goal
+              </Button>
+            </div>
+
+            {/* Progress */}
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium text-surface-600">Progress</span>
+                <span className="text-sm font-medium text-surface-600">
+                  {getGoalProgress(selectedGoal).toFixed(1)}%
+                </span>
+              </div>
+              <div className="w-full bg-surface-200 rounded-full h-3">
+                <div 
+                  className={`h-3 rounded-full transition-all duration-300 ${
+                    selectedGoal.type === 'financial' 
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-500'
+                      : 'bg-gradient-to-r from-blue-500 to-purple-500'
+                  }`}
+                  style={{ 
+                    width: `${Math.min(getGoalProgress(selectedGoal), 100)}%` 
+                  }}
+                ></div>
+              </div>
+            </div>
+
+                          {/* Progress Update Section */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-blue-800 mb-3">Update Progress</h4>
+                <div className="space-y-3">
+                  {selectedGoal.type === 'financial' ? (
+                    <div>
+                      <label className="block text-sm font-medium text-surface-700 mb-1">
+                        Current Amount ($)
+                      </label>
+                      <input
+                        type="number"
+                        value={progressForm.currentAmount}
+                        onChange={(e) => setProgressForm({...progressForm, currentAmount: e.target.value})}
+                        className="w-full px-3 py-2 border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        placeholder="Enter current amount"
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-sm font-medium text-surface-700 mb-1">
+                        Progress (%)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={progressForm.progress}
+                        onChange={(e) => setProgressForm({...progressForm, progress: e.target.value})}
+                        className="w-full px-3 py-2 border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        placeholder="Enter progress percentage"
+                      />
+                    </div>
+                  )}
+                  <Button
+                    onClick={handleProgressUpdate}
+                    disabled={savingProgress || (selectedGoal.type === 'financial' ? !progressForm.currentAmount : !progressForm.progress)}
+                    loading={savingProgress}
+                    size="sm"
+                    className="w-full"
+                  >
+                    {savingProgress ? 'Updating...' : 'Update Progress'}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Details */}
+              <div className="grid grid-cols-2 gap-4">
+                {selectedGoal.type === 'financial' ? (
+                  <>
+                    <div className="bg-surface-50 p-4 rounded-lg">
+                      <div className="text-sm text-surface-500">Current Amount</div>
+                      <div className="text-lg font-semibold text-surface-900">
+                        {formatCurrency(selectedGoal.currentAmount || 0)}
+                      </div>
+                    </div>
+                    <div className="bg-surface-50 p-4 rounded-lg">
+                      <div className="text-sm text-surface-500">Target Amount</div>
+                      <div className="text-lg font-semibold text-surface-900">
+                        {formatCurrency(selectedGoal.targetAmount || 0)}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="bg-surface-50 p-4 rounded-lg col-span-2">
+                    <div className="text-sm text-surface-500">Progress</div>
+                    <div className="text-lg font-semibold text-surface-900">
+                      {(selectedGoal.progress || 0).toFixed(0)}% Complete
+                    </div>
+                  </div>
+                )}
+                {selectedGoal.targetDate && (
+                  <div className="bg-surface-50 p-4 rounded-lg col-span-2">
+                    <div className="text-sm text-surface-500">Target Date</div>
+                    <div className="text-lg font-semibold text-surface-900">
+                      {new Date(selectedGoal.targetDate).toLocaleDateString()}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+            {/* Description */}
+            {selectedGoal.description && (
+              <div>
+                <h4 className="text-sm font-medium text-surface-700 mb-2">Description</h4>
+                <p className="text-surface-600 bg-surface-50 p-3 rounded-lg">
+                  {selectedGoal.description}
+                </p>
+              </div>
+            )}
+
+            {/* Submilestones */}
+            {selectedGoal.submilestones && selectedGoal.submilestones.length > 0 && (
+                              <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="text-sm font-medium text-surface-700">Submilestones</h4>
+                    <span className="text-sm text-surface-500">
+                      Click to toggle completion
+                    </span>
+                  </div>
+                                  <div className="space-y-3">
+                    {selectedGoal.submilestones.map((submilestone) => (
+                      <div key={submilestone.id} className="flex items-start gap-3 p-3 bg-surface-50 rounded-lg hover:bg-surface-100 cursor-pointer transition-colors" onClick={() => handleSubmilestoneToggle(submilestone.id)}>
+                        <div className={`w-3 h-3 rounded-full mt-1.5 flex-shrink-0 ${
+                          submilestone.completed ? 'bg-green-500' : 'bg-surface-300'
+                        }`}></div>
+                        <div className="flex-1">
+                          <div className={`font-medium ${
+                            submilestone.completed ? 'text-surface-500 line-through' : 'text-surface-900'
+                          }`}>
+                            {submilestone.title}
+                          </div>
+                          {submilestone.description && (
+                            <p className="text-sm text-surface-600 mt-1">
+                              {submilestone.description}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-4 mt-2 text-xs text-surface-500">
+                            {selectedGoal.type === 'financial' && submilestone.targetAmount && submilestone.targetAmount > 0 && (
+                              <span>Target: {formatCurrency(submilestone.targetAmount)}</span>
+                            )}
+                            {submilestone.targetDate && (
+                              <span>Due: {new Date(submilestone.targetDate).toLocaleDateString()}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
 
       {/* Unsaved Changes Prompt */}
       <UnsavedChangesPrompt

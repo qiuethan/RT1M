@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { getUserProfile, sendChatMessage } from '../services/firestore';
 
@@ -97,13 +97,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [currentUser]);
 
   // Register/unregister data refresh callbacks
-  const registerDataRefreshCallback = (callback: () => void) => {
+  const registerDataRefreshCallback = useCallback((callback: () => void) => {
     setDataRefreshCallbacks(prev => [...prev, callback]);
-  };
+  }, []);
 
-  const unregisterDataRefreshCallback = (callback: () => void) => {
+  const unregisterDataRefreshCallback = useCallback((callback: () => void) => {
     setDataRefreshCallbacks(prev => prev.filter(cb => cb !== callback));
-  };
+  }, []);
 
   // Handle data updates from AI responses
   const onDataUpdated = (updatedData: any) => {
@@ -165,17 +165,17 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Show success message for data updates
     if (dataRefreshCallbacks.length > 0) {
-      let successMessage = "✅ Your data has been updated and refreshed on this page!";
+      let successMessage = "✅ New updates now available!";
       
       if (operationTypes.length > 0) {
-        successMessage = `✅ Successfully processed: ${operationTypes.join(', ')}. Your page has been refreshed!`;
+        successMessage = `✅ New changes processed: ${operationTypes.join(', ')} now available!`;
       } else if (updatedData.assets?.length || updatedData.debts?.length || updatedData.goals?.length) {
         const newItems: string[] = [];
         if (updatedData.assets?.length) newItems.push(`${updatedData.assets.length} new asset(s)`);
         if (updatedData.debts?.length) newItems.push(`${updatedData.debts.length} new debt(s)`);
         if (updatedData.goals?.length) newItems.push(`${updatedData.goals.length} new goal(s)`);
         if (newItems.length > 0) {
-          successMessage = `✅ Successfully added: ${newItems.join(', ')}. Your page has been refreshed!`;
+          successMessage = `✅ New additions: ${newItems.join(', ')} now available!`;
         }
       }
       

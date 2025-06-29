@@ -27,7 +27,14 @@ export default function Goals() {
   } = useGoals();
   const [userName, setUserName] = useState<string>('');
   const [showModal, setShowModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedGoal, setSelectedGoal] = useState<IntermediateGoal | null>(null);
   const [editingGoal, setEditingGoal] = useState<IntermediateGoal | null>(null);
+  const [savingProgress, setSavingProgress] = useState(false);
+  const [progressForm, setProgressForm] = useState({
+    currentAmount: '',
+    progress: ''
+  });
   const [goalForm, setGoalForm] = useState({
     title: '',
     type: 'financial' as 'financial' | 'skill' | 'behavior' | 'lifestyle' | 'networking' | 'project',
@@ -259,6 +266,66 @@ export default function Goals() {
     return goal.progress || 0;
   };
 
+  const openDetailsModal = (goal: IntermediateGoal) => {
+    setSelectedGoal(goal);
+    setProgressForm({
+      currentAmount: goal.currentAmount?.toString() || '',
+      progress: goal.progress?.toString() || ''
+    });
+    setShowDetailsModal(true);
+  };
+
+  const handleProgressUpdate = async () => {
+    if (!selectedGoal) return;
+
+    try {
+      setSavingProgress(true);
+      
+      const updatedGoal: IntermediateGoal = {
+        ...selectedGoal,
+        currentAmount: selectedGoal.type === 'financial' ? (parseFloat(progressForm.currentAmount) || 0) : selectedGoal.currentAmount,
+        progress: selectedGoal.type !== 'financial' ? (parseFloat(progressForm.progress) || 0) : selectedGoal.progress
+      };
+
+      if (selectedGoal.id) {
+        await updateGoal(selectedGoal.id, updatedGoal);
+      }
+      
+      // Update the selected goal state
+      setSelectedGoal(updatedGoal);
+      
+    } catch (error) {
+      console.error('Error updating progress:', error);
+    } finally {
+      setSavingProgress(false);
+    }
+  };
+
+  const handleSubmilestoneToggle = async (submilestoneId: string) => {
+    if (!selectedGoal || !selectedGoal.submilestones) return;
+
+    try {
+      const updatedSubmilestones = selectedGoal.submilestones.map(sub => 
+        sub.id === submilestoneId ? { ...sub, completed: !sub.completed } : sub
+      );
+
+      const updatedGoal: IntermediateGoal = {
+        ...selectedGoal,
+        submilestones: updatedSubmilestones
+      };
+
+      if (selectedGoal.id) {
+        await updateGoal(selectedGoal.id, updatedGoal);
+      }
+      
+      // Update the selected goal state
+      setSelectedGoal(updatedGoal);
+      
+    } catch (error) {
+      console.error('Error updating submilestone:', error);
+    }
+  };
+
   const goalTypeOptions = [
     { value: 'financial', label: '💰 Financial Goals' },
     { value: 'skill', label: '🧠 Skill-Based Goals' },
@@ -315,7 +382,7 @@ export default function Goals() {
         </div>
 
         {/* Goal Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card variant="primary" className="text-center group hover:scale-105" hover>
             <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-medium">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -426,17 +493,33 @@ export default function Goals() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Existing Goals */}
-            {goals?.intermediateGoals?.map((goal, index) => (
-              <Card key={goal.id || index} variant="glass" className="p-6" hover>
-                <div className="mb-4">
+            {goals?.intermediateGoals
+              ?.slice()
+              ?.sort((a, b) => {
+                // Sort by target date, with goals without dates at the end
+                if (!a.targetDate && !b.targetDate) return 0;
+                if (!a.targetDate) return 1;
+                if (!b.targetDate) return -1;
+                return new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime();
+              })
+              ?.map((goal, index) => (
+              <div key={goal.id || index} className="cursor-pointer" onClick={() => openDetailsModal(goal)}>
+                <Card variant="glass" className="p-6 h-[400px] flex flex-col" hover>
+                {/* Header Section - Fixed Height */}
+                <div className="h-20 mb-4 flex-shrink-0">
                   {/* Header with icon and title */}
                   <div className="flex items-start gap-3 mb-3">
                     <span className="text-lg mt-0.5 flex-shrink-0">{getGoalTypeIcon(goal.type)}</span>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-surface-900 leading-tight break-words">{goal.title}</h4>
+                      <h4 className="font-semibold text-surface-900 leading-tight break-words line-clamp-2" title={goal.title}>
+                        {goal.title}
+                      </h4>
                     </div>
                     <button
-                      onClick={() => openEditModal(goal)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditModal(goal);
+                      }}
                       className="text-surface-400 hover:text-surface-600 transition-colors flex-shrink-0 ml-2"
                       title="Edit goal"
                     >
@@ -460,7 +543,8 @@ export default function Goals() {
                   </div>
                 </div>
                 
-                <div className="mb-4">
+                {/* Progress Section - Fixed Height */}
+                <div className="h-16 mb-4 flex-shrink-0">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm font-medium text-surface-600">Progress</span>
                     <span className="text-sm font-medium text-surface-600">
@@ -481,45 +565,54 @@ export default function Goals() {
                   </div>
                 </div>
 
-                <div className="space-y-2 text-sm">
-                  {goal.type === 'financial' ? (
-                    <>
+                {/* Details Section - Fixed Height */}
+                <div className="h-20 mb-4 flex-shrink-0">
+                  <div className="space-y-2 text-sm">
+                    {goal.type === 'financial' ? (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-surface-500">Current:</span>
+                          <span className="font-medium">{formatCurrency(goal.currentAmount || 0)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-surface-500">Target:</span>
+                          <span className="font-medium">{formatCurrency(goal.targetAmount || 0)}</span>
+                        </div>
+                      </>
+                    ) : (
                       <div className="flex justify-between">
-                        <span className="text-surface-500">Current:</span>
-                        <span className="font-medium">{formatCurrency(goal.currentAmount || 0)}</span>
+                        <span className="text-surface-500">Progress:</span>
+                        <span className="font-medium">{(goal.progress || 0).toFixed(0)}% Complete</span>
                       </div>
+                    )}
+                    {goal.targetDate && (
                       <div className="flex justify-between">
-                        <span className="text-surface-500">Target:</span>
-                        <span className="font-medium">{formatCurrency(goal.targetAmount || 0)}</span>
+                        <span className="text-surface-500">Due:</span>
+                        <span className="font-medium">{new Date(goal.targetDate).toLocaleDateString()}</span>
                       </div>
-                    </>
-                  ) : (
-                    <div className="flex justify-between">
-                      <span className="text-surface-500">Progress:</span>
-                      <span className="font-medium">{(goal.progress || 0).toFixed(0)}% Complete</span>
-                    </div>
-                  )}
-                  {goal.targetDate && (
-                    <div className="flex justify-between">
-                      <span className="text-surface-500">Due:</span>
-                      <span className="font-medium">{new Date(goal.targetDate).toLocaleDateString()}</span>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                </div>
+
+                {/* Flexible Content Section */}
+                <div className="flex-1 overflow-hidden">
                   {goal.description && (
-                    <div className="mt-3 p-2 bg-surface-50 rounded text-xs text-surface-600">
-                      {goal.description}
+                    <div className="mb-3 p-2 bg-surface-50 rounded text-xs text-surface-600">
+                      <div className="line-clamp-3">
+                        {goal.description}
+                      </div>
                     </div>
                   )}
                   {goal.submilestones && goal.submilestones.length > 0 && (
-                    <div className="mt-3 pt-2 border-t border-surface-200">
+                    <div className="pt-2 border-t border-surface-200">
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-xs font-medium text-surface-500">Submilestones</span>
                         <span className="text-xs text-surface-500">
-                          {goal.submilestones.filter(sub => sub.completed).length}/{goal.submilestones.length} completed
+                          {goal.submilestones.filter(sub => sub.completed).length}/{goal.submilestones.length}
                         </span>
                       </div>
                       <div className="space-y-1">
-                        {goal.submilestones.slice(0, 3).map((submilestone, subIndex) => (
+                        {goal.submilestones.slice(0, 2).map((submilestone) => (
                           <div key={submilestone.id} className="flex items-center gap-2 text-xs">
                             <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                               submilestone.completed ? 'bg-green-500' : 'bg-surface-300'
@@ -531,25 +624,26 @@ export default function Goals() {
                             </span>
                           </div>
                         ))}
-                        {goal.submilestones.length > 3 && (
+                        {goal.submilestones.length > 2 && (
                           <div className="text-xs text-surface-500 text-center">
-                            +{goal.submilestones.length - 3} more
+                            +{goal.submilestones.length - 2} more
                           </div>
                         )}
                       </div>
                     </div>
                   )}
                 </div>
-              </Card>
+                </Card>
+              </div>
             )) || []}
             
             {/* Add New Goal Card */}
             <div 
-              className="p-6 border-2 border-dashed border-surface-300 hover:border-primary-300 transition-colors cursor-pointer bg-white rounded-lg shadow-sm"
+              className="p-6 border-2 border-dashed border-surface-300 hover:border-primary-300 transition-colors cursor-pointer bg-white rounded-lg shadow-sm h-[400px] flex items-center justify-center"
               onClick={openAddModal}
             >
-              <div className="flex flex-col items-center justify-center h-full min-h-[180px] text-center">
-                <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mb-4">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mb-4 mx-auto">
                   <svg className="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
@@ -630,12 +724,18 @@ export default function Goals() {
               ]}
             />
             
-            <Input
-              label="Description (Optional)"
-              value={goalForm.description}
-              onChange={(e) => setGoalForm({...goalForm, description: e.target.value})}
-              placeholder="Additional details about this goal"
-            />
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-surface-700">
+                Description (Optional)
+              </label>
+              <textarea
+                value={goalForm.description}
+                onChange={(e) => setGoalForm({...goalForm, description: e.target.value})}
+                placeholder="Additional details about this goal..."
+                rows={3}
+                className="w-full px-3 py-2 border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
 
             {/* Submilestones Section */}
             <div className="border-t pt-4">
@@ -679,7 +779,7 @@ export default function Goals() {
                           placeholder="Submilestone title"
                         />
                         
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className={`grid gap-2 ${goalForm.type === 'financial' ? 'grid-cols-2' : 'grid-cols-1'}`}>
                           {goalForm.type === 'financial' && (
                             <Input
                               label="Target Amount ($)"
@@ -696,12 +796,18 @@ export default function Goals() {
                           />
                         </div>
                         
-                        <Input
-                          label="Description"
-                          value={submilestone.description}
-                          onChange={(e) => updateSubmilestone(index, 'description', e.target.value)}
-                          placeholder="Brief description"
-                        />
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium text-surface-700">
+                            Description
+                          </label>
+                          <textarea
+                            value={submilestone.description}
+                            onChange={(e) => updateSubmilestone(index, 'description', e.target.value)}
+                            placeholder="Brief description of this submilestone..."
+                            rows={2}
+                            className="w-full px-3 py-2 border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          />
+                        </div>
                         
                         <div className="flex items-center">
                           <input
@@ -754,6 +860,199 @@ export default function Goals() {
         </Modal>
 
         <MiniChatbot />
+
+        {/* Goal Details Modal */}
+        <Modal
+          isOpen={showDetailsModal}
+          onClose={() => setShowDetailsModal(false)}
+          title="Goal Details"
+        >
+          {selectedGoal && (
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">{getGoalTypeIcon(selectedGoal.type)}</span>
+                <div className="flex-1">
+                  <h3 className="text-xl font-semibold text-surface-900 mb-2">{selectedGoal.title}</h3>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-3 py-1 text-xs font-medium rounded-full ${getGoalTypeColor(selectedGoal.type)}`}>
+                      {selectedGoal.type}
+                    </span>
+                    <Badge 
+                      variant={selectedGoal.status === 'Completed' ? 'success' : selectedGoal.status === 'In Progress' ? 'primary' : 'neutral' as any}
+                      className="px-3 py-1 text-xs font-medium"
+                    >
+                      {selectedGoal.status}
+                    </Badge>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowDetailsModal(false);
+                    openEditModal(selectedGoal);
+                  }}
+                >
+                  Edit Goal
+                </Button>
+              </div>
+
+              {/* Progress */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium text-surface-600">Progress</span>
+                  <span className="text-sm font-medium text-surface-600">
+                    {getGoalProgress(selectedGoal).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="w-full bg-surface-200 rounded-full h-3">
+                  <div 
+                    className={`h-3 rounded-full transition-all duration-300 ${
+                      selectedGoal.type === 'financial' 
+                        ? 'bg-gradient-to-r from-green-500 to-emerald-500'
+                        : 'bg-gradient-to-r from-blue-500 to-purple-500'
+                    }`}
+                    style={{ 
+                      width: `${Math.min(getGoalProgress(selectedGoal), 100)}%` 
+                    }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Progress Update Section */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-blue-800 mb-3">Update Progress</h4>
+                <div className="space-y-3">
+                  {selectedGoal.type === 'financial' ? (
+                    <div>
+                      <label className="block text-sm font-medium text-surface-700 mb-1">
+                        Current Amount ($)
+                      </label>
+                      <input
+                        type="number"
+                        value={progressForm.currentAmount}
+                        onChange={(e) => setProgressForm({...progressForm, currentAmount: e.target.value})}
+                        className="w-full px-3 py-2 border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        placeholder="Enter current amount"
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-sm font-medium text-surface-700 mb-1">
+                        Progress (%)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={progressForm.progress}
+                        onChange={(e) => setProgressForm({...progressForm, progress: e.target.value})}
+                        className="w-full px-3 py-2 border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        placeholder="Enter progress percentage"
+                      />
+                    </div>
+                  )}
+                  <Button
+                    onClick={handleProgressUpdate}
+                    disabled={savingProgress || (selectedGoal.type === 'financial' ? !progressForm.currentAmount : !progressForm.progress)}
+                    loading={savingProgress}
+                    size="sm"
+                    className="w-full"
+                  >
+                    {savingProgress ? 'Updating...' : 'Update Progress'}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Details */}
+              <div className="grid grid-cols-2 gap-4">
+                {selectedGoal.type === 'financial' ? (
+                  <>
+                    <div className="bg-surface-50 p-4 rounded-lg">
+                      <div className="text-sm text-surface-500">Current Amount</div>
+                      <div className="text-lg font-semibold text-surface-900">
+                        {formatCurrency(selectedGoal.currentAmount || 0)}
+                      </div>
+                    </div>
+                    <div className="bg-surface-50 p-4 rounded-lg">
+                      <div className="text-sm text-surface-500">Target Amount</div>
+                      <div className="text-lg font-semibold text-surface-900">
+                        {formatCurrency(selectedGoal.targetAmount || 0)}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="bg-surface-50 p-4 rounded-lg col-span-2">
+                    <div className="text-sm text-surface-500">Progress</div>
+                    <div className="text-lg font-semibold text-surface-900">
+                      {(selectedGoal.progress || 0).toFixed(0)}% Complete
+                    </div>
+                  </div>
+                )}
+                {selectedGoal.targetDate && (
+                  <div className="bg-surface-50 p-4 rounded-lg col-span-2">
+                    <div className="text-sm text-surface-500">Target Date</div>
+                    <div className="text-lg font-semibold text-surface-900">
+                      {new Date(selectedGoal.targetDate).toLocaleDateString()}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Description */}
+              {selectedGoal.description && (
+                <div>
+                  <h4 className="text-sm font-medium text-surface-700 mb-2">Description</h4>
+                  <p className="text-surface-600 bg-surface-50 p-3 rounded-lg">
+                    {selectedGoal.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Submilestones */}
+              {selectedGoal.submilestones && selectedGoal.submilestones.length > 0 && (
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="text-sm font-medium text-surface-700">Submilestones</h4>
+                    <span className="text-sm text-surface-500">
+                      Click to toggle completion
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {selectedGoal.submilestones.map((submilestone) => (
+                      <div key={submilestone.id} className="flex items-start gap-3 p-3 bg-surface-50 rounded-lg hover:bg-surface-100 cursor-pointer transition-colors" onClick={() => handleSubmilestoneToggle(submilestone.id)}>
+                        <div className={`w-3 h-3 rounded-full mt-1.5 flex-shrink-0 ${
+                          submilestone.completed ? 'bg-green-500' : 'bg-surface-300'
+                        }`}></div>
+                        <div className="flex-1">
+                          <div className={`font-medium ${
+                            submilestone.completed ? 'text-surface-500 line-through' : 'text-surface-900'
+                          }`}>
+                            {submilestone.title}
+                          </div>
+                          {submilestone.description && (
+                            <p className="text-sm text-surface-600 mt-1">
+                              {submilestone.description}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-4 mt-2 text-xs text-surface-500">
+                            {selectedGoal.type === 'financial' && submilestone.targetAmount && submilestone.targetAmount > 0 && (
+                              <span>Target: {formatCurrency(submilestone.targetAmount)}</span>
+                            )}
+                            {submilestone.targetDate && (
+                              <span>Due: {new Date(submilestone.targetDate).toLocaleDateString()}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </Modal>
 
         {/* Unsaved Changes Prompt */}
         <UnsavedChangesPrompt
