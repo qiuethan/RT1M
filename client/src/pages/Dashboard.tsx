@@ -516,8 +516,8 @@ export const Dashboard: React.FC = () => {
                   {/* Progress Fill */}
                   <div 
                     className="relative h-8 rounded-full transition-all duration-1000 ease-out overflow-hidden"
-                    style={{ width: `${Math.min(progressPercentage, 100)}%` }}
-                  >
+                  style={{ width: `${Math.min(progressPercentage, 100)}%` }}
+                >
                     {/* Multi-layer gradient */}
                     <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-green-500 to-cyan-500"></div>
                     <div className="absolute inset-0 bg-gradient-to-r from-primary-500/80 via-secondary-500/80 to-accent-400/80 mix-blend-overlay"></div>
@@ -550,7 +550,7 @@ export const Dashboard: React.FC = () => {
                       {/* Main indicator */}
                       <div className="w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center border-2 border-primary-500">
                         <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
-                      </div>
+                </div>
                       
                       {/* Shooting star effect for high progress */}
                       {progressPercentage > 80 && (
@@ -558,7 +558,7 @@ export const Dashboard: React.FC = () => {
                           <div className="absolute top-2 left-2 w-2 h-2 bg-yellow-400 rounded-full animate-ping"></div>
                           <div className="absolute top-1 left-1 w-1 h-1 bg-yellow-300 rounded-full animate-bounce"></div>
                           <div className="absolute top-3 left-6 w-1 h-1 bg-yellow-300 rounded-full animate-bounce delay-75"></div>
-                        </div>
+              </div>
                       )}
                     </div>
                   </div>
@@ -751,8 +751,8 @@ export const Dashboard: React.FC = () => {
                       variant={goal.status === 'Completed' ? 'success' : goal.status === 'In Progress' ? 'primary' : 'neutral' as any} 
                       className="px-3 py-1 text-xs font-medium"
                     >
-                      {goal.status}
-                    </Badge>
+                    {goal.status}
+                  </Badge>
                   </div>
                 </div>
                 
@@ -781,7 +781,7 @@ export const Dashboard: React.FC = () => {
                 {/* Details Section - Fixed Height */}
                 <div className="h-20 mb-4 flex-shrink-0">
                   <div className="space-y-2 text-sm">
-                    {goal.type === 'financial' ? (
+                  {goal.type === 'financial' ? (
                       <>
                         <div className="flex justify-between">
                           <span className="text-surface-500">Current:</span>
@@ -846,7 +846,7 @@ export const Dashboard: React.FC = () => {
                     </div>
                   )}
                 </div>
-                </Card>
+              </Card>
               </div>
             ))}
 
@@ -956,68 +956,68 @@ export const Dashboard: React.FC = () => {
       <MiniChatbot />
       
       {/* Goal Edit/Add Modal */}
-      <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
+        <Modal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
         title={editingGoal ? 'Edit Goal' : 'Add New Goal'}
-      >
-        <div className="space-y-4">
-          <Input
-            label="Goal Title"
-            value={goalForm.title}
+        >
+          <div className="space-y-4">
+            <Input
+              label="Goal Title"
+              value={goalForm.title}
             onChange={(e) => setGoalForm({...goalForm, title: e.target.value})}
             placeholder="Save $10,000 for emergency fund"
-          />
-          
-          <Select
-            label="Goal Type"
-            value={goalForm.type}
+            />
+            
+            <Select
+              label="Goal Type"
+              value={goalForm.type}
             onChange={(e) => setGoalForm({...goalForm, type: e.target.value as any})}
-            options={goalTypeOptions}
-          />
-          
-          {goalForm.type === 'financial' ? (
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Target Amount ($)"
-                type="number"
-                value={goalForm.targetAmount}
+              options={goalTypeOptions}
+            />
+            
+            {goalForm.type === 'financial' ? (
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="Target Amount ($)"
+                  type="number"
+                  value={goalForm.targetAmount}
                 onChange={(e) => setGoalForm({...goalForm, targetAmount: e.target.value})}
-                placeholder="10000"
-              />
-              <Input
-                label="Current Amount ($)"
-                type="number"
-                value={goalForm.currentAmount}
+                  placeholder="10000"
+                />
+                <Input
+                  label="Current Amount ($)"
+                  type="number"
+                  value={goalForm.currentAmount}
                 onChange={(e) => setGoalForm({...goalForm, currentAmount: e.target.value})}
                 placeholder="2500"
-              />
-            </div>
-          ) : (
-            <Input
-              label="Progress (%)"
-              type="number"
-              value={goalForm.progress}
+                />
+              </div>
+            ) : (
+              <Input
+                label="Progress (%)"
+                type="number"
+                value={goalForm.progress}
               onChange={(e) => setGoalForm({...goalForm, progress: e.target.value})}
               placeholder="25"
-            />
-          )}
-          
-          <DatePicker
-            label="Target Date (Optional)"
-            value={goalForm.targetDate}
+              />
+            )}
+            
+              <DatePicker
+                label="Target Date (Optional)"
+                value={goalForm.targetDate}
             onChange={(date) => setGoalForm({...goalForm, targetDate: date || ''})}
-          />
+              />
           
-          <Select
-            label="Status"
-            value={goalForm.status}
+              <Select
+                label="Status"
+                value={goalForm.status}
             onChange={(e) => setGoalForm({...goalForm, status: e.target.value})}
-            options={[
-              { value: 'Not Started', label: 'Not Started' },
-              { value: 'In Progress', label: 'In Progress' },
-              { value: 'Completed', label: 'Completed' }
-            ]}
+                options={[
+                  { value: 'Not Started', label: 'Not Started' },
+                  { value: 'In Progress', label: 'In Progress' },
+                  { value: 'Completed', label: 'Completed' }
+                ]}
           />
           
           <div className="space-y-2">
@@ -1030,9 +1030,9 @@ export const Dashboard: React.FC = () => {
               placeholder="Additional details about this goal..."
               rows={3}
               className="w-full px-3 py-2 border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            />
-          </div>
-
+              />
+            </div>
+            
           {/* Submilestones Section */}
           <div className="border-t pt-4">
             <div className="flex justify-between items-center mb-3">
@@ -1068,7 +1068,7 @@ export const Dashboard: React.FC = () => {
                     </div>
                     
                     <div className="space-y-2">
-                      <Input
+            <Input
                         label="Title"
                         value={submilestone.title}
                         onChange={(e) => updateSubmilestone(index, 'title', e.target.value)}
@@ -1089,9 +1089,9 @@ export const Dashboard: React.FC = () => {
                           label="Target Date"
                           value={submilestone.targetDate}
                           onChange={(date) => updateSubmilestone(index, 'targetDate', date || '')}
-                        />
-                      </div>
-                      
+            />
+          </div>
+          
                       <div className="space-y-2">
                         <label className="block text-sm font-medium text-surface-700">
                           Description
@@ -1130,30 +1130,30 @@ export const Dashboard: React.FC = () => {
           
           <div className="flex justify-between pt-4">
             {editingGoal && editingGoal.id && (
-              <Button 
-                variant="outline" 
+            <Button 
+              variant="outline"
                 onClick={() => handleDeleteGoal(editingGoal.id!)}
                 className="text-red-600 hover:text-red-700"
-              >
+            >
                 Delete Goal
               </Button>
             )}
             <div className="flex space-x-3 ml-auto">
               <Button variant="outline" onClick={() => setShowModal(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleSaveGoal} 
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveGoal} 
                 loading={saving}
                 disabled={saving || !isFormChanged(originalGoalForm, goalForm)}
-                variant={isFormChanged(originalGoalForm, goalForm) ? 'primary' : 'outline'}
-              >
+              variant={isFormChanged(originalGoalForm, goalForm) ? 'primary' : 'outline'}
+            >
                 {editingGoal ? 'Update Goal' : 'Add Goal'}
-              </Button>
+            </Button>
             </div>
           </div>
-        </div>
-      </Modal>
+          </div>
+        </Modal>
 
       {/* Goal Details Modal */}
       <Modal

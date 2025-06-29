@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { Logo, Button, Input, Card } from '../components/ui';
+import { ForgotPasswordModal } from '../components/ForgotPasswordModal';
 
 // Custom error message mapping for Firebase errors
 const getFirebaseErrorMessage = (errorCode: string): string => {
@@ -36,6 +37,7 @@ export default function Login() {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const { login, currentUser } = useAuth();
   const navigate = useNavigate();
 
@@ -162,9 +164,13 @@ export default function Login() {
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-medium text-primary-600 hover:text-primary-500">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPasswordModal(true)}
+                  className="font-medium text-primary-600 hover:text-primary-500 transition-colors"
+                >
                   Forgot your password?
-                </a>
+                </button>
               </div>
             </div>
 
@@ -205,6 +211,12 @@ export default function Login() {
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-secondary-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
         <div className="absolute top-40 left-40 w-80 h-80 bg-accent-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
       </div>
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={showForgotPasswordModal}
+        onClose={() => setShowForgotPasswordModal(false)}
+      />
     </div>
   );
 } 
