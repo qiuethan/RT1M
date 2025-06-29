@@ -1,4 +1,4 @@
-import { Card, Button, Input, Select, Modal, LoadingSpinner } from '../components/ui';
+import { Card, Button, Input, Textarea, Select, Modal, LoadingSpinner } from '../components/ui';
 import Footer from '../components/Footer';
 import { MiniChatbot } from '../components/MiniChatbot';
 import { Asset, Debt } from '../services/firestore';
@@ -420,11 +420,12 @@ export default function FinancialsRefactored() {
               placeholder="500000"
             />
             
-            <Input
+            <Textarea
               label="Description (Optional)"
               value={assetModal.assetForm.description || ''}
               onChange={(e) => assetModal.updateForm({description: e.target.value})}
               placeholder="Additional details about this asset"
+              rows={3}
             />
             
             <div className="flex justify-end space-x-3 pt-4">
@@ -478,11 +479,12 @@ export default function FinancialsRefactored() {
               placeholder="18.5"
             />
             
-            <Input
+            <Textarea
               label="Description (Optional)"
               value={debtModal.debtForm.description || ''}
               onChange={(e) => debtModal.updateForm({description: e.target.value})}
               placeholder="Additional details about this debt"
+              rows={3}
             />
             
             <div className="flex justify-end space-x-3 pt-4">

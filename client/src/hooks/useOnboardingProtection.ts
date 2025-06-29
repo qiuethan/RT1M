@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getUserProfile, getUserFinancials } from '../services/firestore';
+import { getUserProfile } from '../services/firestore';
 
 export const useOnboardingProtection = () => {
   const { currentUser, loading: authLoading } = useAuth();
