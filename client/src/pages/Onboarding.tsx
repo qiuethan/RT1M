@@ -283,8 +283,8 @@ const Onboarding: React.FC = () => {
         saveUserSkills(skillsData)
       ]);
 
-      // Navigate to dashboard and trigger tour
-      navigate('/dashboard?startTour=true');
+      // Navigate to dashboard
+      navigate('/dashboard');
     } catch (error) {
       console.error('Error completing onboarding:', error);
     } finally {

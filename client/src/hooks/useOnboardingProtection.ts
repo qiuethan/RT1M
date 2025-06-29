@@ -20,30 +20,22 @@ export const useOnboardingProtection = () => {
       }
 
       try {
-        const [profile, financials] = await Promise.all([
-          getUserProfile(),
-          getUserFinancials()
-        ]);
+        const profile = await getUserProfile();
         
         // Check if essential fields are filled (matching onboarding validation requirements)
+        // Note: Financial info (income/expenses) is NOT required for onboarding completion
+        // as that step was removed from the onboarding process
         const hasBasicInfo = profile?.basicInfo?.name && 
                             profile?.basicInfo?.email && 
                             profile?.basicInfo?.country && 
                             profile?.basicInfo?.employmentStatus;
-        
-        const hasFinancialInfo = financials?.financialInfo?.annualIncome !== undefined && 
-                               financials?.financialInfo?.annualIncome !== null &&
-                               financials?.financialInfo?.annualIncome >= 0 &&
-                               financials?.financialInfo?.annualExpenses !== undefined && 
-                               financials?.financialInfo?.annualExpenses !== null &&
-                               financials?.financialInfo?.annualExpenses >= 0;
         
         const hasGoal = profile?.financialGoal?.targetAmount && 
                        profile?.financialGoal?.targetAmount > 0 &&
                        profile?.financialGoal?.targetYear && 
                        profile?.financialGoal?.targetYear > new Date().getFullYear();
         
-        const completed = Boolean(hasBasicInfo && hasFinancialInfo && hasGoal);
+        const completed = Boolean(hasBasicInfo && hasGoal);
         setOnboardingCompleted(completed);
 
         // If user hasn't completed onboarding and isn't on onboarding page
