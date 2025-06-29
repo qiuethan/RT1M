@@ -1,5 +1,3 @@
-import { ReactNode } from 'react';
-
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   variant?: 'primary' | 'secondary' | 'accent' | 'neutral' | 'white';

@@ -375,7 +375,7 @@ export const getTourCompletions = async () => {
 export const generateDynamicMilestones = (
   currentAmount: number,
   targetAmount: number,
-  intermediateGoals: IntermediateGoal[]
+  _intermediateGoals: IntermediateGoal[]
 ): DynamicMilestone[] => {
   console.log('generateDynamicMilestones called with:', { currentAmount, targetAmount });
   

@@ -15,7 +15,6 @@ import {
   FinancialGoal
 } from '../services/firestore';
 import { isFormChanged, useUnsavedChanges, UnsavedChangesPrompt } from '../utils/unsavedChanges';
-import { formatStringForDisplay, parseStringInput } from '../utils/formatters';
 
 export default function Profile() {
   const { currentUser } = useAuth();

@@ -156,7 +156,7 @@ const Onboarding: React.FC = () => {
         getUserProfile(),
         getUserIntermediateGoals(),
         getUserSkills()
-      ]).then(([profile, goals, skills]) => {
+      ]).then(([profile, _goals, skills]) => {
         if (profile) {
           setFormData(prev => ({
             ...prev,

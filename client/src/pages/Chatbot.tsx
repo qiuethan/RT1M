@@ -4,7 +4,7 @@ import Footer from '../components/Footer';
 import { useChatContext } from '../contexts/ChatContext';
 
 export default function Chatbot() {
-  const { messages, addMessage, isTyping, setIsTyping, userName, clearMessages, sendMessage, generatePlan, isReadyForPlan } = useChatContext();
+  const { messages, addMessage, isTyping, userName, clearMessages, sendMessage, generatePlan } = useChatContext();
   const [inputValue, setInputValue] = useState('');
   const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);

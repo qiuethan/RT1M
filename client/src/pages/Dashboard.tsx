@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useChatContext } from '../contexts/ChatContext';
 import { Card, Button, Badge, Modal, Input, Select, DatePicker, LoadingSpinner } from '../components/ui';
@@ -16,13 +16,12 @@ import {
 } from '../services/firestore';
 import { generateNextMilestone } from '../utils/financial';
 import { isFormChanged, useUnsavedChanges, UnsavedChangesPrompt } from '../utils/unsavedChanges';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 export const Dashboard: React.FC = () => {
   const { currentUser } = useAuth();
   const { registerDataRefreshCallback, unregisterDataRefreshCallback } = useChatContext();
 
-  const location = useLocation();
   const navigate = useNavigate();
   const [userName, setUserName] = useState<string>('');
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -176,7 +175,7 @@ export const Dashboard: React.FC = () => {
     });
   };
 
-  const handleDeleteGoal = async (goalId: string) => {
+  const handleDeleteGoal = async (_goalId: string) => {
     try {
       // For now, just reload the data after delete
       // You may want to implement a proper delete function
@@ -516,8 +515,8 @@ export const Dashboard: React.FC = () => {
                   {/* Progress Fill */}
                   <div 
                     className="relative h-6 sm:h-8 rounded-full transition-all duration-1000 ease-out overflow-hidden"
-                    style={{ width: `${Math.min(progressPercentage, 100)}%` }}
-                  >
+                  style={{ width: `${Math.min(progressPercentage, 100)}%` }}
+                >
                     {/* Multi-layer gradient */}
                     <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-green-500 to-cyan-500"></div>
                     <div className="absolute inset-0 bg-gradient-to-r from-primary-500/80 via-secondary-500/80 to-accent-400/80 mix-blend-overlay"></div>
@@ -544,7 +543,7 @@ export const Dashboard: React.FC = () => {
                       {/* Main indicator - smaller on mobile */}
                       <div className="w-6 h-6 sm:w-8 sm:h-8 bg-white rounded-full shadow-md flex items-center justify-center border-2 border-primary-500">
                         <div className="w-2 h-2 sm:w-3 sm:h-3 bg-primary-500 rounded-full"></div>
-                      </div>
+                </div>
                       
                       {/* Shooting star effect for high progress - Hidden on mobile */}
                       {progressPercentage > 80 && (
@@ -552,7 +551,7 @@ export const Dashboard: React.FC = () => {
                           <div className="absolute top-2 left-2 w-2 h-2 bg-yellow-400 rounded-full animate-ping"></div>
                           <div className="absolute top-1 left-1 w-1 h-1 bg-yellow-300 rounded-full animate-bounce"></div>
                           <div className="absolute top-3 left-6 w-1 h-1 bg-yellow-300 rounded-full animate-bounce delay-75"></div>
-                        </div>
+              </div>
                       )}
                     </div>
                   </div>

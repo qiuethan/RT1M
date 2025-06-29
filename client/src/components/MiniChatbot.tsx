@@ -5,7 +5,7 @@ import { useChatContext } from '../contexts/ChatContext';
 
 export const MiniChatbot: React.FC = () => {
   const navigate = useNavigate();
-  const { messages, addMessage, isTyping, setIsTyping, isMiniChatbotOpen, toggleMiniChatbot, sendMessage, generatePlan } = useChatContext();
+  const { messages, addMessage, isTyping, isMiniChatbotOpen, toggleMiniChatbot, sendMessage, generatePlan } = useChatContext();
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 

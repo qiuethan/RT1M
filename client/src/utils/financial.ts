@@ -41,7 +41,7 @@ export const calculateGoalProgress = (goal: IntermediateGoal): number => {
 export const generateDynamicMilestones = (
   currentAmount: number,
   targetAmount: number,
-  intermediateGoals: IntermediateGoal[]
+  _intermediateGoals: IntermediateGoal[]
 ): DynamicMilestone[] => {
   const milestones: DynamicMilestone[] = [];
 

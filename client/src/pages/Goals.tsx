@@ -21,7 +21,6 @@ export default function Goals() {
     updateGoal, 
     deleteGoal,
     calculateMainGoalProgress,
-    calculateYearsRemaining,
     calculateMonthlyTarget,
     getMainGoalStatus
   } = useGoals();

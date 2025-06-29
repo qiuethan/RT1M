@@ -1,4 +1,3 @@
-import React from 'react';
 import { Card, Button, Input, Select, Modal, LoadingSpinner } from '../components/ui';
 import Footer from '../components/Footer';
 import { MiniChatbot } from '../components/MiniChatbot';
@@ -20,7 +19,6 @@ import {
 import { 
   formatNumberForDisplay, 
   parseNumberInput,
-  formatCurrencyWithContext,
   formatArrayForDisplay,
   getArrayStatus 
 } from '../utils/formatters';

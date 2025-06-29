@@ -32,8 +32,10 @@ export const useOnboardingProtection = () => {
                             profile?.basicInfo?.employmentStatus;
         
         const hasFinancialInfo = financials?.financialInfo?.annualIncome !== undefined && 
+                               financials?.financialInfo?.annualIncome !== null &&
                                financials?.financialInfo?.annualIncome >= 0 &&
                                financials?.financialInfo?.annualExpenses !== undefined && 
+                               financials?.financialInfo?.annualExpenses !== null &&
                                financials?.financialInfo?.annualExpenses >= 0;
         
         const hasGoal = profile?.financialGoal?.targetAmount && 
