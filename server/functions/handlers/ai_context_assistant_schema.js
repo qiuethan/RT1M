@@ -42,11 +42,13 @@ export const contextAssistantSchema = {
           type: {
             type: "string",
             enum: [
-              "house",
-              "car",
-              "investment",
+              "real-estate",
+              "stocks",
+              "bonds",
               "savings",
               "retirement",
+              "crypto",
+              "business",
               "other"
             ],
             description: "Asset category"
@@ -380,11 +382,13 @@ export const contextAssistantSchema = {
                   type: {
                     type: "string",
                     enum: [
-                      "house",
-                      "car",
-                      "investment",
+                      "real-estate",
+                      "stocks",
+                      "bonds",
                       "savings",
                       "retirement",
+                      "crypto",
+                      "business",
                       "other"
                     ]
                   },
