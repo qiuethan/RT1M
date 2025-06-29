@@ -466,78 +466,72 @@ export const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-surface-50 via-primary-50/20 to-secondary-50/30">
-      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-surface-50 via-primary-50/20 to-secondary-50/30 pb-20 md:pb-8">
+      <div className="max-w-7xl mx-auto py-4 sm:py-8 px-4 sm:px-6 lg:px-8">
         {/* Welcome Header */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
             <div>
-              <h1 className="text-3xl font-bold text-surface-900">
+              <h1 className="text-2xl sm:text-3xl font-bold text-surface-900">
                 Welcome back, {userName || 'there'}!
               </h1>
-              <p className="text-surface-600 mt-2">Track your journey to ${targetAmount.toLocaleString()}</p>
+              <p className="text-surface-600 mt-1 sm:mt-2 text-sm sm:text-base">Track your journey to ${targetAmount.toLocaleString()}</p>
             </div>
             <div className="flex space-x-3">
-              <Button onClick={() => navigate('/goals')}>
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <Button onClick={() => navigate('/goals')} size="sm" className="flex-1 sm:flex-none">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                Manage Goals
+                <span className="hidden sm:inline">Manage Goals</span>
               </Button>
             </div>
           </div>
         </div>
 
         {/* Progress to Target & Quick Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mb-6 sm:mb-8">
           {/* Progress to Target */}
-          <Card variant="gradient" className="lg:col-span-2 p-8">
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-surface-900 mb-2">Progress to ${targetAmount.toLocaleString()}</h2>
-              <p className="text-surface-600">Your current net worth journey</p>
+          <Card variant="gradient" className="lg:col-span-2 p-4 sm:p-6 lg:p-8">
+            <div className="text-center mb-4 sm:mb-6">
+              <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-surface-900 mb-1 sm:mb-2">Progress to ${targetAmount.toLocaleString()}</h2>
+              <p className="text-surface-600 text-sm sm:text-base">Your current net worth journey</p>
             </div>
             
             {/* Enhanced Progress Bar */}
-            <div className="mb-6 relative">
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-sm font-medium text-surface-600">Current Net Worth</span>
-                <span className="text-sm font-medium text-surface-900">
+            <div className="mb-4 sm:mb-6 relative">
+              <div className="flex justify-between items-center mb-3 sm:mb-4">
+                <span className="text-xs sm:text-sm font-medium text-surface-600">Current Net Worth</span>
+                <span className="text-xs sm:text-sm font-medium text-surface-900">
                   ${currentAmount.toLocaleString()} / ${targetAmount.toLocaleString()}
                 </span>
               </div>
               
-              {/* Progress Bar Container */}
+              {/* Progress Bar Container - Simplified for mobile */}
               <div className="relative">
                 {/* Background Track */}
-                <div className="w-full bg-gradient-to-r from-surface-200 via-surface-100 to-surface-200 rounded-full h-8 shadow-inner overflow-hidden">
-                  {/* Animated Background Pattern */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+                <div className="w-full bg-gradient-to-r from-surface-200 via-surface-100 to-surface-200 rounded-full h-6 sm:h-8 shadow-inner overflow-hidden">
+                  {/* Animated Background Pattern - Hidden on small screens for performance */}
+                  <div className="hidden sm:block absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
                   
                   {/* Progress Fill */}
                   <div 
-                    className="relative h-8 rounded-full transition-all duration-1000 ease-out overflow-hidden"
-                  style={{ width: `${Math.min(progressPercentage, 100)}%` }}
-                >
+                    className="relative h-6 sm:h-8 rounded-full transition-all duration-1000 ease-out overflow-hidden"
+                    style={{ width: `${Math.min(progressPercentage, 100)}%` }}
+                  >
                     {/* Multi-layer gradient */}
                     <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-green-500 to-cyan-500"></div>
                     <div className="absolute inset-0 bg-gradient-to-r from-primary-500/80 via-secondary-500/80 to-accent-400/80 mix-blend-overlay"></div>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-white/20"></div>
                     
-                    {/* Animated shine effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-slide-shine"></div>
+                    {/* Animated shine effect - Hidden on mobile for performance */}
+                    <div className="hidden sm:block absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-slide-shine"></div>
                     
-                    {/* Sparkle effects */}
-                    {progressPercentage > 10 && (
-                      <div className="absolute top-1 left-2 w-1 h-1 bg-white rounded-full animate-twinkle"></div>
-                    )}
+                    {/* Sparkle effects - Simplified for mobile */}
                     {progressPercentage > 25 && (
-                      <div className="absolute bottom-1 left-8 w-1 h-1 bg-white rounded-full animate-twinkle-delay-1"></div>
+                      <div className="absolute top-1 sm:top-1 left-2 sm:left-8 w-1 h-1 bg-white rounded-full animate-twinkle"></div>
                     )}
                     {progressPercentage > 50 && (
-                      <div className="absolute top-1 left-1/2 w-1 h-1 bg-white rounded-full animate-twinkle-delay-2"></div>
-                    )}
-                    {progressPercentage > 75 && (
-                      <div className="absolute bottom-1 right-4 w-1 h-1 bg-white rounded-full animate-twinkle-delay-3"></div>
+                      <div className="hidden sm:block absolute top-1 left-1/2 w-1 h-1 bg-white rounded-full animate-twinkle-delay-2"></div>
                     )}
                   </div>
                   
@@ -547,34 +541,34 @@ export const Dashboard: React.FC = () => {
                     style={{ left: `${Math.min(progressPercentage, 100)}%` }}
                   >
                     <div className="relative">
-                      {/* Main indicator */}
-                      <div className="w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center border-2 border-primary-500">
-                        <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
-                </div>
+                      {/* Main indicator - smaller on mobile */}
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 bg-white rounded-full shadow-md flex items-center justify-center border-2 border-primary-500">
+                        <div className="w-2 h-2 sm:w-3 sm:h-3 bg-primary-500 rounded-full"></div>
+                      </div>
                       
-                      {/* Shooting star effect for high progress */}
+                      {/* Shooting star effect for high progress - Hidden on mobile */}
                       {progressPercentage > 80 && (
-                        <div className="absolute -top-2 -left-2 w-12 h-12">
+                        <div className="hidden sm:block absolute -top-2 -left-2 w-12 h-12">
                           <div className="absolute top-2 left-2 w-2 h-2 bg-yellow-400 rounded-full animate-ping"></div>
                           <div className="absolute top-1 left-1 w-1 h-1 bg-yellow-300 rounded-full animate-bounce"></div>
                           <div className="absolute top-3 left-6 w-1 h-1 bg-yellow-300 rounded-full animate-bounce delay-75"></div>
-              </div>
+                        </div>
                       )}
                     </div>
                   </div>
                 </div>
                 
-                {/* Milestone Markers */}
-                <div className="absolute top-0 w-full h-8 pointer-events-none">
+                {/* Milestone Markers - Simplified for mobile */}
+                <div className="absolute top-0 w-full h-6 sm:h-8 pointer-events-none">
                   {[25, 50, 75].map((milestone) => (
                     <div
                       key={milestone}
-                      className={`absolute top-0 h-8 w-0.5 transform -translate-x-1/2 transition-colors duration-500 ${
+                      className={`absolute top-0 h-6 sm:h-8 w-0.5 transform -translate-x-1/2 transition-colors duration-500 ${
                         progressPercentage >= milestone ? 'bg-white/60' : 'bg-surface-400/40'
                       }`}
                       style={{ left: `${milestone}%` }}
                     >
-                      <div className={`absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs font-medium transition-colors duration-500 ${
+                      <div className={`hidden sm:block absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs font-medium transition-colors duration-500 ${
                         progressPercentage >= milestone ? 'text-primary-600' : 'text-surface-500'
                       }`}>
                         {milestone}%
@@ -584,56 +578,56 @@ export const Dashboard: React.FC = () => {
                 </div>
               </div>
               
-              {/* Progress Stats */}
-              <div className="flex justify-between items-center mt-6">
+              {/* Progress Stats - Mobile optimized layout */}
+              <div className="grid grid-cols-2 sm:flex sm:justify-between gap-4 sm:gap-0 mt-4 sm:mt-6">
                 <div className="text-center">
-                  <div className="text-3xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
+                  <div className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
                     {progressPercentage.toFixed(1)}%
                   </div>
-                  <div className="text-sm text-surface-600">Complete</div>
+                  <div className="text-xs sm:text-sm text-surface-600">Complete</div>
                 </div>
                 
                 <div className="text-center">
-                  <div className="text-xl font-semibold text-surface-700">
+                  <div className="text-sm sm:text-lg lg:text-xl font-semibold text-surface-700">
                     ${(targetAmount - currentAmount).toLocaleString()}
                   </div>
-                  <div className="text-sm text-surface-600">Remaining</div>
+                  <div className="text-xs sm:text-sm text-surface-600">Remaining</div>
                 </div>
                 
                 {progressPercentage > 0 && (
-                  <div className="text-center">
-                    <div className="text-xl font-semibold text-green-600">
+                  <div className="text-center col-span-2 sm:col-span-1">
+                    <div className="text-sm sm:text-lg lg:text-xl font-semibold text-green-600">
                       +${currentAmount.toLocaleString()}
                     </div>
-                    <div className="text-sm text-surface-600">Progress Made</div>
+                    <div className="text-xs sm:text-sm text-surface-600">Progress Made</div>
                   </div>
                 )}
               </div>
               
               {/* Motivational Message */}
-              <div className="text-center mt-4">
+              <div className="text-center mt-3 sm:mt-4">
                 {progressPercentage >= 100 ? (
-                  <div className="text-lg font-semibold text-green-600 animate-bounce">
+                  <div className="text-sm sm:text-base lg:text-lg font-semibold text-green-600 animate-bounce">
                     🎉 Congratulations! You've reached your goal! 🎉
                   </div>
                 ) : progressPercentage >= 75 ? (
-                  <div className="text-sm text-primary-600 font-medium">
+                  <div className="text-xs sm:text-sm text-primary-600 font-medium">
                     🌟 Amazing! You're in the final stretch!
                   </div>
                 ) : progressPercentage >= 50 ? (
-                  <div className="text-sm text-secondary-600 font-medium">
+                  <div className="text-xs sm:text-sm text-secondary-600 font-medium">
                     🚀 Great progress! You're halfway there!
                   </div>
                 ) : progressPercentage >= 25 ? (
-                  <div className="text-sm text-accent-600 font-medium">
+                  <div className="text-xs sm:text-sm text-accent-600 font-medium">
                     💪 Keep it up! You're building momentum!
                   </div>
                 ) : progressPercentage > 0 ? (
-                  <div className="text-sm text-surface-600 font-medium">
+                  <div className="text-xs sm:text-sm text-surface-600 font-medium">
                     🌱 Every journey begins with a single step!
                   </div>
                 ) : (
-                  <div className="text-sm text-surface-600 font-medium">
+                  <div className="text-xs sm:text-sm text-surface-600 font-medium">
                     🎯 Ready to start your wealth-building journey?
                   </div>
                 )}
@@ -642,16 +636,16 @@ export const Dashboard: React.FC = () => {
           </Card>
 
           {/* Quick Actions */}
-          <Card variant="primary" className="p-6">
-            <h3 className="text-xl font-semibold text-primary-800 mb-4">Quick Actions</h3>
-            <div className="space-y-3">
+          <Card variant="primary" className="p-4 sm:p-6">
+            <h3 className="text-lg sm:text-xl font-semibold text-primary-800 mb-3 sm:mb-4">Quick Actions</h3>
+            <div className="space-y-2 sm:space-y-3">
               
               <Button 
                 variant="outline" 
-                className="w-full justify-start"
+                className="w-full justify-start text-sm sm:text-base py-2 sm:py-3"
                 onClick={() => navigate('/chatbot')}
               >
-                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
                 AI Assistant
@@ -659,10 +653,10 @@ export const Dashboard: React.FC = () => {
               
               <Button 
                 variant="outline" 
-                className="w-full justify-start"
+                className="w-full justify-start text-sm sm:text-base py-2 sm:py-3"
                 onClick={() => navigate('/goals')}
               >
-                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 Manage Goals
@@ -670,10 +664,10 @@ export const Dashboard: React.FC = () => {
               
               <Button 
                 variant="outline" 
-                className="w-full justify-start"
+                className="w-full justify-start text-sm sm:text-base py-2 sm:py-3"
                 onClick={() => navigate('/financials')}
               >
-                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                 </svg>
                 Manage Financials
@@ -681,10 +675,10 @@ export const Dashboard: React.FC = () => {
               
               <Button 
                 variant="outline" 
-                className="w-full justify-start"
+                className="w-full justify-start text-sm sm:text-base py-2 sm:py-3"
                 onClick={() => navigate('/profile')}
               >
-                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
                 Update Profile
@@ -695,9 +689,9 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Intermediate Goals */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-semibold text-surface-900">Your Intermediate Goals</h2>
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6 space-y-3 sm:space-y-0">
+            <h2 className="text-xl sm:text-2xl font-semibold text-surface-900">Your Intermediate Goals</h2>
             <Button onClick={() => navigate('/goals')} variant="outline">
               View All Goals
             </Button>

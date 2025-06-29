@@ -116,12 +116,12 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-surface-50 to-secondary-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-surface-50 to-secondary-50 flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
           <Logo size="xl" />
         </div>
-        <h2 className="mt-6 text-center text-3xl font-bold text-surface-900">
+        <h2 className="mt-4 sm:mt-6 text-center text-2xl sm:text-3xl font-bold text-surface-900">
           Welcome back!
         </h2>
         <p className="mt-2 text-center text-sm text-surface-600">
@@ -129,9 +129,9 @@ export default function Login() {
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <Card className="py-8 px-4 shadow-card-hover sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit} noValidate>
+      <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <Card className="py-6 sm:py-8 px-4 sm:px-10 shadow-card-hover">
+          <form className="space-y-4 sm:space-y-6" onSubmit={handleSubmit} noValidate>
             <Input
               label="Email address"
               type="email"
@@ -139,6 +139,7 @@ export default function Login() {
               onChange={handleEmailChange}
               placeholder="Enter your email"
               error={emailError}
+              className="text-base" // Prevents zoom on mobile
             />
 
             <Input
@@ -148,9 +149,10 @@ export default function Login() {
               onChange={handlePasswordChange}
               placeholder="Enter your password"
               error={passwordError}
+              className="text-base" // Prevents zoom on mobile
             />
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
               <div className="flex items-center">
                 <input
                   id="remember-me"
@@ -167,7 +169,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowForgotPasswordModal(true)}
-                  className="font-medium text-primary-600 hover:text-primary-500 transition-colors"
+                  className="font-medium text-primary-600 hover:text-primary-500 transition-colors py-2 px-1 -mx-1 rounded min-h-[44px] flex items-center"
                 >
                   Forgot your password?
                 </button>
@@ -177,14 +179,14 @@ export default function Login() {
             <Button
               type="submit"
               loading={loading}
-              className="w-full"
+              className="w-full min-h-[44px]"
               size="lg"
             >
               Sign in
             </Button>
           </form>
 
-          <div className="mt-6">
+          <div className="mt-4 sm:mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-surface-300" />
@@ -194,9 +196,9 @@ export default function Login() {
               </div>
             </div>
 
-            <div className="mt-6">
+            <div className="mt-4 sm:mt-6">
               <Link to="/signup">
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full min-h-[44px]">
                   Create new account
                 </Button>
               </Link>
@@ -205,11 +207,11 @@ export default function Login() {
         </Card>
       </div>
 
-      {/* Background decorations */}
+      {/* Background decorations - Simplified for mobile */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-secondary-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-40 left-40 w-80 h-80 bg-accent-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+        <div className="absolute -top-40 -right-40 w-60 sm:w-80 h-60 sm:h-80 bg-primary-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-60 sm:w-80 h-60 sm:h-80 bg-secondary-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-40 left-40 w-60 sm:w-80 h-60 sm:h-80 bg-accent-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
       </div>
 
       {/* Forgot Password Modal */}

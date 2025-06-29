@@ -1,4 +1,3 @@
-
 import { Link } from 'react-router-dom';
 import { Logo, Button, Card } from '../components/ui';
 import Footer from '../components/Footer';
@@ -62,51 +61,51 @@ export default function Landing() {
         {/* Background Elements */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-white to-secondary-50"></div>
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-br from-primary-100/30 to-secondary-100/30 rounded-full blur-3xl"></div>
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] sm:w-[600px] lg:w-[800px] h-[400px] sm:h-[600px] lg:h-[800px] bg-gradient-to-br from-primary-100/30 to-secondary-100/30 rounded-full blur-3xl"></div>
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-12 sm:pb-16">
           <div className="text-center">
-            <div className="flex justify-center mb-8">
+            <div className="flex justify-center mb-6 sm:mb-8">
               <Logo size="xl" />
             </div>
             
-            <h1 className="text-5xl md:text-7xl font-display font-bold text-surface-900 mb-6">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-display font-bold text-surface-900 mb-4 sm:mb-6 leading-tight">
               Road to{' '}
               <span className="text-gradient bg-gradient-to-r from-primary-600 via-secondary-600 to-accent-600">
                 $1,000,000
               </span>
             </h1>
             
-            <p className="text-xl md:text-2xl text-surface-600 max-w-3xl mx-auto mb-8 leading-relaxed">
+            <p className="text-lg sm:text-xl md:text-2xl text-surface-600 max-w-3xl mx-auto mb-6 sm:mb-8 leading-relaxed px-4 sm:px-0">
               Transform your financial future with intelligent tracking, personalized insights, 
               and a clear path to building lasting wealth.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <Link to="/signup">
-                <Button size="lg" className="w-full sm:w-auto group">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4 sm:px-0 mb-8 sm:mb-12">
+              <Link to="/signup" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto group min-h-[48px]">
                   Start Your Journey
                   <svg className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
                 </Button>
               </Link>
-              <Link to="/login">
-                <Button variant="outline" size="lg" className="w-full sm:w-auto">
+              <Link to="/login" className="w-full sm:w-auto">
+                <Button variant="outline" size="lg" className="w-full sm:w-auto min-h-[48px]">
                   Sign In
                 </Button>
               </Link>
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8 max-w-4xl mx-auto px-4 sm:px-0">
               {stats.map((stat, index) => (
                 <div key={index} className="text-center">
-                  <div className="text-3xl md:text-4xl font-bold text-surface-900 mb-1">
+                  <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-surface-900 mb-1">
                     {stat.value}
                   </div>
-                  <div className="text-sm text-surface-600">{stat.label}</div>
+                  <div className="text-xs sm:text-sm text-surface-600">{stat.label}</div>
                 </div>
               ))}
             </div>
@@ -115,27 +114,27 @@ export default function Landing() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-surface-50">
+      <section className="py-16 sm:py-20 lg:py-24 bg-surface-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-display font-bold text-surface-900 mb-4">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-3xl sm:text-4xl font-display font-bold text-surface-900 mb-3 sm:mb-4">
               Everything you need to build wealth
             </h2>
-            <p className="text-xl text-surface-600 max-w-2xl mx-auto">
+            <p className="text-lg sm:text-xl text-surface-600 max-w-2xl mx-auto">
               Powerful tools and insights to accelerate your journey to financial independence.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {features.map((feature, index) => (
-              <Card key={index} className="p-8 text-center hover:shadow-card-hover transition-all duration-300 group">
-                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">
+              <Card key={index} className="p-6 sm:p-8 text-center hover:shadow-card-hover transition-all duration-300 group">
+                <div className="text-3xl sm:text-4xl mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
                   {feature.icon}
                 </div>
-                <h3 className="text-xl font-semibold text-surface-900 mb-3">
+                <h3 className="text-lg sm:text-xl font-semibold text-surface-900 mb-2 sm:mb-3">
                   {feature.title}
                 </h3>
-                <p className="text-surface-600 leading-relaxed">
+                <p className="text-sm sm:text-base text-surface-600 leading-relaxed">
                   {feature.description}
                 </p>
               </Card>
@@ -145,18 +144,18 @@ export default function Landing() {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-20">
+      <section className="py-16 sm:py-20 lg:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-display font-bold text-surface-900 mb-4">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-3xl sm:text-4xl font-display font-bold text-surface-900 mb-3 sm:mb-4">
               Your path to $1M in 3 simple steps
             </h2>
-            <p className="text-xl text-surface-600 max-w-2xl mx-auto">
+            <p className="text-lg sm:text-xl text-surface-600 max-w-2xl mx-auto">
               Get started in minutes and begin tracking your wealth-building journey today.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-12">
             {[
               {
                 step: '01',
@@ -176,17 +175,24 @@ export default function Landing() {
                 description: 'Celebrate achievements, adjust strategies, and stay motivated as you build lasting wealth.',
                 color: 'accent'
               }
-            ].map((item, index) => (
-              <div key={index} className="text-center">
-                <div className={`w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-${item.color}-500 to-${item.color}-600 flex items-center justify-center text-white font-bold text-2xl shadow-lg`}>
-                  {item.step}
+            ].map((step, index) => (
+              <div key={index} className="text-center relative">
+                <div className={`w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 rounded-full bg-${step.color}-100 flex items-center justify-center`}>
+                  <span className={`text-2xl sm:text-3xl font-bold text-${step.color}-600`}>
+                    {step.step}
+                  </span>
                 </div>
-                <h3 className="text-2xl font-semibold text-surface-900 mb-4">
-                  {item.title}
+                <h3 className="text-xl sm:text-2xl font-semibold text-surface-900 mb-3 sm:mb-4">
+                  {step.title}
                 </h3>
-                <p className="text-surface-600 leading-relaxed">
-                  {item.description}
+                <p className="text-sm sm:text-base text-surface-600 leading-relaxed">
+                  {step.description}
                 </p>
+                
+                {/* Connection line for desktop */}
+                {index < 2 && (
+                  <div className="hidden md:block absolute top-8 sm:top-10 left-full w-full h-0.5 bg-surface-200 transform -translate-y-1/2" />
+                )}
               </div>
             ))}
           </div>
@@ -232,20 +238,23 @@ export default function Landing() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-primary-600 to-secondary-600">
+      <section className="py-16 sm:py-20 lg:py-24 bg-gradient-to-r from-primary-600 to-secondary-600">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl md:text-5xl font-display font-bold text-white mb-6">
-            Ready to start building wealth?
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold text-white mb-4 sm:mb-6">
+            Ready to build your wealth?
           </h2>
-          <p className="text-xl text-primary-100 mb-8 leading-relaxed">
-            Join thousands of users who are already on their path to financial freedom.
-            Your future millionaire self is waiting.
+          <p className="text-lg sm:text-xl text-primary-100 mb-6 sm:mb-8 max-w-2xl mx-auto">
+            Join thousands of users who are already on their journey to financial independence.
           </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/signup">
-              <Button variant="secondary" size="xl" className="w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center">
+            <Link to="/signup" className="w-full sm:w-auto">
+              <Button size="lg" variant="accent" className="w-full sm:w-auto bg-white text-primary-600 hover:bg-primary-50 min-h-[48px]">
                 Get Started Free
+              </Button>
+            </Link>
+            <Link to="/login" className="w-full sm:w-auto">
+              <Button size="lg" variant="outline" className="w-full sm:w-auto border-white text-white hover:bg-white/10 min-h-[48px]">
+                Sign In
               </Button>
             </Link>
           </div>

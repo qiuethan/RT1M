@@ -57,11 +57,11 @@ const Modal = ({
       />
       
       {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4 pt-20">
-        <div className={`relative w-full ${sizeClasses[size]} max-h-[80vh] flex flex-col transform rounded-lg bg-white shadow-xl transition-all ${className}`}>
+      <div className="flex min-h-full items-center justify-center p-3 sm:p-4 text-center">
+        <div className={`relative w-full ${sizeClasses[size]} max-h-[90vh] sm:max-h-[80vh] flex flex-col transform rounded-lg bg-white shadow-xl transition-all ${className}`}>
           {/* Header */}
           {(title || showCloseButton) && (
-            <div className="flex items-center justify-between p-6 border-b border-surface-200 flex-shrink-0">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-surface-200 flex-shrink-0">
               {title && (
                 <h3 className="text-lg font-semibold text-surface-900">
                   {title}
@@ -72,7 +72,7 @@ const Modal = ({
                   variant="outline"
                   size="sm"
                   onClick={onClose}
-                  className="!p-2"
+                  className="!p-2 min-h-[44px] min-w-[44px]"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -83,7 +83,7 @@ const Modal = ({
           )}
           
           {/* Content */}
-          <div className="p-6 overflow-y-auto flex-1">
+          <div className="p-4 sm:p-6 overflow-y-auto flex-1">
             {children}
           </div>
         </div>

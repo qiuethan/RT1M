@@ -72,8 +72,6 @@ export default function Signup() {
     return '';
   };
 
-
-
   const validateAgreeToTerms = (agreeToTerms: boolean): string => {
     if (!agreeToTerms) return 'You must agree to the Terms of Service and Privacy Policy to create an account';
     return '';
@@ -109,7 +107,7 @@ export default function Signup() {
     try {
       setLoading(true);
   
-                  // Create user account
+      // Create user account
       const userCredential = await signup(formData.email, formData.password);
       const user = userCredential.user;
 
@@ -125,7 +123,7 @@ export default function Signup() {
       await createUserProfile();
 
       toast.success('Welcome to RT1M! Your account has been created.');
-              navigate('/onboarding');
+      navigate('/onboarding');
     } catch (error: any) {
       const errorCode = error.code || error.message;
       const message = getFirebaseErrorMessage(errorCode);
@@ -143,12 +141,12 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-secondary-50 via-surface-50 to-accent-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-secondary-50 via-surface-50 to-accent-50 flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
           <Logo size="xl" />
         </div>
-        <h2 className="mt-6 text-center text-3xl font-bold text-surface-900">
+        <h2 className="mt-4 sm:mt-6 text-center text-2xl sm:text-3xl font-bold text-surface-900">
           Start your RT1M journey
         </h2>
         <p className="mt-2 text-center text-sm text-surface-600">
@@ -156,9 +154,9 @@ export default function Signup() {
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <Card className="py-8 px-4 shadow-card-hover sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit} noValidate>
+      <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <Card className="py-6 sm:py-8 px-4 sm:px-10 shadow-card-hover">
+          <form className="space-y-4 sm:space-y-6" onSubmit={handleSubmit} noValidate>
             <Input
               label="Email address"
               type="email"
@@ -166,6 +164,7 @@ export default function Signup() {
               onChange={(e) => handleInputChange('email', e.target.value)}
               placeholder="Enter your email"
               error={errors.email}
+              className="text-base"
             />
 
             <Input
@@ -175,6 +174,7 @@ export default function Signup() {
               onChange={(e) => handleInputChange('password', e.target.value)}
               placeholder="Create a strong password"
               error={errors.password}
+              className="text-base"
             />
 
             <Input
@@ -184,53 +184,46 @@ export default function Signup() {
               onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
               placeholder="Confirm your password"
               error={errors.confirmPassword}
+              className="text-base"
             />
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex items-start">
-                <div className="flex items-center h-5">
-                  <input
-                    id="agree-terms"
-                    name="agree-terms"
-                    type="checkbox"
-                    checked={formData.agreeToTerms}
-                    onChange={(e) => handleInputChange('agreeToTerms', e.target.checked)}
-                    className={`h-4 w-4 text-primary-600 focus:ring-primary-500 border-surface-300 rounded ${
-                      errors.agreeToTerms ? 'border-error-500 focus:ring-error-500' : ''
-                    }`}
-                  />
-                </div>
-                <div className="ml-3">
-                  <label htmlFor="agree-terms" className="text-sm text-surface-900">
-                    I agree to the{' '}
-                    <a href="#" className="text-primary-600 hover:text-primary-500 underline">
-                      Terms of Service
-                    </a>{' '}
-                    and{' '}
-                    <a href="#" className="text-primary-600 hover:text-primary-500 underline">
-                      Privacy Policy
-                    </a>
-                  </label>
-                </div>
+                <input
+                  id="agree-terms"
+                  name="agree-terms"
+                  type="checkbox"
+                  checked={formData.agreeToTerms}
+                  onChange={(e) => handleInputChange('agreeToTerms', e.target.checked)}
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-surface-300 rounded mt-1"
+                />
+                <label htmlFor="agree-terms" className="ml-3 text-sm text-surface-900 leading-relaxed">
+                  I agree to the{' '}
+                  <Link to="/terms" className="text-primary-600 hover:text-primary-500 underline">
+                    Terms of Service
+                  </Link>{' '}
+                  and{' '}
+                  <Link to="/privacy" className="text-primary-600 hover:text-primary-500 underline">
+                    Privacy Policy
+                  </Link>
+                </label>
               </div>
               {errors.agreeToTerms && (
-                <p className="text-sm text-error-600">{errors.agreeToTerms}</p>
+                <p className="text-sm text-error-600 mt-1">{errors.agreeToTerms}</p>
               )}
             </div>
 
             <Button
               type="submit"
               loading={loading}
-              className="w-full"
+              className="w-full min-h-[44px]"
               size="lg"
-              variant="secondary"
-              disabled={loading || !formData.agreeToTerms}
             >
               Create Account
             </Button>
           </form>
 
-          <div className="mt-6">
+          <div className="mt-4 sm:mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-surface-300" />
@@ -240,9 +233,9 @@ export default function Signup() {
               </div>
             </div>
 
-            <div className="mt-6">
+            <div className="mt-4 sm:mt-6">
               <Link to="/login">
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full min-h-[44px]">
                   Sign in instead
                 </Button>
               </Link>
@@ -251,11 +244,11 @@ export default function Signup() {
         </Card>
       </div>
 
-      {/* Background decorations */}
+      {/* Background decorations - Simplified for mobile */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-secondary-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-40 left-40 w-80 h-80 bg-primary-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+        <div className="absolute -top-40 -right-40 w-60 sm:w-80 h-60 sm:h-80 bg-secondary-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-60 sm:w-80 h-60 sm:h-80 bg-accent-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-40 left-40 w-60 sm:w-80 h-60 sm:h-80 bg-primary-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
       </div>
     </div>
   );
