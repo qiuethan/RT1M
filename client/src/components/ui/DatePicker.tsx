@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 
 interface DatePickerProps {
   label?: string;
@@ -24,13 +23,13 @@ const DatePicker: React.FC<DatePickerProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [isMobile, setIsMobile] = useState(false);
+  
   // Parse a date string as local date (avoiding timezone shifts)
-  // This ensures dates are always interpreted in the user's local timezone
-  // instead of being converted to UTC which can cause day shifts
   const parseLocalDate = (dateString: string): Date | null => {
     if (!dateString) return null;
     const [year, month, day] = dateString.split('-').map(Number);
-    return new Date(year, month - 1, day); // month is 0-indexed
+    return new Date(year, month - 1, day);
   };
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(
@@ -43,12 +42,22 @@ const DatePicker: React.FC<DatePickerProps> = ({
   const inputRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 640 || 'ontouchstart' in window);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Update selected date when value prop changes
   useEffect(() => {
     if (value) {
       const parsedDate = parseLocalDate(value);
       setSelectedDate(parsedDate);
-      // Also update currentDate to show the correct month/year
       if (parsedDate) {
         setCurrentDate(new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 1));
       }
@@ -57,23 +66,36 @@ const DatePicker: React.FC<DatePickerProps> = ({
     }
   }, [value]);
 
-  // Calculate dropdown position
+  // Calculate dropdown position (only for desktop)
   useEffect(() => {
-    if (isOpen && inputRef.current) {
+    if (isOpen && inputRef.current && !isMobile) {
       const rect = inputRef.current.getBoundingClientRect();
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+      const viewportWidth = window.innerWidth;
       
-      setDropdownPosition({
-        top: rect.bottom + scrollTop + 4,
-        left: rect.left + scrollLeft,
-        width: rect.width
-      });
+      const top = rect.bottom + window.scrollY + 4;
+      
+      let left: number;
+      let width: number;
+      
+      left = rect.left + window.scrollX;
+      width = Math.max(rect.width, 320);
+      
+      if (left + width > viewportWidth - 16) {
+        left = viewportWidth - width - 16;
+      }
+      if (left < 16) {
+        left = 16;
+        width = Math.min(width, viewportWidth - 32);
+      }
+      
+      setDropdownPosition({ top, left, width });
     }
-  }, [isOpen]);
+  }, [isOpen, showYearSelector, showMonthSelector, isMobile]);
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside (desktop only)
   useEffect(() => {
+    if (isMobile) return;
+
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
           inputRef.current && !inputRef.current.contains(event.target as Node)) {
@@ -83,14 +105,43 @@ const DatePicker: React.FC<DatePickerProps> = ({
       }
     };
 
+    const handleScroll = () => {
+      if (isOpen && inputRef.current) {
+        const rect = inputRef.current.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        
+        const top = rect.bottom + window.scrollY + 4;
+        let left = rect.left + window.scrollX;
+        let width = Math.max(rect.width, 320);
+        
+        if (left + width > viewportWidth - 16) {
+          left = viewportWidth - width - 16;
+        }
+        if (left < 16) {
+          left = 16;
+          width = Math.min(width, viewportWidth - 32);
+        }
+        
+        setDropdownPosition({ top, left, width });
+      }
+    };
+
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      window.addEventListener('scroll', handleScroll, true);
+      window.addEventListener('resize', handleScroll);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        window.removeEventListener('scroll', handleScroll, true);
+        window.removeEventListener('resize', handleScroll);
+      };
     }
-  }, [isOpen]);
+  }, [isOpen, showYearSelector, showMonthSelector, isMobile]);
 
-  // Close on escape key
+  // Close on escape key (desktop only)
   useEffect(() => {
+    if (isMobile) return;
+
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsOpen(false);
@@ -103,7 +154,12 @@ const DatePicker: React.FC<DatePickerProps> = ({
       document.addEventListener('keydown', handleEscape);
       return () => document.removeEventListener('keydown', handleEscape);
     }
-  }, [isOpen]);
+  }, [isOpen, isMobile]);
+
+  const handleNativeDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const dateValue = e.target.value;
+    onChange?.(dateValue || null);
+  };
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -128,9 +184,6 @@ const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   const formatValueDate = (date: Date) => {
-    // Format as YYYY-MM-DD in local timezone (no UTC conversion)
-    // This ensures the date string represents the exact day the user selected
-    // without any timezone-related shifts that could cause comparison issues
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -193,36 +246,36 @@ const DatePicker: React.FC<DatePickerProps> = ({
 
   const renderCalendar = () => {
     const daysCount = daysInMonth(currentDate);
-    const startDay = firstDayOfMonth(currentDate);
+    const firstDay = firstDayOfMonth(currentDate);
     const days = [];
-    const today = new Date();
-    const isCurrentMonth = currentDate.getMonth() === today.getMonth() && 
-                          currentDate.getFullYear() === today.getFullYear();
 
     // Empty cells for days before the first day of the month
-    for (let i = 0; i < startDay; i++) {
-      days.push(<div key={`empty-${i}`} className="p-2"></div>);
+    for (let i = 0; i < firstDay; i++) {
+      days.push(
+        <div key={`empty-${i}`} className="p-1 sm:p-2"></div>
+      );
     }
 
     // Days of the month
     for (let day = 1; day <= daysCount; day++) {
       const isSelected = selectedDate && 
-        selectedDate.getDate() === day && 
+        selectedDate.getDate() === day &&
         selectedDate.getMonth() === currentDate.getMonth() &&
         selectedDate.getFullYear() === currentDate.getFullYear();
       
-      const isToday = isCurrentMonth && today.getDate() === day;
+      const isToday = new Date().toDateString() === 
+        new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toDateString();
 
       days.push(
         <button
           key={day}
           onClick={() => handleDateClick(day)}
-          className={`p-2 text-sm rounded-lg hover:bg-primary-50 transition-colors ${
-            isSelected 
-              ? 'bg-primary-500 text-white hover:bg-primary-600' 
-              : isToday 
+          className={`p-1 sm:p-2 text-xs sm:text-sm rounded-md transition-colors hover:bg-primary-100 ${
+            isSelected
+              ? 'bg-primary-500 text-white hover:bg-primary-600'
+              : isToday
                 ? 'bg-primary-100 text-primary-700 font-medium'
-                : 'text-surface-700 hover:text-primary-700'
+                : 'text-surface-700 hover:text-primary-600'
           }`}
         >
           {day}
@@ -234,21 +287,24 @@ const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   const renderDropdown = () => {
-    if (!isOpen || disabled) return null;
+    if (!isOpen || disabled || isMobile) return null;
 
-    const dropdown = (
+    return (
       <div 
         ref={dropdownRef}
-        className="fixed z-[9999] bg-white border border-surface-200 rounded-lg shadow-xl p-4 min-w-[320px]"
+        className="fixed z-[9999] bg-white border border-surface-200 rounded-lg shadow-xl"
         style={{
           top: `${dropdownPosition.top}px`,
           left: `${dropdownPosition.left}px`,
-          minWidth: `${Math.max(dropdownPosition.width, 320)}px`
+          width: `${dropdownPosition.width}px`,
+          maxHeight: `${window.innerHeight - 100}px`,
+          overflowY: 'auto',
+          padding: '16px'
         }}
       >
         {/* Header with month/year selectors */}
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1">
             <button
               onClick={() => navigateYear('prev')}
               className="p-1 hover:bg-surface-100 rounded-md transition-colors"
@@ -296,7 +352,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
             </button>
           </div>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1">
             <button
               onClick={() => navigateMonth('next')}
               className="p-1 hover:bg-surface-100 rounded-md transition-colors"
@@ -384,7 +440,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
           <button
             onClick={() => {
               setSelectedDate(null);
-              onChange?.('');
+              onChange?.(null);
               setIsOpen(false);
             }}
             className="text-sm text-surface-500 hover:text-surface-700 transition-colors"
@@ -406,9 +462,6 @@ const DatePicker: React.FC<DatePickerProps> = ({
         </div>
       </div>
     );
-
-    // Use portal to render outside of parent containers
-    return createPortal(dropdown, document.body);
   };
 
   return (
@@ -420,41 +473,55 @@ const DatePicker: React.FC<DatePickerProps> = ({
         </label>
       )}
       
-      <button
-        ref={inputRef}
-        type="button"
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        disabled={disabled}
-        className={`w-full px-2 py-1.5 text-base text-left border rounded-md bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-          disabled 
-            ? 'bg-surface-50 text-surface-400 cursor-not-allowed border-surface-200' 
-            : error
-              ? 'border-error-300 focus:ring-error-500 focus:border-error-500'
-              : 'border-surface-300 hover:border-surface-400'
-        }`}
-      >
-        <div className="flex items-center justify-between">
-          <span className={selectedDate ? 'text-surface-900' : 'text-surface-500'}>
-            {selectedDate ? formatDisplayDate(selectedDate) : placeholder}
-          </span>
-          <svg 
-            className={`w-5 h-5 text-surface-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-      </button>
-
+      {isMobile ? (
+        // Native date input for mobile
+        <input
+          type="date"
+          value={value || ''}
+          onChange={handleNativeDateChange}
+          disabled={disabled}
+          className={`w-full px-2 py-1.5 text-base border rounded-md bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+            disabled 
+              ? 'bg-surface-50 text-surface-400 cursor-not-allowed border-surface-200' 
+              : error
+                ? 'border-error-300 focus:ring-error-500 focus:border-error-500'
+                : 'border-surface-300 hover:border-surface-400'
+          }`}
+        />
+      ) : (
+        // Custom date picker for desktop
+        <button
+          ref={inputRef}
+          type="button"
+          onClick={() => !disabled && setIsOpen(!isOpen)}
+          disabled={disabled}
+          className={`w-full px-2 py-1.5 text-base text-left border rounded-md bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+            disabled 
+              ? 'bg-surface-50 text-surface-400 cursor-not-allowed border-surface-200' 
+              : error
+                ? 'border-error-300 focus:ring-error-500 focus:border-error-500'
+                : 'border-surface-300 hover:border-surface-400'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className={selectedDate ? 'text-surface-900' : 'text-surface-400'}>
+              {selectedDate ? formatDisplayDate(selectedDate) : placeholder}
+            </span>
+            <svg className="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+        </button>
+      )}
+      
       {error && (
-        <p className="mt-1 text-sm text-error-600">{error}</p>
+        <p className="mt-1 text-sm text-error-500">{error}</p>
       )}
 
-      {renderDropdown()}
+      {/* Custom dropdown only for desktop */}
+      {!isMobile && renderDropdown()}
     </div>
   );
 };
 
-export default DatePicker; 
+export default DatePicker;

@@ -143,6 +143,66 @@ const Onboarding: React.FC = () => {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [educationErrors, setEducationErrors] = useState<Record<number, Record<string, string>>>({});
+  const [experienceErrors, setExperienceErrors] = useState<Record<number, Record<string, string>>>({});
+
+  // Validation helper functions
+  const validateYear = (year: string): boolean => {
+    if (!year) return true; // Empty is allowed
+    const yearNum = parseInt(year);
+    return !isNaN(yearNum) && yearNum >= 1900 && yearNum <= new Date().getFullYear() + 10;
+  };
+
+  const validateEducationDates = (index: number, field: string, value: string) => {
+    const education = [...formData.education];
+    education[index] = { ...education[index], [field]: value };
+    
+    const newErrors = { ...educationErrors };
+    if (!newErrors[index]) newErrors[index] = {};
+
+    // Validate year format
+    if (field === 'graduationYear' && value && !validateYear(value)) {
+      newErrors[index].graduationYear = 'Please enter a valid year';
+    } else if (field === 'graduationYear') {
+      delete newErrors[index].graduationYear;
+    }
+
+    setEducationErrors(newErrors);
+  };
+
+  const validateExperienceDates = (index: number, field: string, value: string) => {
+    const experience = [...formData.experience];
+    experience[index] = { ...experience[index], [field]: value };
+    
+    const newErrors = { ...experienceErrors };
+    if (!newErrors[index]) newErrors[index] = {};
+
+    // Validate year format
+    if ((field === 'startYear' || field === 'endYear') && value && value.toLowerCase() !== 'present' && !validateYear(value)) {
+      newErrors[index][field] = 'Please enter a valid year or "Present"';
+    } else if (field === 'startYear' || field === 'endYear') {
+      delete newErrors[index][field];
+    }
+
+    // Validate end year is after start year
+    if (field === 'endYear' || field === 'startYear') {
+      const startYear = field === 'startYear' ? value : experience[index].startYear;
+      const endYear = field === 'endYear' ? value : experience[index].endYear;
+      
+      if (startYear && endYear && endYear.toLowerCase() !== 'present') {
+        const startYearNum = parseInt(startYear);
+        const endYearNum = parseInt(endYear);
+        
+        if (!isNaN(startYearNum) && !isNaN(endYearNum) && endYearNum < startYearNum) {
+          newErrors[index].endYear = 'End year must be after start year';
+        } else {
+          delete newErrors[index].endYear;
+        }
+      }
+    }
+
+    setExperienceErrors(newErrors);
+  };
 
   useEffect(() => {
     if (currentUser) {
@@ -336,22 +396,22 @@ const Onboarding: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-50 pt-16 pb-4 sm:pt-8 sm:pb-8">
+      <div className="max-w-4xl mx-auto px-2 sm:px-4">
         {/* Progress Bar */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold text-gray-900">Complete Your Profile</h1>
-            <span className="text-sm text-gray-500">
+        <div className="mb-4 sm:mb-8">
+          <div className="flex items-center justify-between mb-2 sm:mb-4">
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Complete Your Profile</h1>
+            <span className="text-xs sm:text-sm text-gray-500">
               Step {currentStep + 1} of {onboardingSteps.length}
             </span>
           </div>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 sm:space-x-2">
             {onboardingSteps.map((_, index) => (
               <React.Fragment key={index}>
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                  className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium ${
                     index <= currentStep
                       ? 'bg-indigo-600 text-white'
                       : 'bg-gray-200 text-gray-500'
@@ -361,7 +421,7 @@ const Onboarding: React.FC = () => {
                 </div>
                 {index < onboardingSteps.length - 1 && (
                   <div
-                    className={`flex-1 h-1 ${
+                    className={`flex-1 h-0.5 sm:h-1 ${
                       index < currentStep ? 'bg-indigo-600' : 'bg-gray-200'
                     }`}
                   />
@@ -371,12 +431,12 @@ const Onboarding: React.FC = () => {
           </div>
         </div>
 
-        <Card className="p-8">
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">
+        <Card className="p-3 sm:p-6 lg:p-8">
+          <div className="mb-4 sm:mb-6">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
               {onboardingSteps[currentStep].title}
             </h2>
-            <p className="text-gray-600 mt-1">
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
               {onboardingSteps[currentStep].description}
             </p>
           </div>
@@ -514,9 +574,9 @@ const Onboarding: React.FC = () => {
           )}
 
           {currentStep === 2 && (
-            <div className="space-y-8">
-              <div className="text-center text-gray-600 mb-6">
-                <p className="text-sm">This information is optional but helps us create more personalized recommendations.</p>
+            <div className="space-y-6 sm:space-y-8">
+              <div className="text-center text-gray-600 mb-4 sm:mb-6">
+                <p className="text-xs sm:text-sm">This information is optional but helps us create more personalized recommendations.</p>
               </div>
               
               {/* Education Section */}
@@ -552,8 +612,10 @@ const Onboarding: React.FC = () => {
                           const newEducation = [...formData.education];
                           newEducation[index].graduationYear = e.target.value;
                           setFormData(prev => ({ ...prev, education: newEducation }));
+                          validateEducationDates(index, 'graduationYear', e.target.value);
                         }}
                         placeholder="2020"
+                        error={educationErrors[index]?.graduationYear}
                       />
                     </div>
                     <Button
@@ -563,7 +625,7 @@ const Onboarding: React.FC = () => {
                         const newEducation = formData.education.filter((_, i) => i !== index);
                         setFormData(prev => ({ ...prev, education: newEducation }));
                       }}
-                      className="text-red-600 hover:text-red-700"
+                      className="text-red-600 hover:text-red-700 w-full sm:w-auto"
                     >
                       Remove
                     </Button>
@@ -577,7 +639,7 @@ const Onboarding: React.FC = () => {
                       education: [...prev.education, { school: '', field: '', graduationYear: '' }]
                     }));
                   }}
-                  className="mb-6"
+                  className="mb-6 w-full sm:w-auto"
                 >
                   Add Education
                 </Button>
@@ -618,8 +680,10 @@ const Onboarding: React.FC = () => {
                           const newExperience = [...formData.experience];
                           newExperience[index].startYear = e.target.value;
                           setFormData(prev => ({ ...prev, experience: newExperience }));
+                          validateExperienceDates(index, 'startYear', e.target.value);
                         }}
                         placeholder="2020"
+                        error={experienceErrors[index]?.startYear}
                       />
                       <Input
                         label="End Year"
@@ -628,8 +692,10 @@ const Onboarding: React.FC = () => {
                           const newExperience = [...formData.experience];
                           newExperience[index].endYear = e.target.value;
                           setFormData(prev => ({ ...prev, experience: newExperience }));
+                          validateExperienceDates(index, 'endYear', e.target.value);
                         }}
                         placeholder="Present or 2022"
+                        error={experienceErrors[index]?.endYear}
                       />
                     </div>
                     <Input
@@ -650,7 +716,7 @@ const Onboarding: React.FC = () => {
                         const newExperience = formData.experience.filter((_, i) => i !== index);
                         setFormData(prev => ({ ...prev, experience: newExperience }));
                       }}
-                      className="text-red-600 hover:text-red-700"
+                      className="text-red-600 hover:text-red-700 w-full sm:w-auto"
                     >
                       Remove
                     </Button>
@@ -664,6 +730,7 @@ const Onboarding: React.FC = () => {
                       experience: [...prev.experience, { company: '', position: '', startYear: '', endYear: '', description: '' }]
                     }));
                   }}
+                  className="w-full sm:w-auto"
                 >
                   Add Experience
                 </Button>
@@ -672,16 +739,16 @@ const Onboarding: React.FC = () => {
           )}
 
           {currentStep === 3 && (
-            <div className="space-y-8">
+            <div className="space-y-6 sm:space-y-8">
               {/* Skills Section */}
               <div>
                 <h3 className="text-lg font-medium text-gray-800 mb-4">Skills (Optional)</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-4">
                   {availableSkills.map((skill) => (
                     <button
                       key={skill}
                       onClick={() => toggleSkill(skill)}
-                      className={`px-3 py-2 rounded-full text-sm border transition-colors ${
+                      className={`px-2 sm:px-3 py-2 rounded-full text-xs sm:text-sm border transition-colors ${
                         formData.skills.includes(skill)
                           ? 'bg-indigo-100 border-indigo-300 text-indigo-800'
                           : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
@@ -695,29 +762,32 @@ const Onboarding: React.FC = () => {
                 {/* Custom Skills */}
                 <div className="mt-4">
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Add Custom Skills</h4>
-                  <div className="flex gap-2 mb-2">
-                    <Input
-                      value={formData.customSkill}
-                      onChange={(e) => handleInputChange('customSkill', e.target.value)}
-                      placeholder="Enter a skill..."
-                      onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                        if (e.key === 'Enter' && formData.customSkill.trim()) {
-                          e.preventDefault();
-                          if (!formData.skills.includes(formData.customSkill.trim())) {
-                            setFormData(prev => ({
-                              ...prev,
-                              skills: [...prev.skills, prev.customSkill.trim()],
-                              customSkill: ''
-                            }));
-                          } else {
-                            setFormData(prev => ({ ...prev, customSkill: '' }));
+                  <div className="flex flex-col sm:flex-row gap-2 mb-2">
+                    <div className="flex-1">
+                      <Input
+                        value={formData.customSkill}
+                        onChange={(e) => handleInputChange('customSkill', e.target.value)}
+                        placeholder="Enter a skill..."
+                        onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                          if (e.key === 'Enter' && formData.customSkill.trim()) {
+                            e.preventDefault();
+                            if (!formData.skills.includes(formData.customSkill.trim())) {
+                              setFormData(prev => ({
+                                ...prev,
+                                skills: [...prev.skills, prev.customSkill.trim()],
+                                customSkill: ''
+                              }));
+                            } else {
+                              setFormData(prev => ({ ...prev, customSkill: '' }));
+                            }
                           }
-                        }
-                      }}
-                    />
+                        }}
+                      />
+                    </div>
                     <Button
                       variant="outline"
                       size="sm"
+                      className="w-full sm:w-auto"
                       onClick={() => {
                         if (formData.customSkill.trim() && !formData.skills.includes(formData.customSkill.trim())) {
                           setFormData(prev => ({
@@ -758,12 +828,12 @@ const Onboarding: React.FC = () => {
               {/* Interests Section */}
               <div>
                 <h3 className="text-lg font-medium text-gray-800 mb-4">Interests (Optional)</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-4">
                   {availableInterests.map((interest) => (
                     <button
                       key={interest}
                       onClick={() => toggleInterest(interest)}
-                      className={`px-3 py-2 rounded-full text-sm border transition-colors ${
+                      className={`px-2 sm:px-3 py-2 rounded-full text-xs sm:text-sm border transition-colors ${
                         formData.interests.includes(interest)
                           ? 'bg-purple-100 border-purple-300 text-purple-800'
                           : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
@@ -777,29 +847,32 @@ const Onboarding: React.FC = () => {
                 {/* Custom Interests */}
                 <div className="mt-4">
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Add Custom Interests</h4>
-                  <div className="flex gap-2 mb-2">
-                    <Input
-                      value={formData.customInterest}
-                      onChange={(e) => handleInputChange('customInterest', e.target.value)}
-                      placeholder="Enter an interest..."
-                      onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                        if (e.key === 'Enter' && formData.customInterest.trim()) {
-                          e.preventDefault();
-                          if (!formData.interests.includes(formData.customInterest.trim())) {
-                            setFormData(prev => ({
-                              ...prev,
-                              interests: [...prev.interests, prev.customInterest.trim()],
-                              customInterest: ''
-                            }));
-                          } else {
-                            setFormData(prev => ({ ...prev, customInterest: '' }));
+                  <div className="flex flex-col sm:flex-row gap-2 mb-2">
+                    <div className="flex-1">
+                      <Input
+                        value={formData.customInterest}
+                        onChange={(e) => handleInputChange('customInterest', e.target.value)}
+                        placeholder="Enter an interest..."
+                        onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                          if (e.key === 'Enter' && formData.customInterest.trim()) {
+                            e.preventDefault();
+                            if (!formData.interests.includes(formData.customInterest.trim())) {
+                              setFormData(prev => ({
+                                ...prev,
+                                interests: [...prev.interests, prev.customInterest.trim()],
+                                customInterest: ''
+                              }));
+                            } else {
+                              setFormData(prev => ({ ...prev, customInterest: '' }));
+                            }
                           }
-                        }
-                      }}
-                    />
+                        }}
+                      />
+                    </div>
                     <Button
                       variant="outline"
                       size="sm"
+                      className="w-full sm:w-auto"
                       onClick={() => {
                         if (formData.customInterest.trim() && !formData.interests.includes(formData.customInterest.trim())) {
                           setFormData(prev => ({
@@ -852,11 +925,12 @@ const Onboarding: React.FC = () => {
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between mt-8">
+          <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 mt-6 sm:mt-8">
             <Button
               variant="outline"
               onClick={handleBack}
               disabled={currentStep === 0}
+              className="w-full sm:w-auto order-2 sm:order-1"
             >
               Back
             </Button>
@@ -864,6 +938,7 @@ const Onboarding: React.FC = () => {
             <Button
               onClick={handleNext}
               disabled={loading}
+              className="w-full sm:w-auto order-1 sm:order-2"
             >
               {loading ? 'Completing...' : currentStep === onboardingSteps.length - 1 ? 'Complete Setup' : 'Next'}
             </Button>
