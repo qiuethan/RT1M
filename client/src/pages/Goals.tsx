@@ -782,21 +782,25 @@ export default function Goals() {
 
                 {/* Flexible Content Section */}
                 <div className="flex-1 overflow-hidden">
-                  {goal.description && (
-                    <div className="mb-2 p-1.5 bg-surface-50 rounded text-xs text-surface-600">
-                      <div className="line-clamp-3">
-                        {goal.description}
-                      </div>
+                  <div className="mb-2 p-1.5 bg-surface-50 rounded text-xs text-surface-600 h-12">
+                    <div className="line-clamp-3 h-full flex items-start">
+                      {goal.description || (
+                        <span className="text-surface-400 italic">
+                          No Description Provided
+                        </span>
+                      )}
                     </div>
-                  )}
-                  {goal.submilestones && goal.submilestones.length > 0 && (
-                    <div className="pt-1.5 border-t border-surface-200">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-xs font-medium text-surface-500">Submilestones</span>
+                  </div>
+                  <div className="pt-1.5 border-t border-surface-200">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-medium text-surface-500">Submilestones</span>
+                      {goal.submilestones && goal.submilestones.length > 0 && (
                         <span className="text-xs text-surface-500">
                           {goal.submilestones.filter(sub => sub.completed).length}/{goal.submilestones.length}
                         </span>
-                      </div>
+                      )}
+                    </div>
+                    {goal.submilestones && goal.submilestones.length > 0 ? (
                       <div className="space-y-1">
                         {goal.submilestones.slice(0, 2).map((submilestone) => (
                           <div key={submilestone.id} className="flex items-center gap-2 text-xs">
@@ -816,8 +820,12 @@ export default function Goals() {
                           </div>
                         )}
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="text-xs text-surface-400 italic text-center py-1">
+                        No submilestones added yet
+                      </div>
+                    )}
+                  </div>
                 </div>
                 </Card>
               </div>
