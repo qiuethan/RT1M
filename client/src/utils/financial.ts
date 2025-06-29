@@ -196,6 +196,88 @@ export const isValidFinancialInfo = (info: Partial<FinancialInfo>): boolean => {
   );
 };
 
+// Detailed Validation Functions that return error messages
+export const validateAssetValue = (value: number | string): string => {
+  if (!value && value !== 0) return 'Asset value is required';
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  if (isNaN(numValue)) return 'Asset value must be a valid number';  
+  if (numValue <= 0) return 'Asset value must be greater than $0';
+  return '';
+};
+
+export const validateDebtBalance = (balance: number | string): string => {
+  if (!balance && balance !== 0) return 'Debt balance is required';
+  const numValue = typeof balance === 'string' ? parseFloat(balance) : balance;
+  if (isNaN(numValue)) return 'Debt balance must be a valid number';
+  if (numValue <= 0) return 'Debt balance must be greater than $0';
+  return '';
+};
+
+export const validateInterestRate = (rate: number | string): string => {
+  if (!rate && rate !== 0) return '';  // Interest rate is optional
+  const numValue = typeof rate === 'string' ? parseFloat(rate) : rate;
+  if (isNaN(numValue)) return 'Interest rate must be a valid number';
+  if (numValue < 0) return 'Interest rate cannot be negative';
+  if (numValue > 100) return 'Interest rate cannot be greater than 100%';
+  return '';
+};
+
+export const validateFinancialAmount = (amount: number | null, fieldName: string): string => {
+  if (amount === null || amount === undefined) return `${fieldName} is required`;
+  if (isNaN(amount)) return `${fieldName} must be a valid number`;
+  if (amount < 0) return `${fieldName} cannot be negative`;
+  return '';
+};
+
+export const validateGoalTargetAmount = (amount: string | number): string => {
+  if (!amount && amount !== 0) return 'Target amount is required';
+  const numValue = typeof amount === 'string' ? parseFloat(amount) : amount;
+  if (isNaN(numValue)) return 'Target amount must be a valid number';
+  if (numValue <= 0) return 'Target amount must be greater than $0';
+  return '';
+};
+
+export const validateGoalCurrentAmount = (current: string | number, target?: string | number): string => {
+  if (!current && current !== 0) return '';  // Current amount is optional
+  const currentNum = typeof current === 'string' ? parseFloat(current) : current;
+  if (isNaN(currentNum)) return 'Current amount must be a valid number';
+  if (currentNum < 0) return 'Current amount cannot be negative';
+  
+  // If target is provided, current shouldn't exceed target
+  if (target) {
+    const targetNum = typeof target === 'string' ? parseFloat(target) : target;
+    if (!isNaN(targetNum) && currentNum > targetNum) {
+      return 'Current amount cannot exceed target amount';
+    }
+  }
+  return '';
+};
+
+export const validateGoalProgress = (progress: string | number): string => {
+  if (!progress && progress !== 0) return '';  // Progress is optional
+  const numValue = typeof progress === 'string' ? parseFloat(progress) : progress;
+  if (isNaN(numValue)) return 'Progress must be a valid number';
+  if (numValue < 0) return 'Progress cannot be negative';
+  if (numValue > 100) return 'Progress cannot exceed 100%';
+  return '';
+};
+
+export const validateSubmilestoneAmount = (amount: string | number, parentTarget?: string | number): string => {
+  if (!amount && amount !== 0) return 'Submilestone target amount is required';
+  const numValue = typeof amount === 'string' ? parseFloat(amount) : amount;
+  if (isNaN(numValue)) return 'Target amount must be a valid number';
+  if (numValue <= 0) return 'Target amount must be greater than $0';
+  
+  // If parent target is provided, submilestone shouldn't exceed it
+  if (parentTarget) {
+    const parentNum = typeof parentTarget === 'string' ? parseFloat(parentTarget) : parentTarget;
+    if (!isNaN(parentNum) && numValue > parentNum) {
+      return 'Submilestone amount cannot exceed main goal target';
+    }
+  }
+  return '';
+};
+
 // Array Utilities
 export const updateItemInArray = <T extends { id?: string }>(
   array: T[],

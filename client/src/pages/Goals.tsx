@@ -8,6 +8,12 @@ import {
 } from '../services/firestore';
 import { isFormChanged, useUnsavedChanges, UnsavedChangesPrompt } from '../utils/unsavedChanges';
 import { useGoals } from '../hooks/useGoals';
+import { 
+  validateGoalTargetAmount,
+  validateGoalCurrentAmount,
+  validateGoalProgress,
+  validateSubmilestoneAmount
+} from '../utils/financial';
 
 export default function Goals() {
   const { currentUser } = useAuth();
@@ -58,6 +64,125 @@ export default function Goals() {
   // Original form for change detection
   const [originalGoalForm, setOriginalGoalForm] = useState(goalForm);
 
+  // Error states for goal form validation
+  const [goalErrors, setGoalErrors] = useState<{
+    title?: string;
+    targetAmount?: string;
+    currentAmount?: string;
+    progress?: string;
+    submilestones?: Record<number, {
+      title?: string;
+      targetAmount?: string;
+    }>;
+  }>({});
+
+  // Validation functions
+  const validateGoalField = (field: string, value: any, goalType?: string, targetAmount?: string) => {
+    let error = '';
+    
+    switch (field) {
+      case 'title':
+        if (!value || !value.trim()) {
+          error = 'Goal title is required';
+        }
+        break;
+      case 'targetAmount':
+        if (goalType === 'financial') {
+          error = validateGoalTargetAmount(value);
+        }
+        break;
+      case 'currentAmount':
+        if (goalType === 'financial') {
+          error = validateGoalCurrentAmount(value, targetAmount);
+        }
+        break;
+      case 'progress':
+        if (goalType !== 'financial') {
+          error = validateGoalProgress(value);
+        }
+        break;
+    }
+    
+    setGoalErrors(prev => ({ ...prev, [field]: error }));
+    return error;
+  };
+
+  const validateSubmilestoneField = (index: number, field: string, value: any, goalTargetAmount?: string) => {
+    let error = '';
+    
+    switch (field) {
+      case 'title':
+        if (!value || !value.trim()) {
+          error = 'Submilestone title is required';
+        }
+        break;
+      case 'targetAmount':
+        if (goalForm.type === 'financial') {
+          error = validateSubmilestoneAmount(value, goalTargetAmount);
+        }
+        break;
+    }
+    
+    setGoalErrors(prev => ({
+      ...prev,
+      submilestones: {
+        ...prev.submilestones,
+        [index]: {
+          ...prev.submilestones?.[index],
+          [field]: error
+        }
+      }
+    }));
+    return error;
+  };
+
+  const clearGoalError = (field: string) => {
+    setGoalErrors(prev => ({ ...prev, [field]: '' }));
+  };
+
+  const clearSubmilestoneError = (index: number, field: string) => {
+    setGoalErrors(prev => ({
+      ...prev,
+      submilestones: {
+        ...prev.submilestones,
+        [index]: {
+          ...prev.submilestones?.[index],
+          [field]: ''
+        }
+      }
+    }));
+  };
+
+  const handleGoalFormChange = (field: string, value: any) => {
+    setGoalForm(prev => ({ ...prev, [field]: value }));
+    
+    // Validate the field and clear error if valid
+    const error = validateGoalField(field, value, goalForm.type, goalForm.targetAmount);
+    if (!error) {
+      clearGoalError(field);
+    }
+    
+    // If changing target amount, revalidate current amount
+    if (field === 'targetAmount' && goalForm.type === 'financial') {
+      validateGoalField('currentAmount', goalForm.currentAmount, goalForm.type, value);
+    }
+  };
+
+  const handleSubmilestoneChange = (index: number, field: string, value: any) => {
+    const updatedSubmilestones = [...goalForm.submilestones];
+    updatedSubmilestones[index] = { ...updatedSubmilestones[index], [field]: value };
+    setGoalForm({
+      ...goalForm,
+      submilestones: updatedSubmilestones
+    });
+    
+    // Validate the field and clear error if valid
+    const error = validateSubmilestoneField(index, field, value, goalForm.targetAmount);
+    if (!error) {
+      clearSubmilestoneError(index, field);
+    }
+  };
+
   // Unsaved changes protection (only when modal is open and has changes)
   const hasUnsavedGoalChanges = showModal && isFormChanged(originalGoalForm, goalForm);
   const { showPrompt, confirmNavigation, cancelNavigation } = useUnsavedChanges(
@@ -89,6 +214,7 @@ export default function Goals() {
     };
     setGoalForm(newForm);
     setOriginalGoalForm(newForm);
+    setGoalErrors({}); // Clear errors when opening new goal modal
     setShowModal(true);
   };
 
@@ -116,10 +242,34 @@ export default function Goals() {
     };
     setGoalForm(editForm);
     setOriginalGoalForm(editForm);
+    setGoalErrors({}); // Clear errors when opening edit modal
     setShowModal(true);
   };
 
   const handleSaveGoal = async () => {
+    // Validate all fields before saving
+    let hasErrors = false;
+    
+    // Validate main goal fields
+    hasErrors = !!validateGoalField('title', goalForm.title) || hasErrors;
+    if (goalForm.type === 'financial') {
+      hasErrors = !!validateGoalField('targetAmount', goalForm.targetAmount, goalForm.type) || hasErrors;
+      hasErrors = !!validateGoalField('currentAmount', goalForm.currentAmount, goalForm.type, goalForm.targetAmount) || hasErrors;
+    } else {
+      hasErrors = !!validateGoalField('progress', goalForm.progress, goalForm.type) || hasErrors;
+    }
+    
+    // Validate submilestones
+    goalForm.submilestones.forEach((sub, index) => {
+      hasErrors = !!validateSubmilestoneField(index, 'title', sub.title, goalForm.targetAmount) || hasErrors;
+      if (goalForm.type === 'financial') {
+        hasErrors = !!validateSubmilestoneField(index, 'targetAmount', sub.targetAmount, goalForm.targetAmount) || hasErrors;
+      }
+    });
+    
+    // Don't save if there are validation errors
+    if (hasErrors) return;
+
     if (!goalForm.title || !goalForm.type) return;
 
     try {
@@ -185,12 +335,7 @@ export default function Goals() {
   };
 
   const updateSubmilestone = (index: number, field: string, value: any) => {
-    const updatedSubmilestones = [...goalForm.submilestones];
-    updatedSubmilestones[index] = { ...updatedSubmilestones[index], [field]: value };
-    setGoalForm({
-      ...goalForm,
-      submilestones: updatedSubmilestones
-    });
+    handleSubmilestoneChange(index, field, value);
   };
 
   const removeSubmilestone = (index: number) => {
@@ -200,6 +345,27 @@ export default function Goals() {
     setGoalForm({
       ...goalForm,
       submilestones: reorderedSubmilestones
+    });
+    
+    // Clear errors for removed submilestone and reindex remaining ones
+    setGoalErrors(prev => {
+      const newSubmilestoneErrors: Record<number, { title?: string; targetAmount?: string; }> = {};
+      Object.keys(prev.submilestones || {}).forEach(key => {
+        const idx = parseInt(key);
+        if (idx < index) {
+          // Keep errors for submilestones before the removed one
+          newSubmilestoneErrors[idx] = prev.submilestones![idx];
+        } else if (idx > index) {
+          // Shift errors for submilestones after the removed one
+          newSubmilestoneErrors[idx - 1] = prev.submilestones![idx];
+        }
+        // Skip the removed submilestone (idx === index)
+      });
+      
+      return {
+        ...prev,
+        submilestones: newSubmilestoneErrors
+      };
     });
   };
 
@@ -491,7 +657,27 @@ export default function Goals() {
             <h3 className="text-lg font-semibold text-surface-900">All Goals</h3>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+            {/* Add New Goal Card - First */}
+            <div 
+              className="p-4 sm:p-6 border-2 border-dashed border-surface-300 hover:border-primary-300 transition-colors cursor-pointer bg-white rounded-lg shadow-sm min-h-[320px] sm:min-h-[380px] lg:min-h-[420px] flex items-center justify-center"
+              onClick={openAddModal}
+            >
+              <div className="text-center">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary-100 rounded-full flex items-center justify-center mb-3 sm:mb-4 mx-auto">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                </div>
+                <h4 className="text-base sm:text-lg font-medium text-surface-900 mb-2 sm:mb-3">
+                  Add New Goal
+                </h4>
+                <p className="text-sm sm:text-base text-surface-600">
+                  Create a financial or personal development goal
+                </p>
+              </div>
+            </div>
+
             {/* Existing Goals */}
             {goals?.intermediateGoals
               ?.slice()
@@ -504,14 +690,14 @@ export default function Goals() {
               })
               ?.map((goal, index) => (
               <div key={goal.id || index} className="cursor-pointer" onClick={() => openDetailsModal(goal)}>
-                <Card variant="glass" className="p-2 sm:p-3 lg:p-4 h-[300px] sm:h-[350px] lg:h-[400px] flex flex-col" hover>
-                {/* Header Section - Fixed Height */}
-                <div className="h-14 sm:h-16 mb-1 sm:mb-2 flex-shrink-0">
+                <Card variant="glass" className="p-3 sm:p-4 lg:p-5 min-h-[320px] sm:min-h-[380px] lg:min-h-[420px] flex flex-col" hover>
+                {/* Header Section */}
+                <div className="mb-3 sm:mb-4 flex-shrink-0">
                   {/* Header with icon and title */}
-                  <div className="flex items-start gap-1 sm:gap-2 mb-1 sm:mb-2">
-                    <span className="text-sm sm:text-lg mt-0.5 flex-shrink-0">{getGoalTypeIcon(goal.type)}</span>
+                  <div className="flex items-start gap-2 sm:gap-3 mb-2 sm:mb-3">
+                    <span className="text-lg sm:text-xl mt-0.5 flex-shrink-0">{getGoalTypeIcon(goal.type)}</span>
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-sm sm:text-base font-semibold text-surface-900 leading-tight break-words line-clamp-2" title={goal.title}>
+                      <h4 className="text-sm sm:text-base lg:text-lg font-semibold text-surface-900 leading-tight break-words" title={goal.title}>
                         {goal.title}
                       </h4>
                     </div>
@@ -520,10 +706,10 @@ export default function Goals() {
                         e.stopPropagation();
                         openEditModal(goal);
                       }}
-                      className="text-surface-400 hover:text-surface-600 transition-colors flex-shrink-0 ml-2"
+                      className="text-surface-400 hover:text-surface-600 transition-colors flex-shrink-0"
                       title="Edit goal"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                     </button>
@@ -531,29 +717,29 @@ export default function Goals() {
                   
                   {/* Tags row */}
                   <div className="flex items-center gap-1 sm:gap-2">
-                    <span className={`px-1.5 sm:px-2 py-0.5 text-xs font-medium rounded-full ${getGoalTypeColor(goal.type)}`}>
+                    <span className={`px-2 py-1 text-xs sm:text-sm font-medium rounded-full ${getGoalTypeColor(goal.type)}`}>
                       {goal.type}
                     </span>
                     <Badge 
                       variant={goal.status === 'Completed' ? 'success' : goal.status === 'In Progress' ? 'primary' : 'neutral' as any} 
-                      className="px-1.5 sm:px-2 py-0.5 text-xs font-medium"
+                      className="px-2 py-1 text-xs sm:text-sm font-medium"
                     >
                       {goal.status}
                     </Badge>
                   </div>
                 </div>
                 
-                {/* Progress Section - Fixed Height */}
-                <div className="h-10 sm:h-12 mb-1 sm:mb-2 flex-shrink-0">
-                  <div className="flex justify-between items-center mb-1 sm:mb-2">
-                    <span className="text-xs sm:text-sm font-medium text-surface-600">Progress</span>
-                    <span className="text-xs sm:text-sm font-medium text-surface-600">
+                {/* Progress Section */}
+                <div className="mb-3 sm:mb-4 flex-shrink-0">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium text-surface-600">Progress</span>
+                    <span className="text-sm font-medium text-surface-600">
                       {getGoalProgress(goal).toFixed(1)}%
                     </span>
                   </div>
-                  <div className="w-full bg-surface-200 rounded-full h-1.5 sm:h-2">
+                  <div className="w-full bg-surface-200 rounded-full h-2 sm:h-3">
                     <div 
-                      className={`h-1.5 sm:h-2 rounded-full transition-all duration-300 ${
+                      className={`h-2 sm:h-3 rounded-full transition-all duration-300 ${
                         goal.type === 'financial' 
                           ? 'bg-gradient-to-r from-green-500 to-emerald-500'
                           : 'bg-gradient-to-r from-blue-500 to-purple-500'
@@ -565,8 +751,8 @@ export default function Goals() {
                   </div>
                 </div>
 
-                {/* Details Section - Fixed Height */}
-                <div className="h-16 mb-2 flex-shrink-0">
+                {/* Details Section */}
+                <div className="mb-3 sm:mb-4 flex-shrink-0">
                   <div className="space-y-2 text-sm">
                     {goal.type === 'financial' ? (
                       <>
@@ -636,26 +822,6 @@ export default function Goals() {
                 </Card>
               </div>
             )) || []}
-            
-            {/* Add New Goal Card */}
-            <div 
-              className="p-3 sm:p-4 border-2 border-dashed border-surface-300 hover:border-primary-300 transition-colors cursor-pointer bg-white rounded-lg shadow-sm h-[300px] sm:h-[350px] lg:h-[400px] flex items-center justify-center"
-              onClick={openAddModal}
-            >
-              <div className="text-center">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary-100 rounded-full flex items-center justify-center mb-2 sm:mb-3 mx-auto">
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                </div>
-                <h4 className="text-sm sm:text-base font-medium text-surface-900 mb-1 sm:mb-2">
-                  Add New Goal
-                </h4>
-                <p className="text-xs sm:text-sm text-surface-600">
-                  Create a financial or personal development goal
-                </p>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -670,14 +836,15 @@ export default function Goals() {
             <Input
               label="Goal Title"
               value={goalForm.title}
-              onChange={(e) => setGoalForm({...goalForm, title: e.target.value})}
+              onChange={(e) => handleGoalFormChange('title', e.target.value)}
               placeholder="Save $10,000 for emergency fund"
+              error={goalErrors.title}
             />
             
             <Select
               label="Goal Type"
               value={goalForm.type}
-              onChange={(e) => setGoalForm({...goalForm, type: e.target.value as any})}
+              onChange={(e) => handleGoalFormChange('type', e.target.value as any)}
               options={goalTypeOptions}
             />
             
@@ -687,15 +854,17 @@ export default function Goals() {
                   label="Target Amount ($)"
                   type="number"
                   value={goalForm.targetAmount}
-                  onChange={(e) => setGoalForm({...goalForm, targetAmount: e.target.value})}
+                  onChange={(e) => handleGoalFormChange('targetAmount', e.target.value)}
                   placeholder="10000"
+                  error={goalErrors.targetAmount}
                 />
                 <Input
                   label="Current Amount ($)"
                   type="number"
                   value={goalForm.currentAmount}
-                  onChange={(e) => setGoalForm({...goalForm, currentAmount: e.target.value})}
+                  onChange={(e) => handleGoalFormChange('currentAmount', e.target.value)}
                   placeholder="2500"
+                  error={goalErrors.currentAmount}
                 />
               </div>
             ) : (
@@ -703,21 +872,22 @@ export default function Goals() {
                 label="Progress (%)"
                 type="number"
                 value={goalForm.progress}
-                onChange={(e) => setGoalForm({...goalForm, progress: e.target.value})}
+                onChange={(e) => handleGoalFormChange('progress', e.target.value)}
                 placeholder="25"
+                error={goalErrors.progress}
               />
             )}
             
             <DatePicker
               label="Target Date (Optional)"
               value={goalForm.targetDate}
-              onChange={(date) => setGoalForm({...goalForm, targetDate: date || ''})}
+              onChange={(date) => handleGoalFormChange('targetDate', date || '')}
             />
             
             <Select
               label="Status"
               value={goalForm.status}
-              onChange={(e) => setGoalForm({...goalForm, status: e.target.value})}
+              onChange={(e) => handleGoalFormChange('status', e.target.value)}
               options={[
                 { value: 'Not Started', label: 'Not Started' },
                 { value: 'In Progress', label: 'In Progress' },
@@ -731,7 +901,7 @@ export default function Goals() {
               </label>
               <textarea
                 value={goalForm.description}
-                onChange={(e) => setGoalForm({...goalForm, description: e.target.value})}
+                onChange={(e) => handleGoalFormChange('description', e.target.value)}
                 placeholder="Additional details about this goal..."
                 rows={2}
                 className="w-full px-2 py-1.5 text-base border border-surface-300 rounded-md shadow-sm placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -780,6 +950,7 @@ export default function Goals() {
                           value={submilestone.title}
                           onChange={(e) => updateSubmilestone(index, 'title', e.target.value)}
                           placeholder="Submilestone title"
+                          error={goalErrors.submilestones?.[index]?.title}
                         />
                         
                         <div className={`grid gap-1.5 ${goalForm.type === 'financial' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
@@ -790,6 +961,7 @@ export default function Goals() {
                               value={submilestone.targetAmount}
                               onChange={(e) => updateSubmilestone(index, 'targetAmount', e.target.value)}
                               placeholder="1000"
+                              error={goalErrors.submilestones?.[index]?.targetAmount}
                             />
                           )}
                           <DatePicker

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Debt } from '../services/firestore';
 import { DEFAULT_DEBT } from '../constants/financial';
-import { isValidDebt, generateId, addItemToArray, updateItemInArray } from '../utils/financial';
+import { isValidDebt, generateId, addItemToArray, updateItemInArray, validateDebtBalance, validateInterestRate } from '../utils/financial';
 
 export interface UseDebtModalReturn {
   // Modal state
@@ -17,12 +17,24 @@ export interface UseDebtModalReturn {
   
   // Validation
   isFormValid: boolean;
+  errors: {
+    name?: string;
+    balance?: string;
+    interestRate?: string;
+  };
+  validateField: (field: keyof Debt, value: any) => void;
+  clearError: (field: keyof Debt) => void;
 }
 
 export const useDebtModal = (): UseDebtModalReturn => {
   const [showModal, setShowModal] = useState(false);
   const [editingDebt, setEditingDebt] = useState<Debt | null>(null);
   const [debtForm, setDebtForm] = useState<Debt>(DEFAULT_DEBT);
+  const [errors, setErrors] = useState<{
+    name?: string;
+    balance?: string;
+    interestRate?: string;
+  }>({});
 
   const openModal = (debt?: Debt) => {
     if (debt) {
@@ -32,6 +44,7 @@ export const useDebtModal = (): UseDebtModalReturn => {
       setEditingDebt(null);
       setDebtForm(DEFAULT_DEBT);
     }
+    setErrors({});  // Clear errors when opening modal
     setShowModal(true);
   };
 
@@ -39,17 +52,55 @@ export const useDebtModal = (): UseDebtModalReturn => {
     setShowModal(false);
     setEditingDebt(null);
     setDebtForm(DEFAULT_DEBT);
+    setErrors({});  // Clear errors when closing modal
+  };
+
+  const validateField = (field: keyof Debt, value: any) => {
+    let error = '';
+    
+    switch (field) {
+      case 'name':
+        if (!value || !value.trim()) {
+          error = 'Debt name is required';
+        }
+        break;
+      case 'balance':
+        error = validateDebtBalance(value);
+        break;
+      case 'interestRate':
+        error = validateInterestRate(value);
+        break;
+    }
+    
+    setErrors(prev => ({ ...prev, [field]: error }));
+  };
+
+  const clearError = (field: keyof Debt) => {
+    setErrors(prev => ({ ...prev, [field]: '' }));
   };
 
   const updateForm = (updates: Partial<Debt>) => {
     setDebtForm(prev => ({ ...prev, ...updates }));
+    
+    // Validate updated fields
+    Object.keys(updates).forEach(key => {
+      const field = key as keyof Debt;
+      validateField(field, updates[field]);
+    });
   };
 
   const handleSave = async (
     debts: Debt[], 
     onSave: (updatedDebts: Debt[]) => Promise<void>
   ) => {
-    if (!isValidDebt(debtForm)) return;
+    // Validate all fields before saving
+    validateField('name', debtForm.name);
+    validateField('balance', debtForm.balance);
+    validateField('interestRate', debtForm.interestRate);
+    
+    // Check if form has any errors
+    const hasErrors = Object.values(errors).some(error => error);
+    if (!isValidDebt(debtForm) || hasErrors) return;
 
     const newDebt = {
       ...debtForm,
@@ -67,7 +118,7 @@ export const useDebtModal = (): UseDebtModalReturn => {
     closeModal();
   };
 
-  const isFormValid = isValidDebt(debtForm);
+  const isFormValid = isValidDebt(debtForm) && !Object.values(errors).some(error => error);
 
   return {
     // Modal state
@@ -82,6 +133,9 @@ export const useDebtModal = (): UseDebtModalReturn => {
     handleSave,
     
     // Validation
-    isFormValid
+    isFormValid,
+    errors,
+    validateField,
+    clearError
   };
 }; 

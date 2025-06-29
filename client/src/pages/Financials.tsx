@@ -14,7 +14,8 @@ import {
   getCashFlowColor,
   removeItemFromArray,
   calculateTotalAssets,
-  calculateTotalDebts
+  calculateTotalDebts,
+  validateFinancialAmount
 } from '../utils/financial';
 import { 
   formatNumberForDisplay, 
@@ -23,6 +24,7 @@ import {
   getArrayStatus 
 } from '../utils/formatters';
 import { useUnsavedChanges, UnsavedChangesPrompt } from '../utils/unsavedChanges';
+import { useState } from 'react';
 
 export default function FinancialsRefactored() {
   // Custom hooks for financial data management
@@ -46,6 +48,39 @@ export default function FinancialsRefactored() {
   const assetModal = useAssetModal();
   const debtModal = useDebtModal();
 
+  // Error state for financial info fields
+  const [financialErrors, setFinancialErrors] = useState<{
+    annualIncome?: string;
+    annualExpenses?: string;
+    currentSavings?: string;
+  }>({});
+
+  // Validation functions for financial info
+  const validateFinancialField = (field: string, value: number | null) => {
+    const fieldNames = {
+      annualIncome: 'Annual Income',
+      annualExpenses: 'Annual Expenses', 
+      currentSavings: 'Current Savings'
+    };
+    const error = validateFinancialAmount(value, fieldNames[field as keyof typeof fieldNames]);
+    setFinancialErrors(prev => ({ ...prev, [field]: error }));
+  };
+
+  const clearFinancialError = (field: string) => {
+    setFinancialErrors(prev => ({ ...prev, [field]: '' }));
+  };
+
+  const handleFinancialInfoChange = (field: string, value: string) => {
+    const numValue = parseNumberInput(value);
+    setFinancialInfo({...financialInfo, [field]: numValue});
+    
+    // Validate on change and clear error if valid
+    const error = validateFinancialAmount(numValue, field.replace(/([A-Z])/g, ' $1').toLowerCase());
+    if (!error) {
+      clearFinancialError(field);
+    }
+  };
+
   // Unsaved changes protection
   const { showPrompt, confirmNavigation, cancelNavigation } = useUnsavedChanges(
     hasFinancialInfoChanged,
@@ -64,6 +99,22 @@ export default function FinancialsRefactored() {
     const debtsArray = formatArrayForDisplay(debts);
     const updatedDebts = removeItemFromArray(debtsArray, debtId);
     await saveDebtWithTotals(updatedDebts);
+  };
+
+  // Handle save with validation
+  const handleSaveFinancialInfo = async () => {
+    // Validate all fields before saving
+    validateFinancialField('annualIncome', financialInfo.annualIncome);
+    validateFinancialField('annualExpenses', financialInfo.annualExpenses);
+    validateFinancialField('currentSavings', financialInfo.currentSavings);
+    
+    // Check if any errors exist
+    const hasErrors = Object.values(financialErrors).some(error => error);
+    if (hasErrors) {
+      return; // Don't save if there are errors
+    }
+    
+    await saveFinancialInfo();
   };
 
   if (loading) {
@@ -175,7 +226,7 @@ export default function FinancialsRefactored() {
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-base sm:text-lg font-semibold text-surface-900">Income & Expenses</h2>
               <Button 
-                onClick={saveFinancialInfo}
+                onClick={handleSaveFinancialInfo}
                 disabled={savingSection === 'info' || !hasFinancialInfoChanged}
                 variant={hasFinancialInfoChanged ? 'primary' : 'outline'}
                 size="sm"
@@ -192,16 +243,18 @@ export default function FinancialsRefactored() {
                   label="Annual Income"
                   type="number"
                   value={formatNumberForDisplay(financialInfo.annualIncome)}
-                  onChange={(e) => setFinancialInfo({...financialInfo, annualIncome: parseNumberInput(e.target.value)})}
+                  onChange={(e) => handleFinancialInfoChange('annualIncome', e.target.value)}
                   placeholder="75000"
+                  error={financialErrors.annualIncome}
                 />
                 
                 <Input
                   label="Annual Expenses"
                   type="number"
                   value={formatNumberForDisplay(financialInfo.annualExpenses)}
-                  onChange={(e) => setFinancialInfo({...financialInfo, annualExpenses: parseNumberInput(e.target.value)})}
+                  onChange={(e) => handleFinancialInfoChange('annualExpenses', e.target.value)}
                   placeholder="45000"
+                  error={financialErrors.annualExpenses}
                 />
               </div>
               
@@ -209,8 +262,9 @@ export default function FinancialsRefactored() {
                 label="Current Savings"
                 type="number"
                 value={formatNumberForDisplay(financialInfo.currentSavings)}
-                onChange={(e) => setFinancialInfo({...financialInfo, currentSavings: parseNumberInput(e.target.value)})}
+                onChange={(e) => handleFinancialInfoChange('currentSavings', e.target.value)}
                 placeholder="25000"
+                error={financialErrors.currentSavings}
               />
             </div>
           </Card>
@@ -412,6 +466,7 @@ export default function FinancialsRefactored() {
               value={assetModal.assetForm.name}
               onChange={(e) => assetModal.updateForm({name: e.target.value})}
               placeholder="Primary Home"
+              error={assetModal.errors.name}
             />
             
             <Select
@@ -427,6 +482,7 @@ export default function FinancialsRefactored() {
               value={assetModal.assetForm.value === 0 ? '' : assetModal.assetForm.value.toString()}
               onChange={(e) => assetModal.updateForm({value: parseFloat(e.target.value) || 0})}
               placeholder="500000"
+              error={assetModal.errors.value}
             />
             
             <Textarea
@@ -472,6 +528,7 @@ export default function FinancialsRefactored() {
               value={debtModal.debtForm.name}
               onChange={(e) => debtModal.updateForm({name: e.target.value})}
               placeholder="Credit Card"
+              error={debtModal.errors.name}
             />
             
             <Select
@@ -487,6 +544,7 @@ export default function FinancialsRefactored() {
               value={debtModal.debtForm.balance === 0 ? '' : debtModal.debtForm.balance.toString()}
               onChange={(e) => debtModal.updateForm({balance: parseFloat(e.target.value) || 0})}
               placeholder="5000"
+              error={debtModal.errors.balance}
             />
             
             <Input
@@ -495,6 +553,7 @@ export default function FinancialsRefactored() {
               value={debtModal.debtForm.interestRate === 0 ? '' : (debtModal.debtForm.interestRate?.toString() || '')}
               onChange={(e) => debtModal.updateForm({interestRate: parseFloat(e.target.value) || 0})}
               placeholder="18.5"
+              error={debtModal.errors.interestRate}
             />
             
             <Textarea
