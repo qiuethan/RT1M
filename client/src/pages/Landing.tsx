@@ -25,33 +25,7 @@ const features = [
   }
 ];
 
-const testimonials = [
-  {
-    name: 'Sarah Chen',
-    role: 'Software Engineer',
-    content: 'RT1M helped me visualize my path to financial freedom. I\'ve saved $50k in just 8 months!',
-    avatar: '👩‍💻'
-  },
-  {
-    name: 'Marcus Johnson',
-    role: 'Entrepreneur',
-    content: 'The progress tracking keeps me motivated. I\'m 30% closer to my million-dollar goal.',
-    avatar: '👨‍💼'
-  },
-  {
-    name: 'Emily Rodriguez',
-    role: 'Designer',
-    content: 'Beautiful interface and powerful insights. This app changed how I think about money.',
-    avatar: '👩‍🎨'
-  }
-];
 
-const stats = [
-  { label: 'Active Users', value: '10,000+' },
-  { label: 'Total Saved', value: '$50M+' },
-  { label: 'Success Rate', value: '89%' },
-  { label: 'Average Growth', value: '24%' }
-];
 
 export default function Landing() {
   return (
