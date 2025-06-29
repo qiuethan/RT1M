@@ -782,8 +782,8 @@ export default function Goals() {
 
                 {/* Flexible Content Section */}
                 <div className="flex-1 overflow-hidden">
-                  <div className="mb-2 p-1.5 bg-surface-50 rounded text-xs text-surface-600 h-12">
-                    <div className="line-clamp-3 h-full flex items-start">
+                  <div className="mb-2 p-2 bg-surface-50 rounded text-xs text-surface-600 h-16">
+                    <div className="line-clamp-3 leading-relaxed">
                       {goal.description || (
                         <span className="text-surface-400 italic">
                           No Description Provided
