@@ -444,7 +444,7 @@ export default function Profile() {
 
         <div className="space-y-4">
           {/* Basic Information */}
-          <Card className="overflow-hidden">
+          <Card>
             <div 
               className="p-3 sm:p-4 lg:p-6 cursor-pointer bg-gradient-to-r from-primary-50 to-accent-50 border-b border-surface-200"
               onClick={() => toggleSection('basic')}

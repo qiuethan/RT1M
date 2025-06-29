@@ -23,7 +23,6 @@ const DatePicker: React.FC<DatePickerProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [isMobile, setIsMobile] = useState(false);
   
   // Parse a date string as local date (avoiding timezone shifts)
   const parseLocalDate = (dateString: string): Date | null => {
@@ -37,21 +36,9 @@ const DatePicker: React.FC<DatePickerProps> = ({
   );
   const [showYearSelector, setShowYearSelector] = useState(false);
   const [showMonthSelector, setShowMonthSelector] = useState(false);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   
   const inputRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Detect mobile device
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 640 || 'ontouchstart' in window);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   // Update selected date when value prop changes
   useEffect(() => {
@@ -66,36 +53,8 @@ const DatePicker: React.FC<DatePickerProps> = ({
     }
   }, [value]);
 
-  // Calculate dropdown position (only for desktop)
+  // Close dropdown when clicking outside
   useEffect(() => {
-    if (isOpen && inputRef.current && !isMobile) {
-      const rect = inputRef.current.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      
-      const top = rect.bottom + window.scrollY + 4;
-      
-      let left: number;
-      let width: number;
-      
-      left = rect.left + window.scrollX;
-      width = Math.max(rect.width, 320);
-      
-      if (left + width > viewportWidth - 16) {
-        left = viewportWidth - width - 16;
-      }
-      if (left < 16) {
-        left = 16;
-        width = Math.min(width, viewportWidth - 32);
-      }
-      
-      setDropdownPosition({ top, left, width });
-    }
-  }, [isOpen, showYearSelector, showMonthSelector, isMobile]);
-
-  // Close dropdown when clicking outside (desktop only)
-  useEffect(() => {
-    if (isMobile) return;
-
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
           inputRef.current && !inputRef.current.contains(event.target as Node)) {
@@ -105,43 +64,14 @@ const DatePicker: React.FC<DatePickerProps> = ({
       }
     };
 
-    const handleScroll = () => {
-      if (isOpen && inputRef.current) {
-        const rect = inputRef.current.getBoundingClientRect();
-        const viewportWidth = window.innerWidth;
-        
-        const top = rect.bottom + window.scrollY + 4;
-        let left = rect.left + window.scrollX;
-        let width = Math.max(rect.width, 320);
-        
-        if (left + width > viewportWidth - 16) {
-          left = viewportWidth - width - 16;
-        }
-        if (left < 16) {
-          left = 16;
-          width = Math.min(width, viewportWidth - 32);
-        }
-        
-        setDropdownPosition({ top, left, width });
-      }
-    };
-
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
-      window.addEventListener('scroll', handleScroll, true);
-      window.addEventListener('resize', handleScroll);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-        window.removeEventListener('scroll', handleScroll, true);
-        window.removeEventListener('resize', handleScroll);
-      };
+      return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [isOpen, showYearSelector, showMonthSelector, isMobile]);
+  }, [isOpen]);
 
-  // Close on escape key (desktop only)
+  // Close on escape key
   useEffect(() => {
-    if (isMobile) return;
-
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsOpen(false);
@@ -154,12 +84,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
       document.addEventListener('keydown', handleEscape);
       return () => document.removeEventListener('keydown', handleEscape);
     }
-  }, [isOpen, isMobile]);
-
-  const handleNativeDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const dateValue = e.target.value;
-    onChange?.(dateValue || null);
-  };
+  }, [isOpen]);
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -287,54 +212,46 @@ const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   const renderDropdown = () => {
-    if (!isOpen || disabled || isMobile) return null;
+    if (!isOpen || disabled) return null;
 
     return (
       <div 
         ref={dropdownRef}
-        className="fixed z-[9999] bg-white border border-surface-200 rounded-lg shadow-xl"
-        style={{
-          top: `${dropdownPosition.top}px`,
-          left: `${dropdownPosition.left}px`,
-          width: `${dropdownPosition.width}px`,
-          maxHeight: `${window.innerHeight - 100}px`,
-          overflowY: 'auto',
-          padding: '16px'
-        }}
+        className="absolute z-[9999] mt-1 bg-white border border-surface-200 rounded-lg shadow-xl p-2 sm:p-4 w-full min-w-[280px]"
       >
         {/* Header with month/year selectors */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-1">
+        <div className="flex items-center justify-between mb-2 sm:mb-4">
+          <div className="flex items-center space-x-0.5 sm:space-x-1">
             <button
               onClick={() => navigateYear('prev')}
-              className="p-1 hover:bg-surface-100 rounded-md transition-colors"
+              className="p-0.5 sm:p-1 hover:bg-surface-100 rounded-md transition-colors"
               title="Previous year"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
               </svg>
             </button>
             <button
               onClick={() => navigateMonth('prev')}
-              className="p-1 hover:bg-surface-100 rounded-md transition-colors"
+              className="p-0.5 sm:p-1 hover:bg-surface-100 rounded-md transition-colors"
               title="Previous month"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
           </div>
           
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center space-x-0.5 sm:space-x-1 flex-1 justify-center">
             <button
               onClick={() => {
                 setShowMonthSelector(!showMonthSelector);
                 setShowYearSelector(false);
               }}
-              className="flex items-center space-x-1 px-3 py-1 text-sm font-medium text-surface-900 hover:bg-surface-100 rounded-md transition-colors"
+              className="flex items-center space-x-0.5 sm:space-x-1 px-1 sm:px-3 py-1 text-xs sm:text-sm font-medium text-surface-900 hover:bg-surface-100 rounded-md transition-colors"
             >
-              <span>{months[currentDate.getMonth()]}</span>
-              <svg className={`w-3 h-3 text-surface-500 transition-transform ${showMonthSelector ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span className="truncate">{months[currentDate.getMonth()].slice(0, 3)}</span>
+              <svg className={`w-2 h-2 sm:w-3 sm:h-3 text-surface-500 transition-transform ${showMonthSelector ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
@@ -343,31 +260,31 @@ const DatePicker: React.FC<DatePickerProps> = ({
                 setShowYearSelector(!showYearSelector);
                 setShowMonthSelector(false);
               }}
-              className="flex items-center space-x-1 px-3 py-1 text-sm font-medium text-surface-900 hover:bg-surface-100 rounded-md transition-colors"
+              className="flex items-center space-x-0.5 sm:space-x-1 px-1 sm:px-3 py-1 text-xs sm:text-sm font-medium text-surface-900 hover:bg-surface-100 rounded-md transition-colors"
             >
               <span>{currentDate.getFullYear()}</span>
-              <svg className={`w-3 h-3 text-surface-500 transition-transform ${showYearSelector ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`w-2 h-2 sm:w-3 sm:h-3 text-surface-500 transition-transform ${showYearSelector ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
           </div>
           
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center space-x-0.5 sm:space-x-1">
             <button
               onClick={() => navigateMonth('next')}
-              className="p-1 hover:bg-surface-100 rounded-md transition-colors"
+              className="p-0.5 sm:p-1 hover:bg-surface-100 rounded-md transition-colors"
               title="Next month"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
             <button
               onClick={() => navigateYear('next')}
-              className="p-1 hover:bg-surface-100 rounded-md transition-colors"
+              className="p-0.5 sm:p-1 hover:bg-surface-100 rounded-md transition-colors"
               title="Next year"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
               </svg>
             </button>
@@ -376,13 +293,13 @@ const DatePicker: React.FC<DatePickerProps> = ({
 
         {/* Month Selector */}
         {showMonthSelector && (
-          <div className="mb-4 p-3 bg-surface-50 rounded-lg">
-            <div className="grid grid-cols-3 gap-2">
+          <div className="mb-2 sm:mb-4 p-2 sm:p-3 bg-surface-50 rounded-lg">
+            <div className="grid grid-cols-3 gap-1 sm:gap-2">
               {months.map((month, index) => (
                 <button
                   key={month}
                   onClick={() => handleMonthSelect(index)}
-                  className={`p-2 text-sm rounded-md transition-colors ${
+                  className={`p-1 sm:p-2 text-xs sm:text-sm rounded-md transition-colors ${
                     currentDate.getMonth() === index
                       ? 'bg-primary-500 text-white'
                       : 'hover:bg-primary-100 text-surface-700'
@@ -397,13 +314,13 @@ const DatePicker: React.FC<DatePickerProps> = ({
 
         {/* Year Selector */}
         {showYearSelector && (
-          <div className="mb-4 p-3 bg-surface-50 rounded-lg max-h-48 overflow-y-auto">
-            <div className="grid grid-cols-4 gap-2">
+          <div className="mb-2 sm:mb-4 p-2 sm:p-3 bg-surface-50 rounded-lg max-h-32 sm:max-h-48 overflow-y-auto">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 sm:gap-2">
               {generateYearRange().map((year) => (
                 <button
                   key={year}
                   onClick={() => handleYearSelect(year)}
-                  className={`p-2 text-sm rounded-md transition-colors ${
+                  className={`p-1 sm:p-2 text-xs sm:text-sm rounded-md transition-colors ${
                     currentDate.getFullYear() === year
                       ? 'bg-primary-500 text-white'
                       : 'hover:bg-primary-100 text-surface-700'
@@ -420,30 +337,30 @@ const DatePicker: React.FC<DatePickerProps> = ({
         {!showMonthSelector && !showYearSelector && (
           <>
             {/* Days of week header */}
-            <div className="grid grid-cols-7 gap-1 mb-2">
+            <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-1 sm:mb-2">
               {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                <div key={day} className="p-2 text-xs font-medium text-surface-500 text-center">
+                <div key={day} className="p-1 sm:p-2 text-xs font-medium text-surface-500 text-center">
                   {day}
                 </div>
               ))}
             </div>
 
             {/* Calendar grid */}
-            <div className="grid grid-cols-7 gap-1 mb-4">
+            <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-2 sm:mb-4">
               {renderCalendar()}
             </div>
           </>
         )}
 
         {/* Quick actions */}
-        <div className="flex justify-between pt-4 border-t border-surface-200">
+        <div className="flex justify-between pt-2 sm:pt-4 border-t border-surface-200">
           <button
             onClick={() => {
               setSelectedDate(null);
               onChange?.(null);
               setIsOpen(false);
             }}
-            className="text-sm text-surface-500 hover:text-surface-700 transition-colors"
+            className="text-xs sm:text-sm text-surface-500 hover:text-surface-700 transition-colors"
           >
             Clear
           </button>
@@ -455,7 +372,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
               onChange?.(formatValueDate(today));
               setIsOpen(false);
             }}
-            className="text-sm text-primary-600 hover:text-primary-700 font-medium transition-colors"
+            className="text-xs sm:text-sm text-primary-600 hover:text-primary-700 font-medium transition-colors"
           >
             Today
           </button>
@@ -473,53 +390,35 @@ const DatePicker: React.FC<DatePickerProps> = ({
         </label>
       )}
       
-      {isMobile ? (
-        // Native date input for mobile
-        <input
-          type="date"
-          value={value || ''}
-          onChange={handleNativeDateChange}
-          disabled={disabled}
-          className={`w-full px-2 py-1.5 text-base border rounded-md bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-            disabled 
-              ? 'bg-surface-50 text-surface-400 cursor-not-allowed border-surface-200' 
-              : error
-                ? 'border-error-300 focus:ring-error-500 focus:border-error-500'
-                : 'border-surface-300 hover:border-surface-400'
-          }`}
-        />
-      ) : (
-        // Custom date picker for desktop
-        <button
-          ref={inputRef}
-          type="button"
-          onClick={() => !disabled && setIsOpen(!isOpen)}
-          disabled={disabled}
-          className={`w-full px-2 py-1.5 text-base text-left border rounded-md bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
-            disabled 
-              ? 'bg-surface-50 text-surface-400 cursor-not-allowed border-surface-200' 
-              : error
-                ? 'border-error-300 focus:ring-error-500 focus:border-error-500'
-                : 'border-surface-300 hover:border-surface-400'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className={selectedDate ? 'text-surface-900' : 'text-surface-400'}>
-              {selectedDate ? formatDisplayDate(selectedDate) : placeholder}
-            </span>
-            <svg className="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </div>
-        </button>
-      )}
+      <button
+        ref={inputRef}
+        type="button"
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        disabled={disabled}
+        className={`w-full px-2 py-1.5 text-base text-left border rounded-md bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+          disabled 
+            ? 'bg-surface-50 text-surface-400 cursor-not-allowed border-surface-200' 
+            : error
+              ? 'border-error-300 focus:ring-error-500 focus:border-error-500'
+              : 'border-surface-300 hover:border-surface-400'
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <span className={selectedDate ? 'text-surface-900' : 'text-surface-400'}>
+            {selectedDate ? formatDisplayDate(selectedDate) : placeholder}
+          </span>
+          <svg className="w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        </div>
+      </button>
       
       {error && (
         <p className="mt-1 text-sm text-error-500">{error}</p>
       )}
 
-      {/* Custom dropdown only for desktop */}
-      {!isMobile && renderDropdown()}
+      {/* Custom dropdown */}
+      {renderDropdown()}
     </div>
   );
 };
