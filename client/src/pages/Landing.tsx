@@ -248,7 +248,7 @@ export default function Landing() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center">
             <Link to="/signup" className="w-full sm:w-auto">
-              <Button size="lg" variant="secondary" className="w-full sm:w-auto min-h-[48px]">
+              <Button size="lg" variant="secondary" className="w-full sm:w-auto border-2 border-transparent min-h-[48px]">
                 Get Started Free
               </Button>
             </Link>
