@@ -248,12 +248,12 @@ export default function Landing() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center">
             <Link to="/signup" className="w-full sm:w-auto">
-              <Button size="lg" variant="accent" className="w-full sm:w-auto bg-white text-primary-600 hover:bg-primary-50 min-h-[48px]">
+              <Button size="lg" variant="secondary" className="w-full sm:w-auto min-h-[48px]">
                 Get Started Free
               </Button>
             </Link>
             <Link to="/login" className="w-full sm:w-auto">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto border-white text-white hover:bg-white/10 min-h-[48px]">
+              <Button size="lg" variant="primary" className="w-full sm:w-auto border-2 border-white bg-transparent text-white hover:bg-white hover:text-primary-600 focus:ring-white min-h-[48px]">
                 Sign In
               </Button>
             </Link>
