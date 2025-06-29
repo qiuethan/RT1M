@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useChatContext } from '../contexts/ChatContext';
-import { Card, Button, Badge, Modal, Input, Select, DatePicker, LoadingSpinner } from '../components/ui';
+import { Card, Button, Badge, Modal, Input, Select, DatePicker, LoadingSpinner, ChatHelpModal } from '../components/ui';
 import Footer from '../components/Footer';
 import { MiniChatbot } from '../components/MiniChatbot';
 import { 
@@ -32,6 +32,7 @@ export const Dashboard: React.FC = () => {
   const [nextMilestone, setNextMilestone] = useState<{ nextMilestone: any; progressToNext: number } | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<IntermediateGoal | null>(null);
   const [saving, setSaving] = useState(false);
   const [savingProgress, setSavingProgress] = useState(false);
@@ -645,6 +646,17 @@ export const Dashboard: React.FC = () => {
               <Button 
                 variant="outline" 
                 className="w-full justify-start text-sm sm:text-base py-2 sm:py-3"
+                onClick={() => setShowHelpModal(true)}
+              >
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Chatbot Help & Tips
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="w-full justify-start text-sm sm:text-base py-2 sm:py-3"
                 onClick={() => navigate('/goals')}
               >
                 <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -939,6 +951,12 @@ export const Dashboard: React.FC = () => {
       
       {/* Mini Chatbot */}
       <MiniChatbot />
+
+      {/* ChatHelpModal */}
+      <ChatHelpModal 
+        isOpen={showHelpModal}
+        onClose={() => setShowHelpModal(false)}
+      />
       
               {/* Goal Edit/Add Modal */}
         <Modal

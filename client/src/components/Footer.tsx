@@ -21,7 +21,7 @@ const Footer = () => {
         
         <div className="border-t border-surface-800 mt-8 pt-8 text-center text-sm text-surface-400">
           <p>&copy; 2025 RT1M.app. All rights reserved. Build your wealth, secure your future.</p>
-          <p className="mt-2 text-xs text-surface-500">Alpha Test Version 0.1.0</p>
+          <p className="mt-2 text-xs text-surface-500">Beta</p>
         </div>
       </div>
     </footer>

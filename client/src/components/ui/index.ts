@@ -11,4 +11,5 @@ export { default as LoadingSpinner } from './LoadingSpinner';
 export { ToastContainer, useToast } from './Toast';
 export type { Toast } from './Toast';
 export { MarkdownMessage } from './MarkdownMessage';
+export { default as ChatHelpModal } from './ChatHelpModal';
  

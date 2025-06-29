@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, LoadingSpinner, MarkdownMessage } from './ui';
+import { Button, LoadingSpinner, MarkdownMessage, ChatHelpModal } from './ui';
 import { useChatContext } from '../contexts/ChatContext';
 
 export const MiniChatbot: React.FC = () => {
   const navigate = useNavigate();
   const { messages, addMessage, isTyping, isMiniChatbotOpen, toggleMiniChatbot, sendMessage, generatePlan } = useChatContext();
   const [inputValue, setInputValue] = useState('');
+  const [showHelp, setShowHelp] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -85,6 +86,15 @@ export const MiniChatbot: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowHelp(true)}
+            className="text-white/80 hover:text-white p-1 rounded"
+            title="Get help using the chatbot"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
           <button
             onClick={() => navigate('/chatbot')}
             className="text-white/80 hover:text-white p-1 rounded"
@@ -197,6 +207,9 @@ export const MiniChatbot: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* Help Modal */}
+      <ChatHelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
     </div>
   );
 }; 
