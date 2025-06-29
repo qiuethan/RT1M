@@ -5,6 +5,7 @@ import { ChatProvider } from './contexts/ChatContext';
 import { Navbar } from './components/Navbar';
 import PrivateRoute from './components/PrivateRoute';
 import HomeRoute from './components/HomeRoute';
+import ScrollToTop from './components/ScrollToTop';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import { Dashboard } from './pages/Dashboard';
@@ -48,6 +49,7 @@ function App() {
 
       <AuthProvider>
         <ChatProvider>
+          <ScrollToTop />
           <div className="relative z-10">
             <Navbar />
           
