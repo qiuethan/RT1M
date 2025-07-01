@@ -4,11 +4,13 @@ import { useChatContext } from '../contexts/ChatContext';
 import { Card, Button, Badge, Modal, Input, Select, DatePicker, LoadingSpinner, ChatHelpModal } from '../components/ui';
 import Footer from '../components/Footer';
 import { MiniChatbot } from '../components/MiniChatbot';
+import SubmilestonesCard from '../components/dashboard/SubmilestonesCard';
 import { 
   getUserStats, 
   getUserProfile,
   getUserIntermediateGoals,
   addIntermediateGoal,
+  updateIntermediateGoal,
   UserStats,
   UserProfile,
   UserGoals,
@@ -238,12 +240,39 @@ export const Dashboard: React.FC = () => {
         submilestones: updatedSubmilestones
       };
 
-      await addIntermediateGoal(updatedGoal);
+      if (selectedGoal.id) {
+        await updateIntermediateGoal(selectedGoal.id, updatedGoal);
+      }
       
       // Update the selected goal state
       setSelectedGoal(updatedGoal);
       
-      // Reload goals data
+    } catch (error) {
+      console.error('Error updating submilestone:', error);
+    }
+  };
+
+  // New function to handle submilestone toggle from the all submilestones card
+  const handleAllSubmilestonesToggle = async (goalId: string, submilestoneId: string) => {
+    try {
+      // Find the goal containing this submilestone
+      const targetGoal = goals?.intermediateGoals?.find(goal => goal.id === goalId);
+      if (!targetGoal || !targetGoal.submilestones) return;
+
+      // Update the submilestone
+      const updatedSubmilestones = targetGoal.submilestones.map(sub => 
+        sub.id === submilestoneId ? { ...sub, completed: !sub.completed } : sub
+      );
+
+      const updatedGoal: IntermediateGoal = {
+        ...targetGoal,
+        submilestones: updatedSubmilestones
+      };
+
+      // Update in database
+      await updateIntermediateGoal(goalId, updatedGoal);
+      
+      // Refresh goals data to update the display
       const updatedGoals = await getUserIntermediateGoals();
       setGoals(updatedGoals);
       
@@ -251,8 +280,6 @@ export const Dashboard: React.FC = () => {
       console.error('Error updating submilestone:', error);
     }
   };
-
-
 
   // Load dashboard data
   useEffect(() => {
@@ -689,6 +716,14 @@ export const Dashboard: React.FC = () => {
 
             </div>
           </Card>
+        </div>
+
+        {/* To-Do List - All Submilestones */}
+        <div className="mb-6 sm:mb-8">
+          <SubmilestonesCard 
+            goals={goals?.intermediateGoals || []}
+            onSubmilestoneToggle={handleAllSubmilestonesToggle}
+          />
         </div>
 
         {/* Intermediate Goals */}
