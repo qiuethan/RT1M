@@ -188,6 +188,49 @@ export const handleSmartChatMessage = onCall({
       sessionId
     );
     
+    // 🧠 MEMORY FIX: Automatically log conversation to maintain memory
+    try {
+      const db = admin.firestore();
+      const conversationRef = db.collection("users").doc(userId)
+        .collection("ai_conversations").doc();
+
+      const conversationLog = {
+        userId: userId,
+        sessionId: sessionId || "unknown",
+        userMessage: message.trim(),
+        aiResponse: response.message,
+        extractedData: {
+          financialInfo: response.financialInfo,
+          assets: response.assets,
+          debts: response.debts,
+          goals: response.goals,
+          skills: response.skills
+        },
+        confidence: null, // Could be enhanced later
+        clientTimestamp: null,
+        serverTimestamp: admin.firestore.FieldValue.serverTimestamp(),
+        routingDecision: response.routingDecision,
+        responseSource: response.responseSource
+      };
+
+      await conversationRef.set(conversationLog);
+      
+      logger.info("🧠 MEMORY: Conversation logged successfully", {
+        userId,
+        sessionId,
+        route: response.routingDecision?.route,
+        responseSource: response.responseSource
+      });
+      
+    } catch (loggingError) {
+      // Don't fail the chat if logging fails
+      logger.warn("⚠️ MEMORY: Failed to log conversation", {
+        userId,
+        sessionId,
+        error: loggingError.message
+      });
+    }
+    
     return {
       success: true,
       data: response
