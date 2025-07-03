@@ -56,6 +56,38 @@ export default function Landing() {
               and a clear path to building lasting wealth.
             </p>
 
+            {/* Demo Video - Desktop Only */}
+            <div className="hidden lg:block max-w-4xl mx-auto mb-8 lg:mb-12">
+              <div style={{ 
+                position: 'relative', 
+                boxSizing: 'content-box', 
+                maxHeight: '60vh',
+                width: '100%', 
+                aspectRatio: '2.1068032187271397', 
+                padding: '20px 0',
+                borderRadius: '12px',
+                overflow: 'hidden',
+                boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)'
+              }}>
+                <iframe 
+                  src="https://app.supademo.com/embed/cmcmtt0aa1n7k16b64z9eqijz?embed_v=2" 
+                  loading="lazy" 
+                  title="RT1M Demo" 
+                  allow="clipboard-write" 
+                  frameBorder="0" 
+                  allowFullScreen={true}
+                  style={{ 
+                    position: 'absolute', 
+                    top: 0, 
+                    left: 0, 
+                    width: '100%', 
+                    height: '100%',
+                    borderRadius: '12px'
+                  }}
+                />
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4 sm:px-0 mb-12 sm:mb-16">
               <Link to="/signup" className="w-full sm:w-auto">
                 <Button variant="primary" size="lg" className="w-full sm:w-auto group min-h-[48px] bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white">
