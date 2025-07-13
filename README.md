@@ -2,6 +2,15 @@
 
 A modern personal finance application with AI-powered conversational assistance, built to help users achieve their $1 million net worth goal through intelligent financial planning and management.
 
+<iframe
+  width="560" height="315"
+  src="https://www.youtube.com/embed/xIbfoLhTojI"
+  title="YouTube video player"
+  frameborder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowfullscreen>
+</iframe>
+
 ## 🎯 Overview
 
 RT1M is a full-stack web application that combines traditional financial tracking with cutting-edge AI assistance. Users can manage their finances through both a comprehensive dashboard interface and natural language conversations with an AI financial advisor.
