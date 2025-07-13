@@ -2,14 +2,7 @@
 
 A modern personal finance application with AI-powered conversational assistance, built to help users achieve their $1 million net worth goal through intelligent financial planning and management.
 
-<iframe
-  width="560" height="315"
-  src="https://www.youtube.com/embed/xIbfoLhTojI"
-  title="YouTube video player"
-  frameborder="0"
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-  allowfullscreen>
-</iframe>
+[![Watch on YouTube](https://img.youtube.com/vi/xIbfoLhTojI/0.jpg)](https://www.youtube.com/watch?v=xIbfoLhTojI)
 
 ## 🎯 Overview
 
